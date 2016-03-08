@@ -1,6 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module LiarsPoker where
+module LiarsPoker
+  ( newGame
+  , count
+  , move
+  , legal
+  ) where
 
 import           Control.Lens
 import           Control.Monad (replicateM)
