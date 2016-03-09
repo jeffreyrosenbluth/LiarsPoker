@@ -30,7 +30,7 @@ import           Data.List (zipWith4, find)
 import           Data.List.Split  (chunksOf)
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Maybe (fromMaybe)
+import           Data.Maybe
 import           System.Random
 
 data Card = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
@@ -177,7 +177,11 @@ value game = (factor, factor * (numPlayers - 1))
 scores :: Game -> Game
 scores game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
   where
-    reScore p = if Just p == game ^. bidder then (game ^. players ^? ix p . _Just) & score %~ (+ x) else (game ^. players ^? ix p . _Just) & score %~ (+ a)
+    reScore p
+      | game ^. bidder == Just p =
+          fromJust $ fmap (over score (+ x)) (game ^. players ^? ix p)
+      | otherwise =
+          fromJust $ fmap (over score (+ a)) (game ^. players ^? ix p)
     (a , x)   = maybe (0, 0) (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
     (ps, b)   = value game
 
