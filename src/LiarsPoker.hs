@@ -179,9 +179,9 @@ scores game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
   where
     reScore p
       | game ^. bidder == Just p =
-          fromJust $ fmap (over score (+ x)) (game ^. players ^? ix p)
+          (over score (+ x)) (game ^. players . singular (ix p))
       | otherwise =
-          fromJust $ fmap (over score (+ a)) (game ^. players ^? ix p)
+          (over score (+ a)) (game ^. players . singular (ix p))
     (a , x)   = maybe (0, 0) (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
     (ps, b)   = value game
 
