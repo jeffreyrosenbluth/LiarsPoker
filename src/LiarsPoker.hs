@@ -97,9 +97,7 @@ count game card = sum $ map (getCount card) (map (view hand) $ game ^. players)
 
 -- | Given a game and a playerId, return the players hand if the playerId exists.
 getHand :: Game -> Int -> Maybe Hand
-getHand game pId = fmap (view hand) plyr
-  where
-    plyr = find (\x -> x ^. playerId == pId) (game ^. players)
+getHand game pId = fmap (view hand) $ game ^. players ^? ix pId
 
 -- | Get the playerId of the bidder and his bid.
 getBid :: Game -> Maybe (Int, Bid)
