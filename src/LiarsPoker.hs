@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections   #-}
 
 module LiarsPoker
   ( Card(..)
@@ -15,6 +16,7 @@ module LiarsPoker
   , move
   , legal
   , value
+  , scores
 
    -- delete before release
   , game2, game5
@@ -58,9 +60,9 @@ data Game = Game
   { _gameId       :: Int
   , _numOfPlayers :: Int
   , _players      :: [Player]
-  , _bidder       :: Maybe Player
+  , _bidder       :: Maybe Int  -- ^ playerId
   , _bid          :: Bid
-  , _turn         :: Player
+  , _turn         :: Int        -- ^ playerId
   , _won          :: Maybe Bool
   , _rebid        :: Bool
   } deriving Show
@@ -91,22 +93,17 @@ int2Card n = case n of
   _ -> error "Tried to convert a number outisde of 0-9 to Card."
 
 count :: Game -> Card -> Int
-count game card = sum $ map (getCount card) (map (view hand) $ game ^. players)
+count game card = sum $ getCount . view hand <$> game ^. players
   where
-    getCount c h = fromMaybe 0 (M.lookup c h)
+    getCount h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players hand if the playerId exists.
 getHand :: Game -> Int -> Maybe Hand
-getHand game pId = fmap (view hand) $ game ^. players ^? ix pId
+getHand game pId = view hand <$> game ^. players ^? ix pId
 
 -- | Get the playerId of the bidder and his bid.
 getBid :: Game -> Maybe (Int, Bid)
-getBid game = case p of
-  Nothing -> Nothing
-  Just p' -> Just (p', game ^. bid)
-  where
-    b = game ^. bidder
-    p = fmap (view playerId) b
+getBid game = ( , game ^. bid) <$> game ^. bidder
 
 newGame :: Int      -- ^ seed to random number generator.
         -> Int      -- ^ Game Id.
@@ -119,14 +116,13 @@ newGame gId seed names =
        thePlayers
        Nothing
        (Bid minBound 0)
-       theTurn
+       0
        Nothing
        False
     where
       numPlayers   = length names
       theHands     = map toMap cards
       thePlayers   = zipWith4 Player [0..] names theHands (repeat 0)
-      theTurn : _  = thePlayers
       toMap xs     = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty xs
       cards        = chunksOf cardsPerHand
                    $ evalRand (replicateM (numPlayers * cardsPerHand)
@@ -146,10 +142,8 @@ mkBid game b = nextPlayer
 
 -- | Move the turn to the next player.
 nextPlayer :: Game -> Game
-nextPlayer game = game & turn .~ p
+nextPlayer game = game & turn %~ (\x -> x + 1 `mod` numPlayers)
   where
-    p = (game ^. players) !! ((n + 1) `mod` numPlayers)
-    n = game ^. turn . playerId
     numPlayers = game ^. numOfPlayers
 
 move :: Game -> Action -> Game
@@ -180,10 +174,12 @@ value game = (factor, factor * (numPlayers - 1))
     sixes      = if c == C6 then 2 else 1
     numPlayers = game ^. numOfPlayers
 
--- scores :: Game -> Game
--- scores game = maybe game (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
---   where
---     (ps, b) = value game
+scores :: Game -> Game
+scores game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
+  where
+    reScore p = if Just p == game ^. bidder then (game ^. players ^? ix p . _Just) & score %~ (+ x) else (game ^. players ^? ix p . _Just) & score %~ (+ a)
+    (a , x)   = maybe (0, 0) (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
+    (ps, b)   = value game
 
 game2 = newGame 0 2423    ["sonny", "cher"]
 game5 = newGame 1 7824391 ["alice", "bob", "charlie", "Daniel", "Edward"]
