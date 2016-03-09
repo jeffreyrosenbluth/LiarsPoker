@@ -1,16 +1,30 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module LiarsPoker
-  ( newGame
+  ( Card(..)
+  , Bid(..), bidCard, bidQuant
+  , Player(..), playerId, name, hand, score
+  , Game(..), gameId, numOfPlayers, players, bidder, bid, turn, won, rebid
+  , Action(..), _Raise, _Challenge, _Count
+
+  , newGame
+  , getHand
+  , getBid
+  , mkBid
   , count
   , move
   , legal
+  , value
+
+   -- delete before release
+  , game2, game5
+
   ) where
 
 import           Control.Lens
 import           Control.Monad (replicateM)
 import           Control.Monad.Random
-import           Data.List (zipWith4)
+import           Data.List (zipWith4, find)
 import           Data.List.Split  (chunksOf)
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -33,7 +47,7 @@ instance Ord Bid where
 makeLenses ''Bid
 
 data Player = Player
-  { _idNum :: Int
+  { _playerId :: Int
   , _name  :: String
   , _hand  :: Hand
   , _score :: Int
@@ -41,7 +55,8 @@ data Player = Player
 makeLenses ''Player
 
 data Game = Game
-  { _numOfPlayers :: Int
+  { _gameId       :: Int
+  , _numOfPlayers :: Int
   , _players      :: [Player]
   , _bidder       :: Maybe Player
   , _bid          :: Bid
@@ -80,12 +95,29 @@ count game card = sum $ map (getCount card) (map (view hand) $ game ^. players)
   where
     getCount c h = fromMaybe 0 (M.lookup c h)
 
+-- | Given a game and a playerId, return the players hand if the playerId exists.
+getHand :: Game -> Int -> Maybe Hand
+getHand game pId = fmap (view hand) plyr
+  where
+    plyr = find (\x -> x ^. playerId == pId) (game ^. players)
+
+-- | Get the playerId of the bidder and his bid.
+getBid :: Game -> Maybe (Int, Bid)
+getBid game = case p of
+  Nothing -> Nothing
+  Just p' -> Just (p', game ^. bid)
+  where
+    b = game ^. bidder
+    p = fmap (view playerId) b
+
 newGame :: Int      -- ^ seed to random number generator.
+        -> Int      -- ^ Game Id.
         -> [String] -- ^ player names
         -> Game
-newGame seed []    = error "A game must have players."
-newGame seed names =
-  Game (length names)
+newGame _ _ []    = error "A game must have players."
+newGame gId seed names =
+  Game gId
+       (length names)
        thePlayers
        Nothing
        (Bid minBound 0)
@@ -119,7 +151,7 @@ nextPlayer :: Game -> Game
 nextPlayer game = game & turn .~ p
   where
     p = (game ^. players) !! ((n + 1) `mod` numPlayers)
-    n = game ^. turn . idNum
+    n = game ^. turn . playerId
     numPlayers = game ^. numOfPlayers
 
 move :: Game -> Action -> Game
@@ -141,5 +173,19 @@ legal game action = case action of
     bd = game ^. bidder
     t  = game ^. turn
 
-game2 = newGame 2423    ["sonny", "cher"]
-game5 = newGame 7824391 ["alice", "bob", "charlie", "Daniel", "Edward"]
+value :: Game -> (Int, Int)
+value game = (factor, factor * (numPlayers - 1))
+  where
+    factor     = sixes * mult
+    Bid c n    = game ^. bid
+    mult       = if n < numPlayers + 3 then 1 else 2 + (n - numPlayers - 3) `div` 2
+    sixes      = if c == C6 then 2 else 1
+    numPlayers = game ^. numOfPlayers
+
+-- scores :: Game -> Game
+-- scores game = maybe game (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
+--   where
+--     (ps, b) = value game
+
+game2 = newGame 0 2423    ["sonny", "cher"]
+game5 = newGame 1 7824391 ["alice", "bob", "charlie", "Daniel", "Edward"]
