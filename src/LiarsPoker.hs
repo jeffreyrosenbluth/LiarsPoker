@@ -1,10 +1,13 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TupleSections   #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TupleSections        #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module LiarsPoker
   ( Card(..)
   , Bid(..), bidCard, bidQuant
-  , Player(..), playerId, name, hand, score
+  , Player(..), name, hand, score
   , Game(..), gameId, numOfPlayers, players, bidder, bid, turn, won, rebid
   , Action(..), _Raise, _Challenge, _Count
 
@@ -26,22 +29,30 @@ module LiarsPoker
 import           Control.Lens
 import           Control.Monad (replicateM)
 import           Control.Monad.Random
-import           Data.List (zipWith4, find)
 import           Data.List.Split  (chunksOf)
+import           Data.Aeson
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
+import           GHC.Generics
 import           System.Random
 
 data Card = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
-  deriving (Show, Eq, Ord, Enum, Bounded)
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+
+instance ToJSON Card
 
 type Hand = Map Card Int
+
+instance ToJSON Hand where
+  toJSON = toJSON . M.toList
 
 data Bid = Bid
   { _bidCard  :: Card
   , _bidQuant :: Int
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
+
+instance ToJSON Bid
 
 instance Ord Bid where
   Bid c1 q1 <= Bid c2 q2 = (q1, c1) <= (q2, c2)
@@ -49,15 +60,16 @@ instance Ord Bid where
 makeLenses ''Bid
 
 data Player = Player
-  { _playerId :: Int
-  , _name  :: String
+  { _name  :: String
   , _hand  :: Hand
   , _score :: Int
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
 makeLenses ''Player
 
+instance ToJSON Player
+
 data Game = Game
-  { _gameId       :: Int
+  { _gameId       :: Integer
   , _numOfPlayers :: Int
   , _players      :: [Player]
   , _bidder       :: Maybe Int  -- ^ playerId
@@ -65,15 +77,19 @@ data Game = Game
   , _turn         :: Int        -- ^ playerId
   , _won          :: Maybe Bool
   , _rebid        :: Bool
-  } deriving Show
+  } deriving (Show, Generic)
 makeLenses ''Game
+
+instance ToJSON Game
 
 data Action
   = Raise Bid
   | Challenge
   | Count
-  deriving Show
+  deriving (Show, Generic)
 makePrisms ''Action
+
+instance ToJSON Action
 
 cardsPerHand :: Int
 cardsPerHand = 8
@@ -106,11 +122,11 @@ getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
 newGame :: Int      -- ^ seed to random number generator.
-        -> Int      -- ^ Game Id.
+        -> Integer  -- ^ Game Id.
         -> [String] -- ^ player names
         -> Game
 newGame _ _ []    = error "A game must have players."
-newGame gId seed names =
+newGame seed gId names =
   Game gId
        (length names)
        thePlayers
@@ -122,7 +138,7 @@ newGame gId seed names =
     where
       numPlayers   = length names
       theHands     = map toMap cards
-      thePlayers   = zipWith4 Player [0..] names theHands (repeat 0)
+      thePlayers   = zipWith3 Player names theHands (repeat 0)
       toMap xs     = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty xs
       cards        = chunksOf cardsPerHand
                    $ evalRand (replicateM (numPlayers * cardsPerHand)
@@ -165,6 +181,8 @@ legal game action = case action of
     bd = game ^. bidder
     t  = game ^. turn
 
+-- | If the game is over (.i.e. game ^. won = Just _) then return
+--   (score for non-bidders, score for bidder).
 value :: Game -> (Int, Int)
 value game = (factor, factor * (numPlayers - 1))
   where

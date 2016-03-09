@@ -1,6 +1,7 @@
 module Main where
 
-import LiarsPoker
+import           WebAPI
+import           Network.Wai.Handler.Warp
 
 main :: IO ()
-main = putStrLn "Hello LP"
+main = run 8081 app
