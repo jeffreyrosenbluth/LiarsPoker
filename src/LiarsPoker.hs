@@ -41,6 +41,7 @@ data Card = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
   deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 instance ToJSON Card
+instance FromJSON Card
 
 type Hand = Map Card Int
 
@@ -53,6 +54,7 @@ data Bid = Bid
   } deriving (Show, Eq, Generic)
 
 instance ToJSON Bid
+instance FromJSON Bid
 
 instance Ord Bid where
   Bid c1 q1 <= Bid c2 q2 = (q1, c1) <= (q2, c2)
@@ -90,6 +92,7 @@ data Action
 makePrisms ''Action
 
 instance ToJSON Action
+instance FromJSON Action
 
 cardsPerHand :: Int
 cardsPerHand = 8
@@ -158,7 +161,7 @@ mkBid game b = nextPlayer
 
 -- | Move the turn to the next player.
 nextPlayer :: Game -> Game
-nextPlayer game = game & turn %~ (\x -> x + 1 `mod` numPlayers)
+nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
     numPlayers = game ^. numOfPlayers
 
@@ -166,7 +169,7 @@ move :: Game -> Action -> Game
 move game action = case action of
   Raise b   -> mkBid game b
   Challenge -> nextPlayer game
-  Count     -> game & won .~ Just result
+  Count     -> scores $ game & won .~ Just result
     where
       result = game ^. bid . bidQuant <= count game (game ^. bid . bidCard)
 
