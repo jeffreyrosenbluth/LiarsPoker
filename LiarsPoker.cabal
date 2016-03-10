@@ -27,6 +27,7 @@ library
                      , servant-server >= 0.4 && < 0.5
                      , wai >= 3.2 && < 3.3
                      , aeson >= 0.9 && < 0.12
+                     , transformers >= 0.4 && < 0.5
   default-language:    Haskell2010
 
 executable LiarsPoker-exe
