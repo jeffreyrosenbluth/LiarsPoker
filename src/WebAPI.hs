@@ -12,27 +12,38 @@ import           Network.Wai
 import           Servant
 import           Servant.API
 import           System.IO.Unsafe (unsafePerformIO)
+import           System.Random
 
-type GameNewAPI = "game" :> "new-game"
-                      :> ReqBody '[JSON] [String]
-                      :> Post '[JSON] Integer
 
-type GameShowAPI = "game" :> "display"
-                          :> Capture "gameId" Integer
-                          :> Get '[JSON] Game
+type GameNewAPI = "game"
+               :> "new-game"
+               :> ReqBody '[JSON] [String]
+               :> Post '[JSON] Integer
 
-type PlayerAPI = "player" :> Capture "gameId" Integer
-                          :> Capture "playerIdx" Int
-                          :> Get '[JSON] Player
+type GameShowAPI = "game"
+                :> "display"
+                :> Capture "gameId" Integer
+                :> Get '[JSON] Game
 
-type CurrentBidAPI = "current-bid" :> Capture "gameId" Integer
-                                   :> Get '[JSON] Bid
+type PlayerAPI = "player"
+               :> Capture "gameId" Integer
+               :> Capture "playerIdx" Int
+               :> Get '[JSON] Player
 
-type ActionAPI = "action" :> Capture "gameId" Integer
-                          :> ReqBody '[JSON] Action
-                          :> Post '[JSON] Int
+type CurrentBidAPI = "current-bid"
+                  :> Capture "gameId" Integer
+                  :> Get '[JSON] Bid
 
-type API = GameNewAPI :<|> GameShowAPI :<|> PlayerAPI :<|> CurrentBidAPI :<|> ActionAPI
+type ActionAPI = "action"
+               :> Capture "gameId" Integer
+               :> ReqBody '[JSON] Action
+               :> Post '[JSON] Int
+
+type API = GameNewAPI
+      :<|> GameShowAPI
+      :<|> PlayerAPI
+      :<|> CurrentBidAPI
+      :<|> ActionAPI
 
 server :: MVar Game -> Server API
 server gRef = gameNew gRef :<|> gameShow gRef
@@ -41,7 +52,8 @@ server gRef = gameNew gRef :<|> gameShow gRef
                            :<|> action gRef
     where
       gameNew gr p = do
-        let newG = newGame 42 0 p
+        sg <- liftIO getStdGen
+        let newG = newGame sg 0 p
         liftIO $ putMVar gr newG
         return 0
 

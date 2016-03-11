@@ -124,12 +124,12 @@ getHand game pId = view hand <$> game ^. players ^? ix pId
 getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
-newGame :: Int      -- ^ seed to random number generator.
+newGame :: StdGen   -- ^ Random number generator.
         -> Integer  -- ^ Game Id.
         -> [String] -- ^ player names
         -> Game
 newGame _ _ []    = error "A game must have players."
-newGame seed gId names =
+newGame sg gId names =
   Game gId
        (length names)
        thePlayers
@@ -145,7 +145,7 @@ newGame seed gId names =
       toMap xs     = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty xs
       cards        = chunksOf cardsPerHand
                    $ evalRand (replicateM (numPlayers * cardsPerHand)
-                   $ getRandomR (0, 9)) (mkStdGen seed)
+                   $ getRandomR (0, 9)) sg
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -206,5 +206,5 @@ scores game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
     (a , x)   = maybe (0, 0) (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
     (ps, b)   = value game
 
-game2 = newGame 0 2423    ["sonny", "cher"]
-game5 = newGame 1 7824391 ["alice", "bob", "charlie", "Daniel", "Edward"]
+game2 = newGame (mkStdGen 0) 0 ["sonny", "cher"]
+game5 = newGame (mkStdGen 1) 1 ["alice", "bob", "charlie", "Daniel", "Edward"]
