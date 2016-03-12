@@ -43,6 +43,9 @@ type Hand = Map Card Int
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
 
+instance FromJSON Hand where
+  parseJSON = fmap M.fromList . parseJSON
+
 data Bid = Bid
   { _bidCard  :: Card
   , _bidQuant :: Int
@@ -64,6 +67,7 @@ data Player = Player
 makeLenses ''Player
 
 instance ToJSON Player
+instance FromJSON Player
 
 data Game = Game
   { _gameId       :: Integer
@@ -78,6 +82,7 @@ data Game = Game
 makeLenses ''Game
 
 instance ToJSON Game
+instance FromJSON Game
 
 data Action
   = Raise Bid
