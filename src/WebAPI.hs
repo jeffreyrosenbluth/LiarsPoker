@@ -10,31 +10,26 @@ import           Control.Lens
 import           Control.Monad.IO.Class
 import           Control.Monad (replicateM)
 import           Control.Monad.Random
+import           Data.List.Split  (chunksOf)
 import           Network.Wai
 import           Servant
 import           Servant.API
 import           System.Random
 
-type NewAPI = "new"
-            :> ReqBody '[JSON] Integer
-            :> Post '[JSON] Integer
+type NewAPI = "new" :> ReqBody '[JSON] Integer :> Post '[JSON] Integer
 
-type JoinAPI = "join"
-             :> ReqBody '[JSON] String
-             :> Post '[JSON] Int
+type JoinAPI = "join" :> ReqBody '[JSON] String :> Post '[JSON] Int
 
-type DisplayAPI  = "display"
-                :> Capture "gameId" Integer
-                :> Get '[JSON] Game
+type DealAPI = "deal" :> ReqBody '[JSON] Integer :> Post '[JSON] Integer
+
+type DisplayAPI = "display" :> Capture "gameId" Integer :> Get '[JSON] Game
 
 type PlayerAPI = "player"
                :> Capture "gameId" Integer
                :> Capture "playerIdx" Int
                :> Get '[JSON] Player
 
-type CurrentBidAPI = "current-bid"
-                  :> Capture "gameId" Integer
-                  :> Get '[JSON] Bid
+type CurrentBidAPI = "current-bid" :> Capture "gameId" Integer :> Get '[JSON] Bid
 
 type ActionAPI = "action"
                :> Capture "gameId" Integer
@@ -43,6 +38,7 @@ type ActionAPI = "action"
 
 type API = NewAPI
       :<|> JoinAPI
+      :<|> DealAPI
       :<|> DisplayAPI
       :<|> PlayerAPI
       :<|> CurrentBidAPI
@@ -50,6 +46,7 @@ type API = NewAPI
 
 server :: MVar (Game, StdGen) -> Server API
 server gRef = new gRef :<|> join gRef
+                       :<|> deal gRef
                        :<|> display gRef
                        :<|> player gRef
                        :<|> currentBid gRef
@@ -62,10 +59,17 @@ server gRef = new gRef :<|> join gRef
 
       join gr plyr = do
         (g, r) <- liftIO $ readMVar gr
-        let (h, r') = runRand (replicateM cardsPerHand $ getRandomR (0, 9)) r
-        let newG = addPlayer g plyr (toHand h)
-        liftIO $ swapMVar gr (newG, r')
+        let newG = addPlayer g plyr
+        liftIO $ swapMVar gr (newG, r)
         return $ newG ^. numOfPlayers
+
+      deal gr gId = do
+        (g, r) <- liftIO $ readMVar gr
+        let (cs, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
+                     $ getRandomR (0, 9)) r
+            newG = dealHands g (chunksOf cardsPerHand cs)
+        liftIO $ swapMVar gr (newG, r')
+        return $ gId
 
       display gr gId = do
         (g, _) <- liftIO $ readMVar gr

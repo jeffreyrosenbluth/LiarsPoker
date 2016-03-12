@@ -13,6 +13,7 @@ module LiarsPoker
 
   , newGame
   , addPlayer
+  , dealHands
   , toHand
   , getHand
   , getBid
@@ -124,11 +125,16 @@ getBid game = ( , game ^. bid) <$> game ^. bidder
 newGame :: Integer -> Game
 newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False
 
-addPlayer :: Game -> String -> Hand -> Game
-addPlayer game nm hd = game & numOfPlayers +~ 1
+addPlayer :: Game -> String -> Game
+addPlayer game nm = game & numOfPlayers +~ 1
                               & players <>~ [player]
   where
-    player = Player nm hd 0
+    player = Player nm M.empty 0
+
+dealHands :: Game -> [[Int]] -> Game
+dealHands game cs = game & players %~ setHands (toHand <$> cs)
+  where
+    setHands hs ps =  zipWith (set hand) hs ps
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
