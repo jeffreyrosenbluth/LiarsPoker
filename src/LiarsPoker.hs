@@ -30,7 +30,6 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
 import           GHC.Generics
-import           System.Random
 
 data Card = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
   deriving (Show, Eq, Ord, Enum, Bounded, Generic)

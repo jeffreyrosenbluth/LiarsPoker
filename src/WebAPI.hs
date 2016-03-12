@@ -13,7 +13,6 @@ import           Control.Monad.Random
 import           Network.Wai
 import           Servant
 import           Servant.API
-import           System.IO.Unsafe (unsafePerformIO)
 import           System.Random
 
 type NewAPI = "new"
@@ -93,5 +92,5 @@ server gRef = new gRef :<|> join gRef
 api :: Proxy API
 api = Proxy
 
-app :: Application
-app = serve api (server (unsafePerformIO newEmptyMVar))
+app :: MVar (Game, StdGen) -> Application
+app gs = serve api (server gs)
