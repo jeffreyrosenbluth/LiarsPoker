@@ -8,20 +8,23 @@ import LiarsPoker
 import           Control.Concurrent.MVar
 import           Control.Lens
 import           Control.Monad.IO.Class
+import           Control.Monad (replicateM)
+import           Control.Monad.Random
 import           Network.Wai
 import           Servant
 import           Servant.API
 import           System.IO.Unsafe (unsafePerformIO)
 import           System.Random
 
+type NewAPI = "new"
+            :> ReqBody '[JSON] Integer
+            :> Post '[JSON] Integer
 
-type GameNewAPI = "game"
-               :> "new-game"
-               :> ReqBody '[JSON] [String]
-               :> Post '[JSON] Integer
+type JoinAPI = "join"
+             :> ReqBody '[JSON] String
+             :> Post '[JSON] Int
 
-type GameShowAPI = "game"
-                :> "display"
+type DisplayAPI  = "display"
                 :> Capture "gameId" Integer
                 :> Get '[JSON] Game
 
@@ -39,42 +42,50 @@ type ActionAPI = "action"
                :> ReqBody '[JSON] Action
                :> Post '[JSON] Int
 
-type API = GameNewAPI
-      :<|> GameShowAPI
+type API = NewAPI
+      :<|> JoinAPI
+      :<|> DisplayAPI
       :<|> PlayerAPI
       :<|> CurrentBidAPI
       :<|> ActionAPI
 
-server :: MVar Game -> Server API
-server gRef = gameNew gRef :<|> gameShow gRef
-                           :<|> player gRef
-                           :<|> currentBid gRef
-                           :<|> action gRef
+server :: MVar (Game, StdGen) -> Server API
+server gRef = new gRef :<|> join gRef
+                       :<|> display gRef
+                       :<|> player gRef
+                       :<|> currentBid gRef
+                       :<|> action gRef
     where
-      gameNew gr p = do
+      new gr gId = do
         sg <- liftIO getStdGen
-        let newG = newGame sg 0 p
-        liftIO $ putMVar gr newG
-        return 0
+        liftIO $ putMVar gr (newGame gId, sg)
+        return gId
 
-      gameShow gr gId = do
-        g <- liftIO $ readMVar gr
+      join gr plyr = do
+        (g, r) <- liftIO $ readMVar gr
+        let (h, r') = runRand (replicateM cardsPerHand $ getRandomR (0, 9)) r
+        let newG = addPlayer g plyr (toHand h)
+        liftIO $ swapMVar gr (newG, r')
+        return $ newG ^. numOfPlayers
+
+      display gr gId = do
+        (g, _) <- liftIO $ readMVar gr
         return g
 
       player gr gId pId = do
-        g <- liftIO $ readMVar gr
+        (g, _) <- liftIO $ readMVar gr
         return $ g ^. players . singular (ix pId)
 
       currentBid gr gId = do
-        g <- liftIO $ readMVar gr
+        (g, _) <- liftIO $ readMVar gr
         return $ g ^. bid
 
       action gr gId a = do
-        g <- liftIO $ readMVar gr
+        (g, r) <- liftIO $ readMVar gr
         if legal g a
           then do
             let g' = move g a
-            liftIO $ swapMVar gr g'
+            liftIO $ swapMVar gr (g', r)
             return $ g' ^. turn
           else
             return $ g ^. turn

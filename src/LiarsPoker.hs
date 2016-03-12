@@ -5,13 +5,15 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module LiarsPoker
-  ( Card(..)
+  ( Card(..), cardsPerHand
   , Bid(..), bidCard, bidQuant
   , Player(..), name, hand, score
   , Game(..), gameId, numOfPlayers, players, bidder, bid, turn, won, rebid
   , Action(..), _Raise, _Challenge, _Count
 
   , newGame
+  , addPlayer
+  , toHand
   , getHand
   , getBid
   , mkBid
@@ -20,16 +22,9 @@ module LiarsPoker
   , legal
   , value
   , scores
-
-   -- delete before release
-  , game2, game5
-
   ) where
 
 import           Control.Lens
-import           Control.Monad (replicateM)
-import           Control.Monad.Random
-import           Data.List.Split  (chunksOf)
 import           Data.Aeson
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -120,32 +115,21 @@ count game card = sum $ getCount . view hand <$> game ^. players
 getHand :: Game -> Int -> Maybe Hand
 getHand game pId = view hand <$> game ^. players ^? ix pId
 
+toHand :: [Int] -> Hand
+toHand = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty
+
 -- | Get the playerId of the bidder and his bid.
 getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
-newGame :: StdGen   -- ^ Random number generator.
-        -> Integer  -- ^ Game Id.
-        -> [String] -- ^ player names
-        -> Game
-newGame _ _ []    = error "A game must have players."
-newGame sg gId names =
-  Game gId
-       (length names)
-       thePlayers
-       Nothing
-       (Bid minBound 0)
-       0
-       Nothing
-       False
-    where
-      numPlayers   = length names
-      theHands     = map toMap cards
-      thePlayers   = zipWith3 Player names theHands (repeat 0)
-      toMap xs     = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty xs
-      cards        = chunksOf cardsPerHand
-                   $ evalRand (replicateM (numPlayers * cardsPerHand)
-                   $ getRandomR (0, 9)) sg
+newGame :: Integer -> Game
+newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False
+
+addPlayer :: Game -> String -> Hand -> Game
+addPlayer game nm hd = game & numOfPlayers +~ 1
+                              & players <>~ [player]
+  where
+    player = Player nm hd 0
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -205,6 +189,3 @@ scores game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
           (over score (+ a)) (game ^. players . singular (ix p))
     (a , x)   = maybe (0, 0) (\w -> if w then (-ps, b) else (ps, -b)) (game ^. won)
     (ps, b)   = value game
-
-game2 = newGame (mkStdGen 0) 0 ["sonny", "cher"]
-game5 = newGame (mkStdGen 1) 1 ["alice", "bob", "charlie", "Daniel", "Edward"]
