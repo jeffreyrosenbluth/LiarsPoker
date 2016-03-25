@@ -60,7 +60,8 @@ instance Ord Bid where
 makeLenses ''Bid
 
 data Player = Player
-  { _name  :: String
+  { _playerId :: Int
+  , _name  :: String
   , _hand  :: Hand
   , _score :: Int
   } deriving (Show, Eq, Generic)
@@ -70,7 +71,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _gameId       :: Integer
+  { _gameId       :: Int
   , _numOfPlayers :: Int
   , _players      :: [Player]
   , _bidder       :: Maybe Int  -- ^ playerId
@@ -127,14 +128,14 @@ toHand = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty
 getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
-newGame :: Integer -> Game
+newGame :: Int -> Game
 newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False
 
-addPlayer :: Game -> String -> Game
-addPlayer game nm = game & numOfPlayers +~ 1
-                              & players <>~ [player]
+addPlayer :: Game -> Int -> String -> Game
+addPlayer game pId nm = game & numOfPlayers +~ 1
+                             & players <>~ [player]
   where
-    player = Player nm M.empty 0
+    player = Player pId nm M.empty 0
 
 dealHands :: Game -> [[Int]] -> Game
 dealHands game cs = game & players %~ setHands (toHand <$> cs)
