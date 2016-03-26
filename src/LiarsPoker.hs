@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module LiarsPoker
-  ( Card(..), cardsPerHand
+  ( Card, cardsPerHand
   , Bid(..), bidCard, bidQuant
   , Player(..), name, hand, score
   , Game(..), gameId, numOfPlayers, players, bidder, bid, turn, won, rebid
@@ -15,6 +15,7 @@ module LiarsPoker
   , addPlayer
   , dealHands
   , toHand
+  , displayHand
   , getHand
   , getBid
   , mkBid
@@ -33,11 +34,7 @@ import qualified Data.Map as M
 import           Data.Maybe
 import           GHC.Generics
 
-data Card = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C0
-  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
-
-instance ToJSON Card
-instance FromJSON Card
+type Card = Int
 
 type Hand = Map Card Int
 
@@ -100,20 +97,6 @@ instance FromJSON Action
 cardsPerHand :: Int
 cardsPerHand = 8
 
-int2Card :: Int -> Card
-int2Card n = case n of
-  1 -> C1
-  2 -> C2
-  3 -> C3
-  4 -> C4
-  5 -> C5
-  6 -> C6
-  7 -> C7
-  8 -> C8
-  9 -> C9
-  0 -> C0
-  _ -> error "Tried to convert a number outisde of 0-9 to Card."
-
 count :: Game -> Card -> Int
 count game card = sum $ getCount . view hand <$> game ^. players
   where
@@ -124,7 +107,12 @@ getHand :: Game -> Int -> Maybe Hand
 getHand game pId = view hand <$> game ^. players ^? ix pId
 
 toHand :: [Int] -> Hand
-toHand = foldr (\n -> M.insertWith (+) (int2Card n) 1) M.empty
+toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
+
+displayHand :: Hand -> String
+displayHand h = M.foldrWithKey f "" h
+  where
+    f k a b = replicate a (head $ show k) ++ b
 
 -- | Get the playerId of the bidder and his bid.
 getBid :: Game -> Maybe (Int, Bid)
@@ -189,7 +177,7 @@ value game = (factor, factor * (numPlayers - 1))
     factor     = sixes * mult
     Bid c n    = game ^. bid
     mult       = if n < numPlayers + 3 then 1 else 2 + (n - numPlayers - 3) `div` 2
-    sixes      = if c == C6 then 2 else 1
+    sixes      = if c == 6 then 2 else 1
     numPlayers = game ^. numOfPlayers
 
 scores :: Game -> Game
