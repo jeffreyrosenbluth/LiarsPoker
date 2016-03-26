@@ -23,6 +23,7 @@ module LiarsPoker
   , legal
   , value
   , scores
+  , inProgress
   ) where
 
 import           Control.Lens
@@ -79,6 +80,7 @@ data Game = Game
   , _turn         :: Int        -- ^ playerId
   , _won          :: Maybe Bool
   , _rebid        :: Bool
+  , _inProgress   :: Bool
   } deriving (Show, Generic)
 makeLenses ''Game
 
@@ -129,7 +131,7 @@ getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
 newGame :: Int -> Game
-newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False
+newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False False
 
 addPlayer :: Game -> Int -> String -> Game
 addPlayer game pId nm = game & numOfPlayers +~ 1

@@ -47,30 +47,32 @@ $(document).ready(function () {
         };
 
         ws.onmessage = function(event) {
-            if(event.data.match('^Welcome! Users: ')) {
+          console.log(event.data);
+            // if(event.data.match('^Welcome! Users: ')) {
+            // if(1) {
                 /* Calculate the list of initial users */
-                var str = event.data.replace(/^Welcome! Users: /, '');
-                if(str != "") {
-                    users = str.split(", ");
-                    refreshUsers();
-                }
+                // var str = event.data.replace(/^Welcome! Users: /, '');
+                // if(str != "") {
+                //     users = str.split(", ");
+                //     refreshUsers();
+                // }
 
-                $('#join-section').hide();
-                $('#chat-section').show();
-                $('#users-section').show();
-
-                ws.onmessage = onMessage;
-
-                $('#message-form').submit(function () {
-                    var text = $('#text').val();
-                    ws.send(text);
-                    $('#text').val('');
-                    return false;
-                });
-            } else {
-                $('#warnings').append(event.data);
-                ws.close();
-            }
+            //     $('#join-section').hide();
+            //     $('#chat-section').show();
+            //     $('#users-section').show();
+            //
+            //     ws.onmessage = onMessage;
+            //
+            //     $('#message-form').submit(function () {
+            //         var text = $('#text').val();
+            //         ws.send(text);
+            //         $('#text').val('');
+            //         return false;
+            //     });
+            // } else {
+            //     $('#warnings').append(event.data);
+            //     ws.close();
+            // }
         };
 
         $('#join').append('Connecting...');

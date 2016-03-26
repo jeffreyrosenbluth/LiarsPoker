@@ -1,6 +1,6 @@
 name:                LiarsPoker
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            Liaars Poker web app.
 description:         Please see README.md
 homepage:            http://github.com/githubuser/LiarsPoker#readme
 license:             BSD3
@@ -10,7 +10,6 @@ maintainer:          example@example.com
 copyright:           2016 Author Here
 category:            Web
 build-type:          Simple
--- extra-source-files:
 cabal-version:       >=1.10
 
 library
@@ -23,8 +22,6 @@ library
                      , MonadRandom >= 0.4 && < 0.5
                      , random >= 1.1 && < 1.2
                      , split >= 0.2.1 && < 0.3
-                    --  , servant >= 0.4 && < 0.5
-                    --  , servant-server >= 0.4 && < 0.5
                      , wai >= 3.2 && < 3.3
                      , websockets
                      , wai-websockets
@@ -45,6 +42,7 @@ executable Serve
                      , warp >= 3.2 && < 3.3
                      , wai-websockets
                      , websockets
+                     , random >= 1.1 && < 1.2
 
   default-language:    Haskell2010
 
