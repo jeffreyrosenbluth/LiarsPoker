@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TupleSections        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -19,6 +20,7 @@ module LiarsPoker
   , getHand
   , getBid
   , mkBid
+  , nextPlayer
   , count
   , move
   , legal
@@ -32,6 +34,8 @@ import           Data.Aeson
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           GHC.Generics
 
 type Card = Int
@@ -59,7 +63,7 @@ makeLenses ''Bid
 
 data Player = Player
   { _playerId :: Int
-  , _name  :: String
+  , _name  :: Text
   , _hand  :: Hand
   , _score :: Int
   } deriving (Show, Eq, Generic)
@@ -121,11 +125,11 @@ getBid game = ( , game ^. bid) <$> game ^. bidder
 newGame :: Int -> Game
 newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False False
 
-addPlayer :: Game -> Int -> String -> Game
-addPlayer game pId nm = game & numOfPlayers +~ 1
+addPlayer :: Game -> Int -> Game
+addPlayer game pId = game & numOfPlayers +~ 1
                              & players <>~ [player]
   where
-    player = Player pId nm M.empty 0
+    player = Player pId "" M.empty 0
 
 dealHands :: Game -> [[Int]] -> Game
 dealHands game cs = game & players %~ setHands (toHand <$> cs)

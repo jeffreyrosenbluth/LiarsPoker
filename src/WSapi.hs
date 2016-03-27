@@ -10,6 +10,7 @@ import           Control.Lens
 import           Control.Monad.IO.Class
 import           Control.Monad (replicateM, forever, forM_)
 import           Control.Monad.Random
+import           Data.Char (digitToInt)
 import           Data.Monoid ((<>))
 import           Data.List.Split  (chunksOf)
 import           Data.Maybe
@@ -31,6 +32,10 @@ type PlayerDict = IntMap WS.Connection
 
 type Clients = [WS.Connection]
 
+-- | Version of sendTextData specialize to Text input.
+sendText :: WS.Connection -> Text -> IO ()
+sendText = WS.sendTextData
+
 getConn :: PlayerDict -> Int -> WS.Connection
 getConn dict pId = fromJust $ IntMap.lookup pId dict
 
@@ -47,34 +52,53 @@ application state pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
   let pId = g ^. numOfPlayers
-      newG = addPlayer g (pId) (T.unpack "")
+      newG = addPlayer g (pId)
   swapMVar state (newG, r, conn : cs)
-  WS.sendTextData conn (T.pack "You have successfuly joined the game.")
+  sendText conn "You have successfuly joined the game."
   handle conn state pId
 
 handle :: WS.Connection -> MVar (Game, StdGen, Clients) -> Int -> IO ()
 handle conn state pId = forever $ do
-  msg <- WS.receiveData conn :: IO (Text)
+  msg <- WS.receiveData conn
   branch conn msg
   where
     branch c m
       | "name " `T.isPrefixOf` m = do
           (g, r, cs) <- readMVar state
           let nm = T.drop 5 m
-              newG = g & players . (singular (ix pId) . name) .~ (T.unpack nm)
+              newG = g & players . (singular (ix pId) . name) .~ nm
           swapMVar state (newG, r, cs)
-          WS.sendTextData c nm
+          sendText c nm
       | "deal" == m = do
           (g, r, cs) <- readMVar state
           if g ^. inProgress
             then
-              WS.sendTextData c $ T.pack "Cannot deal a game in progress."
-            else
-              do
+              sendText c "Cannot deal a game in progress."
+            else do
               let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
                            $ getRandomR (0, 9)) r
                   newG = dealHands g (chunksOf cardsPerHand cards) & inProgress .~ True
                   hands = map (T.pack . displayHand . view hand) $ newG ^. players
               swapMVar state (newG, r', cs)
               broadcast hands cs
-      | otherwise = WS.sendTextData c ("You said: " <> m)
+      | "challenge" == m = do
+          (g, r, cs) <- readMVar state
+          if g ^. turn == pId && legal g Challenge
+            then do
+              let newG = nextPlayer g
+              broadcast (repeat . T.pack . show $ g ^. bid) cs
+            else
+              sendText c "Illegal Challenge."
+      | "bid " `T.isPrefixOf` m = do
+          let q = do
+                    (a1, rest) <- uncons $ T.drop 4 m
+                    (a2, _)    <- uncons $ T.drop 1 rest
+                    return $ Bid (digitToInt a1) (digitToInt a2)
+          case q of
+            Nothing -> sendText c ("Invalid Bid")
+            Just b  -> do
+              (g, r, cs) <- readMVar state
+              let newG = mkBid g b
+              swapMVar state (newG, r, cs)
+              broadcast (repeat . T.pack . show $ newG ^. bid) cs
+      | otherwise = sendText c ("You said: " <> m)
