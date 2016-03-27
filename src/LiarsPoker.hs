@@ -22,7 +22,6 @@ module LiarsPoker
   , mkBid
   , nextPlayer
   , count
-  , move
   , legal
   , value
   , scores
@@ -89,9 +88,13 @@ instance ToJSON Game
 instance FromJSON Game
 
 data Action
-  = Raise Bid
+  = SetName Text
+  | Deal
+  | Raise Bid
   | Challenge
   | Count
+  | Say Text
+  | Invalid Text
   deriving (Show, Generic)
 makePrisms ''Action
 
@@ -154,21 +157,17 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
     numPlayers = game ^. numOfPlayers
 
-move :: Game -> Action -> Game
-move game action = case action of
-  Raise b   -> mkBid game b
-  Challenge -> nextPlayer game
-  Count     -> scores $ game & won .~ Just result
-    where
-      result = game ^. bid . bidQuant <= count game (game ^. bid . bidCard)
-
 legal :: Game -> Action -> Bool
 legal game action = case action of
+  SetName _ -> not (game ^. inProgress)
+  Deal      -> not (game ^. inProgress)
   -- You can't raise a rebid os if you are the bidder and rebid is True
   -- it is illegal to bid again.
   Raise b   -> not (game ^. rebid && Just t == bd) && b > game ^. bid
   Challenge -> maybe False (/= t) bd
   Count     -> maybe False (== t) bd
+  Say _     -> True
+  Invalid _ -> False
   where
     bd = game ^. bidder
     t  = game ^. turn
