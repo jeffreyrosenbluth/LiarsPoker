@@ -40,7 +40,7 @@ parseMessage t
                 return (a1, a2)
       case r of
         Just (d1, d2) -> if isDigit d1 && isDigit d2
-                           then Raise (Bid (digitToInt d1) (digitToInt d2))
+                           then Raise (Bid (digitToInt d2) (digitToInt d1))
                            else Invalid "Invalid raise must take integers."
         Nothing       -> Invalid "Invalid raise"
   | "challenge" == t = Challenge

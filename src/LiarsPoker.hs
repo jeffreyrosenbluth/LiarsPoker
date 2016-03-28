@@ -50,7 +50,10 @@ instance FromJSON Hand where
 data Bid = Bid
   { _bidCard  :: Card
   , _bidQuant :: Int
-  } deriving (Show, Eq, Generic)
+  } deriving (Eq, Generic)
+
+instance Show Bid where
+  show (Bid c q) = show q ++ " " ++ show c ++ "'s"
 
 instance ToJSON Bid
 instance FromJSON Bid
