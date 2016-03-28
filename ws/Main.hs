@@ -12,7 +12,7 @@ import           System.Random (getStdGen)
 main :: IO ()
 main = do
   g <- getStdGen
-  state <- newMVar (newGame 0, g, mempty)
+  state <- newMVar (newGame, g, mempty)
   Warp.runSettings
     (Warp.setPort 9160 Warp.defaultSettings)
     $ WaiWS.websocketsOr WS.defaultConnectionOptions (application state) staticApp

@@ -9,7 +9,7 @@ module LiarsPoker
   ( Card, cardsPerHand
   , Bid(..), bidCard, bidQuant
   , Player(..), name, hand, score
-  , Game(..), gameId, numOfPlayers, players, bidder, bid, turn, won, rebid
+  , Game(..), numOfPlayers, players, bidder, bid, turn, won, rebid
   , Action(..), _Raise, _Challenge, _Count
 
   , newGame
@@ -72,8 +72,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _gameId       :: Int
-  , _numOfPlayers :: Int
+  { _numOfPlayers :: Int
   , _players      :: [Player]
   , _bidder       :: Maybe Int  -- ^ playerId
   , _bid          :: Bid
@@ -125,8 +124,8 @@ displayHand h = M.foldrWithKey f "" h
 getBid :: Game -> Maybe (Int, Bid)
 getBid game = ( , game ^. bid) <$> game ^. bidder
 
-newGame :: Int -> Game
-newGame gId = Game gId 0 [] Nothing (Bid minBound 0) 0 Nothing False False
+newGame :: Game
+newGame = Game 0 [] Nothing (Bid minBound 0) 0 Nothing False False
 
 addPlayer :: Game -> Int -> Game
 addPlayer game pId = game & numOfPlayers +~ 1
