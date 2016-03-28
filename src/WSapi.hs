@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module WSapi where
 
@@ -7,24 +8,16 @@ import LiarsPoker
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad.IO.Class
 import           Control.Monad (replicateM, forever, forM_)
 import           Control.Monad.Random
 import           Data.Char (isDigit, digitToInt)
-import           Data.Monoid ((<>))
 import           Data.List.Split  (chunksOf)
-import           Data.Maybe
 import           Data.FileEmbed (embedDir)
 import           Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import qualified Network.WebSockets as WS
 import qualified Network.Wai
-import qualified Network.Wai.Handler.Warp as Warp
-import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.Wai.Application.Static as Static
-import           System.Random
-
 
 type ServerState = (Game, StdGen, Clients)
 type Clients     = [WS.Connection]
