@@ -13,6 +13,7 @@ import           Control.Monad.Random
 import           Data.Char (isDigit, digitToInt)
 import           Data.List.Split  (chunksOf)
 import           Data.FileEmbed (embedDir)
+import           Data.Maybe
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Network.WebSockets as WS
@@ -45,12 +46,15 @@ parseMessage t
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
+broadcast' :: [Text] -> Clients -> IO ()
+broadcast' msgs clients =
+  forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
+
+broadcast :: Text -> Clients -> IO ()
+broadcast msg clients = forM_ clients $ \conn -> WS.sendTextData conn msg
+
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
-
-broadcast :: [Text] -> Clients -> IO ()
-broadcast msgs clients =
-  forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
@@ -82,16 +86,10 @@ handle conn state pId = forever $ do
         then do
           let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
                        $ getRandomR (0, 9)) r
-              g' = dealHands g (chunksOf cardsPerHand cards)
-                 & bidder .~ Nothing
-                 & bid .~ Bid minBound 0
-                 & turn .~ 0
-                 & won .~ Nothing
-                 & rebid .~ False
-                 & inProgress .~ True
+              g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
               hands = map (T.pack . displayHand . view hand) $ g' ^. players
           swapMVar state (g', r', cs)
-          broadcast hands cs
+          broadcast' hands cs
         else
           sendText conn "Cannot deal a game in progress."
     Raise b -> do
@@ -100,7 +98,8 @@ handle conn state pId = forever $ do
         then do
           let g' = mkBid g b
           swapMVar state (g', r, cs)
-          broadcast (repeat . T.pack . show $ g' ^. bid) cs
+          broadcast (getBidderName g') cs
+          broadcast (T.pack . show $ g' ^. bid) cs
         else sendText conn "Illegal raise."
     Challenge -> do
       (g, r, cs) <- readMVar state
@@ -108,23 +107,24 @@ handle conn state pId = forever $ do
         then do
           let g' = nextPlayer g
           swapMVar state (g', r, cs)
-          broadcast (repeat . T.pack . show $ g ^. bid) cs
+          broadcast (getBidderName g') cs
         else
           sendText conn "Illegal Challenge."
     Count -> do
       (g, r, cs) <- readMVar state
       if legal g action && g ^. turn == pId
         then do
-          let result = g ^. bid . bidQuant <= count g (g ^. bid . bidCard)
-              g' = scores $ g & won .~ Just result & inProgress .~ False
+          let cnt = count g (g ^. bid . bidCard)
+              result = g ^. bid . bidQuant <= cnt || cnt == 0
+              g' = scoreGame $ g & won .~ Just result & inProgress .~ False
               sc = map (T.pack . show . view score) $ g' ^. players
           swapMVar state (g', r, cs)
-          broadcast sc cs
+          broadcast' sc cs
         else
           sendText conn "Illgal Count."
     Say t -> do
       (_, _, cs) <- readMVar state
-      broadcast (repeat t) cs
+      broadcast t cs
     Invalid t -> do
       (_, _, cs) <- readMVar state
-      broadcast (repeat t) cs
+      broadcast t cs
