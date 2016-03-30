@@ -58,10 +58,14 @@ staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-  (g, r, cs) <- takeMVar state
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
-  sendText conn "Please enter a name."
+  getName state conn
+
+getName :: MVar ServerState -> WS.Connection -> IO ()
+getName state conn = do
+  (g, r, cs) <- takeMVar state
+  sendText conn "Please set a user name."
   msg <- WS.receiveData conn
   let pId = g ^. numOfPlayers
       action = parseMessage msg
@@ -70,22 +74,17 @@ application state pending = do
       let g' = addPlayer g pId nm
       putMVar state (g', r, cs ++ [conn])
       sendText conn nm
-    otherwise -> error "Must set name."
-  handle conn state pId
+      handle conn state pId
+    otherwise -> do
+      sendText conn "Must set a user name to play"
+      putMVar state (g, r, cs)
+      getName state conn
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
   msg <- WS.receiveData conn
   let action = parseMessage msg
   case action of
-    -- SetName nm -> do
-    --   (g, r, cs) <- readMVar state
-    --   if legal g action
-    --     then do
-    --       let g' = g & players . (singular (ix pId) . name) .~ nm
-    --       swapMVar state (g', r, cs)
-    --       sendText conn nm
-    --     else sendText conn "Cannot change name mid game."
     Deal -> do
       (g, r, cs) <- readMVar state
       if legal g action
