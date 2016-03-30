@@ -27,9 +27,9 @@ parseMessage :: Text -> Action
 parseMessage t
   | "name " `T.isPrefixOf` t = SetName $ T.drop 5 t
   | "deal" == t = Deal
-  | "raise " `T.isPrefixOf` t = do
+  | "bid " `T.isPrefixOf` t = do
       let r = do
-                (a1, rest) <- uncons $ T.drop 6 t
+                (a1, rest) <- uncons $ T.drop 4 t
                 (a2, _)    <- uncons $ T.drop 1 rest
                 return (a1, a2)
       case r of
@@ -58,13 +58,19 @@ staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-  (g, r, cs) <- readMVar state
+  (g, r, cs) <- takeMVar state
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
+  sendText conn "Please enter a name."
+  msg <- WS.receiveData conn
   let pId = g ^. numOfPlayers
-      g' = addPlayer g (pId)
-  swapMVar state (g', r, cs ++ [conn])
-  sendText conn "You have successfuly joined the game."
+      action = parseMessage msg
+  case action of
+    SetName nm -> do
+      let g' = addPlayer g pId nm
+      putMVar state (g', r, cs ++ [conn])
+      sendText conn nm
+    otherwise -> error "Must set name."
   handle conn state pId
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -72,14 +78,14 @@ handle conn state pId = forever $ do
   msg <- WS.receiveData conn
   let action = parseMessage msg
   case action of
-    SetName nm -> do
-      (g, r, cs) <- readMVar state
-      if legal g action
-        then do
-          let g' = g & players . (singular (ix pId) . name) .~ nm
-          swapMVar state (g', r, cs)
-          sendText conn nm
-        else sendText conn "Cannot change name mid game."
+    -- SetName nm -> do
+    --   (g, r, cs) <- readMVar state
+    --   if legal g action
+    --     then do
+    --       let g' = g & players . (singular (ix pId) . name) .~ nm
+    --       swapMVar state (g', r, cs)
+    --       sendText conn nm
+    --     else sendText conn "Cannot change name mid game."
     Deal -> do
       (g, r, cs) <- readMVar state
       if legal g action

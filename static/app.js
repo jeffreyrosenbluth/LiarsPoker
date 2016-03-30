@@ -35,7 +35,7 @@ window.onload = function() {
   // Handle messages sent by the server.
   socket.onmessage = function(event) {
     var message = event.data;
-    messagesList.innerHTML += '<li class="received"><span>Received:</span>' +
+    messagesList.innerHTML += '<li class="received"><span>&#x2022</span>' +
                                message + '</li>';
   };
 
@@ -45,7 +45,6 @@ window.onload = function() {
     socketStatus.innerHTML = 'Disconnected from WebSocket.';
     socketStatus.className = 'closed';
   };
-
 
   // Send a message when the form is submitted.
   form.onsubmit = function(e) {
@@ -58,8 +57,8 @@ window.onload = function() {
     socket.send(message);
 
     // Add the message to the messages list.
-    messagesList.innerHTML += '<li class="sent"><span>Sent:</span>' + message +
-                              '</li>';
+    // messagesList.innerHTML += '<li class="sent"><span>Sent:</span>' + message +
+    //                           '</li>';
 
     // Clear out the message field.
     messageField.value = '';

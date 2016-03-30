@@ -143,11 +143,11 @@ resetGame g = g & bidder .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
 
-addPlayer :: Game -> Int -> Game
-addPlayer game pId = game & numOfPlayers +~ 1
+addPlayer :: Game -> Int -> Text -> Game
+addPlayer game pId nm = game & numOfPlayers +~ 1
                              & players <>~ [player]
   where
-    player = Player pId "" M.empty 0
+    player = Player pId nm M.empty 0
 
 dealHands :: Game -> [[Int]] -> Game
 dealHands game cs = game & players %~ setHands (toHand <$> cs)
