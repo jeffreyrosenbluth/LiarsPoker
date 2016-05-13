@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TupleSections        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -9,8 +9,9 @@ module LiarsPoker
   ( Card, cardsPerHand
   , Bid(..), bidCard, bidQuant
   , Player(..), name, hand, score, playerId
-  , Game(..), numOfPlayers, players, bidder, bid, turn, won, rebid
+  , Game(..), numOfPlayers, players, bidder, bid, turn, won, rebid, baseStake
   , Action(..), _Raise, _Challenge, _Count
+  , Hand
 
   , newGame
   , resetGame

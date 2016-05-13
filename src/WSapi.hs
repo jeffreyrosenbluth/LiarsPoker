@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
@@ -11,17 +12,59 @@ import           Control.Lens
 import           Control.Monad (replicateM, forever, forM_)
 import           Control.Monad.Random
 import           Data.Char (isDigit, digitToInt)
+import           Data.Aeson
 import           Data.List.Split  (chunksOf)
 import           Data.FileEmbed (embedDir)
 import           Data.Maybe
 import           Data.Text (Text)
 import qualified Data.Text as T
+import           GHC.Generics
 import qualified Network.WebSockets as WS
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 
 type ServerState = (Game, StdGen, Clients)
 type Clients     = [WS.Connection]
+
+data OtherPlayer = OtherPlayer
+  { _playerIdOP :: Int
+  , _nameOP  :: Text
+  , _scoreOP :: Int
+  } deriving (Show, Generic)
+
+instance ToJSON OtherPlayer
+instance FromJSON OtherPlayer
+
+makeLenses ''OtherPlayer
+
+data PlayerMsg = PlayerMsg
+  { _playersMsg  :: [OtherPlayer]
+  , _bidderMsg   :: Text
+  , _bidMsg      :: Bid
+  , _turnMsg     :: Text
+  , _baseStakeMsg :: Int
+  } deriving (Show, Generic)
+
+instance ToJSON PlayerMsg
+instance FromJSON PlayerMsg
+
+makeLenses ''PlayerMsg
+
+otherPlayers :: Game -> [OtherPlayer]
+otherPlayers g = map otherPlayer (g ^.players)
+  where
+    otherPlayer p = OtherPlayer (p ^. playerId) (p ^. name) (p ^. score)
+
+playerMsg :: Game -> PlayerMsg
+playerMsg g = PlayerMsg
+  (otherPlayers g)
+  (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
+  (g ^. bid)
+  (names !! (g ^. turn))
+  (g ^. baseStake)
+  where
+    names = map (view name) (g ^. players)
+
 
 parseMessage :: Text -> Action
 parseMessage t
@@ -73,7 +116,7 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
       putMVar state (g', r, cs ++ [conn])
-      sendText conn nm
+      sendText conn (T.pack . show . toJSON $ playerMsg g')
       handle conn state pId
     otherwise -> do
       sendText conn "Must set a user name to play"
@@ -92,9 +135,11 @@ handle conn state pId = forever $ do
           let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
                        $ getRandomR (0, 9)) r
               g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-              hands = map (T.pack . displayHand . view hand) $ g' ^. players
+              msgHand t = "hand:" ++ displayHand t
+              hands = map (T.pack . msgHand . view hand) $ g' ^. players
           swapMVar state (g', r', cs)
           broadcast' hands cs
+          -- broadcast (T.pack . show . toJSON $ playerMsg g') cs
         else
           sendText conn "Cannot deal a game in progress."
     Raise b -> do
@@ -103,8 +148,7 @@ handle conn state pId = forever $ do
         then do
           let g' = mkBid g b
           swapMVar state (g', r, cs)
-          broadcast (getBidderName g') cs
-          broadcast (T.pack . show $ g' ^. bid) cs
+          broadcast (T.pack . show . toJSON $ playerMsg g') cs
         else sendText conn "Illegal raise."
     Challenge -> do
       (g, r, cs) <- readMVar state
@@ -112,7 +156,7 @@ handle conn state pId = forever $ do
         then do
           let g' = nextPlayer g
           swapMVar state (g', r, cs)
-          broadcast (getBidderName g') cs
+          broadcast (T.pack . show . toJSON $ playerMsg g') cs
         else
           sendText conn "Illegal Challenge."
     Count -> do
