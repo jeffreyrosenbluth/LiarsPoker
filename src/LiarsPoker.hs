@@ -67,9 +67,9 @@ makeLenses ''Bid
 
 data Player = Player
   { _playerId :: Int
-  , _name  :: Text
-  , _hand  :: Hand
-  , _score :: Int
+  , _name     :: Text
+  , _hand     :: Hand
+  , _score    :: Int
   } deriving (Show, Eq, Generic)
 makeLenses ''Player
 
@@ -134,7 +134,7 @@ getBidderName g = fromMaybe "" $ fmap (\i -> view (ix i . name) ps) b
     ps = g ^. players
 
 newGame :: Game
-newGame = Game 0 [] Nothing (Bid (-1)) 0 Nothing False False 1
+newGame = Game 0 [] Nothing (Bid (-1) 0) 0 Nothing False False 1
 
 resetGame :: Game -> Game
 resetGame g = g & bidder .~ Nothing

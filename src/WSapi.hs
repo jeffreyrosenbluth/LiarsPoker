@@ -29,8 +29,8 @@ type Clients     = [WS.Connection]
 
 data OtherPlayer = OtherPlayer
   { _playerIdOP :: Int
-  , _nameOP  :: Text
-  , _scoreOP :: Int
+  , _nameOP     :: Text
+  , _scoreOP    :: Int
   } deriving (Show, Generic)
 
 instance ToJSON OtherPlayer
@@ -39,10 +39,11 @@ instance FromJSON OtherPlayer
 makeLenses ''OtherPlayer
 
 data PlayerMsg = PlayerMsg
-  { _playersMsg  :: [OtherPlayer]
-  , _bidderMsg   :: Text
-  , _bidMsg      :: Bid
-  , _turnMsg     :: Text
+  { _playersMsg   :: [OtherPlayer]
+  , _bidderMsg    :: Text
+  , _bidQuantMsg  :: Int
+  , _bidCardMsg   :: Int
+  , _turnMsg      :: Text
   , _baseStakeMsg :: Int
   } deriving (Show, Generic)
 
@@ -60,7 +61,8 @@ playerMsg :: Game -> PlayerMsg
 playerMsg g = PlayerMsg
   (otherPlayers g)
   (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
-  (g ^. bid)
+  (g ^. bid . bidQuant)
+  (g ^. bid . bidCard)
   (names !! (g ^. turn))
   (g ^. baseStake)
   where
@@ -140,7 +142,6 @@ handle conn state pId = forever $ do
               hands = map (T.pack . msgHand . view hand) $ g' ^. players
           swapMVar state (g', r', cs)
           broadcast' hands cs
-          -- broadcast (T.pack . show . encode $ playerMsg g') cs
         else
           sendText conn "Cannot deal a game in progress."
     Raise b -> do
