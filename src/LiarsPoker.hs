@@ -231,7 +231,7 @@ scoreGame game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
     h         = hero game
     -- The score for non bidders.
     winStake  = (mult + h) * game ^. baseStake
-    lossStake = mult * game ^. baseStake
+    lossStake = game ^. baseStake
     -- The score for the bidder
     winB      = winStake * (game ^. numOfPlayers - 1)
     lossB     = lossStake * (game ^. numOfPlayers - 1)
