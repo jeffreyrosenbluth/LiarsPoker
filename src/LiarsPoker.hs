@@ -134,7 +134,7 @@ getBidderName g = fromMaybe "" $ fmap (\i -> view (ix i . name) ps) b
     ps = g ^. players
 
 newGame :: Game
-newGame = Game 0 [] Nothing (Bid minBound 0) 0 Nothing False False 1
+newGame = Game 0 [] Nothing (Bid (-1)) 0 Nothing False False 1
 
 resetGame :: Game -> Game
 resetGame g = g & bidder .~ Nothing

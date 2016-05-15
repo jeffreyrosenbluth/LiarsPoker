@@ -11,6 +11,7 @@ import           Control.Concurrent.MVar
 import           Control.Lens
 import           Control.Monad (replicateM, forever, forM_)
 import           Control.Monad.Random
+import qualified Data.ByteString.Lazy.Char8 as LB
 import           Data.Char (isDigit, digitToInt)
 import           Data.Aeson
 import           Data.List.Split  (chunksOf)
@@ -116,7 +117,7 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
       putMVar state (g', r, cs ++ [conn])
-      sendText conn (T.pack . show . toJSON $ playerMsg g')
+      sendText conn (T.pack . LB.unpack . encode $ playerMsg g')
       handle conn state pId
     otherwise -> do
       sendText conn "Must set a user name to play"
@@ -139,7 +140,7 @@ handle conn state pId = forever $ do
               hands = map (T.pack . msgHand . view hand) $ g' ^. players
           swapMVar state (g', r', cs)
           broadcast' hands cs
-          -- broadcast (T.pack . show . toJSON $ playerMsg g') cs
+          -- broadcast (T.pack . show . encode $ playerMsg g') cs
         else
           sendText conn "Cannot deal a game in progress."
     Raise b -> do
@@ -148,7 +149,7 @@ handle conn state pId = forever $ do
         then do
           let g' = mkBid g b
           swapMVar state (g', r, cs)
-          broadcast (T.pack . show . toJSON $ playerMsg g') cs
+          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
         else sendText conn "Illegal raise."
     Challenge -> do
       (g, r, cs) <- readMVar state
@@ -156,7 +157,7 @@ handle conn state pId = forever $ do
         then do
           let g' = nextPlayer g
           swapMVar state (g', r, cs)
-          broadcast (T.pack . show . toJSON $ playerMsg g') cs
+          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
         else
           sendText conn "Illegal Challenge."
     Count -> do
