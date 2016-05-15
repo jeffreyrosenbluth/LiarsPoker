@@ -27,19 +27,19 @@ import qualified Network.Wai.Application.Static as Static
 type ServerState = (Game, StdGen, Clients)
 type Clients     = [WS.Connection]
 
-data OtherPlayer = OtherPlayer
+data PlayerPublic = PlayerPublic
   { _playerIdOP :: Int
   , _nameOP     :: Text
   , _scoreOP    :: Int
   } deriving (Show, Generic)
 
-instance ToJSON OtherPlayer
-instance FromJSON OtherPlayer
+instance ToJSON PlayerPublic
+instance FromJSON PlayerPublic
 
-makeLenses ''OtherPlayer
+makeLenses ''PlayerPublic
 
 data PlayerMsg = PlayerMsg
-  { _playersMsg   :: [OtherPlayer]
+  { _playersMsg   :: [PlayerPublic]
   , _bidderMsg    :: Text
   , _bidQuantMsg  :: Int
   , _bidCardMsg   :: Int
@@ -52,14 +52,14 @@ instance FromJSON PlayerMsg
 
 makeLenses ''PlayerMsg
 
-otherPlayers :: Game -> [OtherPlayer]
-otherPlayers g = map otherPlayer (g ^.players)
+playerPublics :: Game -> [PlayerPublic]
+playerPublics g = map playerPublic (g ^.players)
   where
-    otherPlayer p = OtherPlayer (p ^. playerId) (p ^. name) (p ^. score)
+    playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
 playerMsg :: Game -> PlayerMsg
 playerMsg g = PlayerMsg
-  (otherPlayers g)
+  (playerPublics g)
   (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
   (g ^. bid . bidQuant)
   (g ^. bid . bidCard)
@@ -168,9 +168,8 @@ handle conn state pId = forever $ do
           let cnt = count g (g ^. bid . bidCard)
               result = g ^. bid . bidQuant <= cnt || cnt == 0
               g' = scoreGame $ g & won .~ Just result & inProgress .~ False
-              sc = map (T.pack . show . view score) $ g' ^. players
           swapMVar state (g', r, cs)
-          broadcast' sc cs
+          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
         else
           sendText conn "Illgal Count."
     Say t -> do
