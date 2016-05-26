@@ -178,7 +178,7 @@ legal :: Game -> Action -> Bool
 legal game action = case action of
   SetName _ -> not (game ^. inProgress)
   Deal      -> not (game ^. inProgress)
-  -- You can't raise a rebid os if you are the bidder and rebid is True
+  -- You can't raise a rebid, if you are the bidder and rebid is True
   -- it is illegal to bid again.
   Raise b   -> not (game ^. rebid && Just t == bd) && b > game ^. bid
   Challenge -> maybe False (/= t) bd

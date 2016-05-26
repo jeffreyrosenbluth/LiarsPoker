@@ -79,6 +79,7 @@ parseMessage t
                 (a2, _)    <- uncons $ T.drop 1 rest
                 return (a1, a2)
       case r of
+        -- TODO must handle qunatities of cards >= 10 so isDigit wont work.
         Just (d1, d2) -> if isDigit d1 && isDigit d2
                            then Raise (Bid (digitToInt d2) (digitToInt d1))
                            else Invalid "Invalid raise must take integers."
@@ -126,24 +127,27 @@ getName state conn = do
       putMVar state (g, r, cs)
       getName state conn
 
+deal :: WS.Connection -> MVar ServerState -> Int -> IO ()
+deal conn state pId = do
+  (g, r, cs) <- readMVar state
+  if legal g Deal
+    then do
+      let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
+                   $ getRandomR (0, 9)) r
+          g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
+          msgHand t = "hand:" ++ displayHand t
+          hands = map (T.pack . msgHand . view hand) $ g' ^. players
+      swapMVar state (g', r', cs)
+      broadcast' hands cs
+    else
+      sendText conn "Cannot deal a game in progress."
+
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
   msg <- WS.receiveData conn
   let action = parseMessage msg
   case action of
-    Deal -> do
-      (g, r, cs) <- readMVar state
-      if legal g action
-        then do
-          let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
-                       $ getRandomR (0, 9)) r
-              g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-              msgHand t = "hand:" ++ displayHand t
-              hands = map (T.pack . msgHand . view hand) $ g' ^. players
-          swapMVar state (g', r', cs)
-          broadcast' hands cs
-        else
-          sendText conn "Cannot deal a game in progress."
+    Deal -> deal conn state pId
     Raise b -> do
       (g, r, cs) <- readMVar state
       if legal g action && g ^. turn == pId
@@ -170,6 +174,7 @@ handle conn state pId = forever $ do
               g' = scoreGame $ g & won .~ Just result & inProgress .~ False
           swapMVar state (g', r, cs)
           broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
+          deal conn state pId
         else
           sendText conn "Illgal Count."
     Say t -> do
