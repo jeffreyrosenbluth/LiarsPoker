@@ -34,6 +34,7 @@ import           Data.Aeson
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
+import           Data.List (intersperse)
 import           Data.Text (Text)
 import           GHC.Generics
 
@@ -123,7 +124,7 @@ toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
 
 displayHand :: Hand -> String
-displayHand h = M.foldrWithKey f "" h
+displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
   where
     f k a b = replicate a (head $ show k) ++ b
 
