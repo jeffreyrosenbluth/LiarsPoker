@@ -39,12 +39,14 @@ instance FromJSON PlayerPublic
 makeLenses ''PlayerPublic
 
 data PlayerMsg = PlayerMsg
-  { _playersMsg   :: [PlayerPublic]
-  , _bidderMsg    :: Text
-  , _bidQuantMsg  :: Int
-  , _bidCardMsg   :: Int
-  , _turnMsg      :: Text
-  , _baseStakeMsg :: Int
+  { _playersMsg    :: [PlayerPublic]
+  , _bidderMsg     :: Text
+  , _bidQuantMsg   :: Int
+  , _bidCardMsg    :: Int
+  , _turnMsg       :: Text
+  , _baseStakeMsg  :: Int
+  , _myNameMsg     :: Text
+  , _myHandMsg     :: Text
   } deriving (Show, Generic)
 
 instance ToJSON PlayerMsg
@@ -57,16 +59,18 @@ playerPublics g = map playerPublic (g ^.players)
   where
     playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
-playerMsg :: Game -> PlayerMsg
-playerMsg g = PlayerMsg
+playerMsgs :: Game -> [PlayerMsg]
+playerMsgs g = map (\p -> PlayerMsg
   (playerPublics g)
   (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
   (g ^. bid . bidQuant)
   (g ^. bid . bidCard)
-  (names !! (g ^. turn))
+  (map fst playerPrivates !! (g ^. turn))
   (g ^. baseStake)
+  (fst p)
+  (T.pack . displayHand $ snd p)) playerPrivates
   where
-    names = map (view name) (g ^. players)
+    playerPrivates = map (\p -> (p ^. name, p ^. hand)) (g ^. players)
 
 
 parseMessage :: Text -> Action
@@ -120,25 +124,23 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
       putMVar state (g', r, cs ++ [conn])
-      sendText conn (T.pack . LB.unpack . encode $ playerMsg g')
+      sendText conn (last $ map (T.pack . LB.unpack . encode) $ playerMsgs g')
       handle conn state pId
     otherwise -> do
       sendText conn "Must set a user name to play"
       putMVar state (g, r, cs)
       getName state conn
 
-deal :: WS.Connection -> MVar ServerState -> Int -> IO ()
-deal conn state pId = do
+deal :: WS.Connection -> MVar ServerState -> IO ()
+deal conn state = do
   (g, r, cs) <- readMVar state
   if legal g Deal
     then do
       let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-          msgHand t = "hand:" ++ displayHand t
-          hands = map (T.pack . msgHand . view hand) $ g' ^. players
       swapMVar state (g', r', cs)
-      broadcast' hands cs
+      broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
     else
       sendText conn "Cannot deal a game in progress."
 
@@ -147,14 +149,14 @@ handle conn state pId = forever $ do
   msg <- WS.receiveData conn
   let action = parseMessage msg
   case action of
-    Deal -> deal conn state pId
+    Deal -> deal conn state
     Raise b -> do
       (g, r, cs) <- readMVar state
       if legal g action && g ^. turn == pId
         then do
           let g' = mkBid g b
           swapMVar state (g', r, cs)
-          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
+          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
         else sendText conn "Illegal raise."
     Challenge -> do
       (g, r, cs) <- readMVar state
@@ -162,7 +164,7 @@ handle conn state pId = forever $ do
         then do
           let g' = nextPlayer g
           swapMVar state (g', r, cs)
-          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
+          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
         else
           sendText conn "Illegal Challenge."
     Count -> do
@@ -173,8 +175,8 @@ handle conn state pId = forever $ do
               result = g ^. bid . bidQuant <= cnt || cnt == 0
               g' = scoreGame $ g & won .~ Just result & inProgress .~ False
           swapMVar state (g', r, cs)
-          broadcast (T.pack . LB.unpack . encode $ playerMsg g') cs
-          deal conn state pId
+          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
+          deal conn state
         else
           sendText conn "Illgal Count."
     Say t -> do

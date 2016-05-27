@@ -139,7 +139,7 @@ newGame = Game 0 [] Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Game -> Game
 resetGame g = g & bidder .~ Nothing
-                & bid .~ Bid minBound 0
+                & bid .~ Bid 0 0
                 & turn .~ fromMaybe 0 (g ^. bidder)
                 & won .~ Nothing
                 & rebid .~ False
