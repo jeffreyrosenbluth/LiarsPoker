@@ -20,7 +20,9 @@ module LiarsPoker
   , toHand
   , displayHand
   , getHand
+  , getPlayerName
   , getBidderName
+  , getTurnName
   , mkBid
   , nextPlayer
   , count
@@ -117,8 +119,12 @@ count game card = sum $ getCount . view hand <$> game ^. players
     getCount h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players hand if the playerId exists.
-getHand :: Game -> Int -> Maybe Hand
-getHand game pId = view hand <$> game ^. players ^? ix pId
+getHand :: Game -> Int -> Hand
+getHand game pId = game ^. players ^?! ix pId . hand
+
+-- | Given a game and a playerId, return the players hand if the playerId exists.
+getPlayerName :: Game -> Int -> Text
+getPlayerName game pId = game ^. players ^?! ix pId . name
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -132,6 +138,13 @@ getBidderName :: Game -> Text
 getBidderName g = fromMaybe "" $ fmap (\i -> view (ix i . name) ps) b
   where
     b = g ^. bidder
+    ps = g ^. players
+
+getTurnName :: Game -> Text
+getTurnName g = ps ^. ix b . name
+  -- view (ix i . name) ps) b
+  where
+    b = g ^. turn
     ps = g ^. players
 
 newGame :: Game

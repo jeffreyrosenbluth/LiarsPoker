@@ -56,6 +56,9 @@ instance FromJSON ClinetMsg
 
 makeLenses ''ClinetMsg
 
+playerIds :: Game -> [Int]
+playerIds g = [0..(g^.numOfPlayers - 1)]
+
 playerPublics :: Game -> [PlayerPublic]
 playerPublics g = map playerPublic (g ^.players)
   where
@@ -64,15 +67,13 @@ playerPublics g = map playerPublic (g ^.players)
 clinetMsgs :: Game -> [ClinetMsg]
 clinetMsgs g = map (\p -> ClinetMsg
   (playerPublics g)
-  (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
+  (getBidderName g)
   (g ^. bid . bidQuant)
   (g ^. bid . bidCard)
-  (map fst playerPrivates !! (g ^. turn))
+  (getTurnName g)
   (g ^. baseStake)
-  (fst p)
-  (T.pack . displayHand $ snd p)) playerPrivates
-  where
-    playerPrivates = map (\p -> (p ^. name, p ^. hand)) (g ^. players)
+  (getPlayerName g p)
+  (T.pack . displayHand $ getHand g p)) (playerIds g)
 
 parseMessage :: Text -> Action
 parseMessage t
