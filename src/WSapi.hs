@@ -57,7 +57,7 @@ instance FromJSON ClinetMsg
 makeLenses ''ClinetMsg
 
 playerIds :: Game -> [Int]
-playerIds g = [0..(g^.numOfPlayers - 1)]
+playerIds g = [0..(numOfPlayers g - 1)]
 
 playerPublics :: Game -> [PlayerPublic]
 playerPublics g = map playerPublic (g ^.players)
@@ -114,7 +114,7 @@ getName state conn = do
   (g, r, cs) <- takeMVar state
   sendText conn "Please set a user name."
   msg <- WS.receiveData conn
-  let pId = g ^. numOfPlayers
+  let pId = numOfPlayers g
       action = parseMessage msg
   case action of
     SetName nm -> do
@@ -132,7 +132,7 @@ deal conn state = do
   (g, r, cs) <- readMVar state
   if legal g Deal
     then do
-      let (cards, r') = runRand (replicateM (g ^. numOfPlayers * cardsPerHand)
+      let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
       swapMVar state (g', r', cs)

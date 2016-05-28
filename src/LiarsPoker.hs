@@ -80,8 +80,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _numOfPlayers :: Int        -- ^ Cache the number of players.
-  , _players      :: [Player]
+  { _players      :: [Player]
   , _bidder       :: Maybe Int  -- ^ playerId
   , _bid          :: Bid
   , _turn         :: Int        -- ^ playerId
@@ -111,6 +110,9 @@ instance FromJSON Action
 
 cardsPerHand :: Int
 cardsPerHand = 8
+
+numOfPlayers :: Game -> Int
+numOfPlayers g = length $ g ^. players
 
 -- | Total number of Card in the game.
 count :: Game -> Card -> Int
@@ -148,7 +150,7 @@ getTurnName g = ps ^. ix b . name
     ps = g ^. players
 
 newGame :: Game
-newGame = Game 0 [] Nothing (Bid 0 0) 0 Nothing False False 1
+newGame = Game [] Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Game -> Game
 resetGame g = g & bidder .~ Nothing
@@ -159,8 +161,7 @@ resetGame g = g & bidder .~ Nothing
                 & inProgress .~ True
 
 addPlayer :: Game -> Int -> Text -> Game
-addPlayer game pId nm = game & numOfPlayers +~ 1
-                             & players <>~ [player]
+addPlayer game pId nm = game & players <>~ [player]
   where
     player = Player pId nm M.empty 0
 
@@ -185,7 +186,7 @@ mkBid game b = nextPlayer
 nextPlayer :: Game -> Game
 nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
-    numPlayers = game ^. numOfPlayers
+    numPlayers = numOfPlayers game
 
 legal :: Game -> Action -> Bool
 legal game action = case action of
@@ -210,7 +211,7 @@ bonus game = sixes * mult
     Bid c n    = game ^. bid
     mult       = if n < numPlayers + 3 then 1 else 2 + (n - numPlayers - 3) `div` 2
     sixes      = if c == 6 then 2 else 1
-    numPlayers = game ^. numOfPlayers
+    numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game -> Int
@@ -224,7 +225,7 @@ hero game = if q == 0 && count game bc > 0 then 1 else 0
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Game
-scoreGame game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
+scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
                       & baseStake .~ (if h == 1 then 2 else bns)
   where
     reScore p
@@ -240,12 +241,12 @@ scoreGame game = game & players .~ (reScore <$> [0..(game ^. numOfPlayers - 1)])
     -- The n+3 rule.
     bns       = bonus game
     -- The skunk rule.
-    mult      = if cnt == 0 then max 1 (2 * game ^. numOfPlayers - 6) else bns
+    mult      = if cnt == 0 then max 1 (2 * numOfPlayers game - 6) else bns
     -- The hero bump.
     h         = hero game
     -- The score for non bidders.
     winStake  = (mult + h) * game ^. baseStake
     lossStake = game ^. baseStake
     -- The score for the bidder
-    winB      = winStake * (game ^. numOfPlayers - 1)
-    lossB     = lossStake * (game ^. numOfPlayers - 1)
+    winB      = winStake * (numOfPlayers game - 1)
+    lossB     = lossStake * (numOfPlayers game - 1)
