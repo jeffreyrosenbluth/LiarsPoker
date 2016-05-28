@@ -1,28 +1,30 @@
-{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell   #-}
+
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module WSapi where
 
-import LiarsPoker
+import           LiarsPoker
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad (replicateM, forever, forM_)
+import           Control.Monad                  (forM_, forever, replicateM)
 import           Control.Monad.Random
-import qualified Data.ByteString.Lazy.Char8 as LB
-import           Data.Char (isDigit, digitToInt)
 import           Data.Aeson
-import           Data.List.Split  (chunksOf)
-import           Data.FileEmbed (embedDir)
+import qualified Data.ByteString.Lazy.Char8     as LB
+import           Data.Char                      (digitToInt, isDigit)
+import           Data.FileEmbed                 (embedDir)
+import           Data.List.Split                (chunksOf)
 import           Data.Maybe
-import           Data.Text (Text)
-import qualified Data.Text as T
+import           Data.Text                      (Text)
+import qualified Data.Text                      as T
+import           Data.Text.Read                 (decimal)
 import           GHC.Generics
-import qualified Network.WebSockets as WS
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
+import qualified Network.WebSockets             as WS
 
 type ServerState = (Game, StdGen, Clients)
 type Clients     = [WS.Connection]
@@ -39,14 +41,14 @@ instance FromJSON PlayerPublic
 makeLenses ''PlayerPublic
 
 data PlayerMsg = PlayerMsg
-  { _playersMsg    :: [PlayerPublic]
-  , _bidderMsg     :: Text
-  , _bidQuantMsg   :: Int
-  , _bidCardMsg    :: Int
-  , _turnMsg       :: Text
-  , _baseStakeMsg  :: Int
-  , _myNameMsg     :: Text
-  , _myHandMsg     :: Text
+  { _playersMsg   :: [PlayerPublic]
+  , _bidderMsg    :: Text
+  , _bidQuantMsg  :: Int
+  , _bidCardMsg   :: Int
+  , _turnMsg      :: Text
+  , _baseStakeMsg :: Int
+  , _myNameMsg    :: Text
+  , _myHandMsg    :: Text
   } deriving (Show, Generic)
 
 instance ToJSON PlayerMsg
@@ -79,15 +81,12 @@ parseMessage t
   | "deal" == t = Deal
   | "bid " `T.isPrefixOf` t = do
       let r = do
-                (a1, rest) <- uncons $ T.drop 4 t
-                (a2, _)    <- uncons $ T.drop 1 rest
-                return (a1, a2)
+                (b1, t1) <- decimal $ T.drop 4 t
+                (b2, _) <- decimal $ T.drop 1 t1
+                return (b2, b1)
       case r of
-        -- TODO must handle qunatities of cards >= 10 so isDigit wont work.
-        Just (d1, d2) -> if isDigit d1 && isDigit d2
-                           then Raise (Bid (digitToInt d2) (digitToInt d1))
-                           else Invalid "Invalid raise must take integers."
-        Nothing       -> Invalid "Invalid raise"
+        Right (d1, d2) -> Raise (Bid d1 d2)
+        Left e         -> Invalid (T.pack e)
   | "challenge" == t = Challenge
   | "count" == t = Count
   | "say " `T.isPrefixOf` t = Say $ T.drop 4 t
@@ -126,7 +125,7 @@ getName state conn = do
       putMVar state (g', r, cs ++ [conn])
       sendText conn (last $ map (T.pack . LB.unpack . encode) $ playerMsgs g')
       handle conn state pId
-    otherwise -> do
+    _ -> do
       sendText conn "Must set a user name to play"
       putMVar state (g, r, cs)
       getName state conn

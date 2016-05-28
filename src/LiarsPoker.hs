@@ -31,11 +31,11 @@ module LiarsPoker
 
 import           Control.Lens
 import           Data.Aeson
-import           Data.Map (Map)
-import qualified Data.Map as M
+import           Data.List    (intersperse)
+import           Data.Map     (Map)
+import qualified Data.Map     as M
 import           Data.Maybe
-import           Data.List (intersperse)
-import           Data.Text (Text)
+import           Data.Text    (Text)
 import           GHC.Generics
 
 type Card = Int
