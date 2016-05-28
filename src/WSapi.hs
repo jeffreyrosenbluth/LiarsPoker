@@ -81,8 +81,8 @@ parseMessage t
   | "deal" == t = Deal
   | "bid " `T.isPrefixOf` t = do
       let r = do
-                (b1, t1) <- decimal $ T.drop 4 t
-                (b2, _) <- decimal $ T.drop 1 t1
+                (b1, t') <- decimal $ T.drop 4 t
+                (b2, _ ) <- decimal $ T.drop 1 t'
                 return (b2, b1)
       case r of
         Right (d1, d2) -> Raise (Bid d1 d2)

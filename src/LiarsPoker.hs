@@ -80,7 +80,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _numOfPlayers :: Int
+  { _numOfPlayers :: Int        -- ^ Cache the number of players.
   , _players      :: [Player]
   , _bidder       :: Maybe Int  -- ^ playerId
   , _bid          :: Bid
