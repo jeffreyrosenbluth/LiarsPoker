@@ -40,7 +40,7 @@ instance FromJSON PlayerPublic
 
 makeLenses ''PlayerPublic
 
-data PlayerMsg = PlayerMsg
+data ClinetMsg = ClinetMsg
   { _playersMsg   :: [PlayerPublic]
   , _bidderMsg    :: Text
   , _bidQuantMsg  :: Int
@@ -51,18 +51,18 @@ data PlayerMsg = PlayerMsg
   , _myHandMsg    :: Text
   } deriving (Show, Generic)
 
-instance ToJSON PlayerMsg
-instance FromJSON PlayerMsg
+instance ToJSON ClinetMsg
+instance FromJSON ClinetMsg
 
-makeLenses ''PlayerMsg
+makeLenses ''ClinetMsg
 
 playerPublics :: Game -> [PlayerPublic]
 playerPublics g = map playerPublic (g ^.players)
   where
     playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
-playerMsgs :: Game -> [PlayerMsg]
-playerMsgs g = map (\p -> PlayerMsg
+clinetMsgs :: Game -> [ClinetMsg]
+clinetMsgs g = map (\p -> ClinetMsg
   (playerPublics g)
   (maybe "" (\i -> ((g ^. players) !! i) ^. name) (g ^. bidder))
   (g ^. bid . bidQuant)
@@ -73,7 +73,6 @@ playerMsgs g = map (\p -> PlayerMsg
   (T.pack . displayHand $ snd p)) playerPrivates
   where
     playerPrivates = map (\p -> (p ^. name, p ^. hand)) (g ^. players)
-
 
 parseMessage :: Text -> Action
 parseMessage t
@@ -96,12 +95,9 @@ parseMessage t
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
-broadcast' :: [Text] -> Clients -> IO ()
-broadcast' msgs clients =
+broadcast :: [Text] -> Clients -> IO ()
+broadcast msgs clients =
   forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
-
-broadcast :: Text -> Clients -> IO ()
-broadcast msg clients = forM_ clients $ \conn -> WS.sendTextData conn msg
 
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
@@ -123,7 +119,7 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
       putMVar state (g', r, cs ++ [conn])
-      sendText conn (last $ map (T.pack . LB.unpack . encode) $ playerMsgs g')
+      sendText conn (last $ map (T.pack . LB.unpack . encode) $ clinetMsgs g')
       handle conn state pId
     _ -> do
       sendText conn "Must set a user name to play"
@@ -139,7 +135,7 @@ deal conn state = do
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
       swapMVar state (g', r', cs)
-      broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
+      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
     else
       sendText conn "Cannot deal a game in progress."
 
@@ -155,7 +151,7 @@ handle conn state pId = forever $ do
         then do
           let g' = mkBid g b
           swapMVar state (g', r, cs)
-          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
+          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
         else sendText conn "Illegal raise."
     Challenge -> do
       (g, r, cs) <- readMVar state
@@ -163,7 +159,7 @@ handle conn state pId = forever $ do
         then do
           let g' = nextPlayer g
           swapMVar state (g', r, cs)
-          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
+          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
         else
           sendText conn "Illegal Challenge."
     Count -> do
@@ -174,13 +170,14 @@ handle conn state pId = forever $ do
               result = g ^. bid . bidQuant <= cnt || cnt == 0
               g' = scoreGame $ g & won .~ Just result & inProgress .~ False
           swapMVar state (g', r, cs)
-          broadcast' (map (T.pack . LB.unpack . encode) $ playerMsgs g') cs
+          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
           deal conn state
         else
           sendText conn "Illgal Count."
-    Say t -> do
-      (_, _, cs) <- readMVar state
-      broadcast t cs
-    Invalid t -> do
-      (_, _, cs) <- readMVar state
-      broadcast t cs
+    _ -> return ()
+    -- Say t -> do
+    --   (_, _, cs) <- readMVar state
+    --   broadcast t cs
+    -- Invalid t -> do
+    --   (_, _, cs) <- readMVar state
+    --   broadcast t cs
