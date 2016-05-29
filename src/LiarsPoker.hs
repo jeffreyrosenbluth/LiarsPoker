@@ -9,13 +9,14 @@ module LiarsPoker
   ( Card, cardsPerHand
   , Bid(..), bidCard, bidQuant
   , Player(..), name, hand, score, playerId
-  , Game(..), numOfPlayers, players, bidder, bid, turn, won, rebid, baseStake
+  , Game(..), players, bidder, bid, turn, won, rebid, baseStake
   , Action(..), _Raise, _Challenge, _Count
   , Hand
 
   , newGame
   , resetGame
   , addPlayer
+  , numOfPlayers
   , dealHands
   , toHand
   , displayHand

@@ -140,45 +140,48 @@ deal conn state = do
     else
       sendText conn "Cannot deal a game in progress."
 
+raise :: WS.Connection -> MVar ServerState -> Int -> Bid -> IO ()
+raise conn state pId b = do
+  (g, r, cs) <- readMVar state
+  if legal g (Raise b) && g ^. turn == pId
+    then do
+      let g' = mkBid g b
+      swapMVar state (g', r, cs)
+      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+    else sendText conn "Illegal raise."
+
+challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
+challenge conn state pId = do
+  (g, r, cs) <- readMVar state
+  if legal g Challenge && g ^. turn == pId
+    then do
+      let g' = nextPlayer g
+      swapMVar state (g', r, cs)
+      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+    else
+      sendText conn "Illegal Challenge."
+
+count' :: WS.Connection -> MVar ServerState -> Int -> IO ()
+count' conn state pId = do
+  (g, r, cs) <- readMVar state
+  if legal g Count && g ^. turn == pId
+    then do
+      let cnt = count g (g ^. bid . bidCard)
+          result = g ^. bid . bidQuant <= cnt || cnt == 0
+          g' = scoreGame $ g & won .~ Just result & inProgress .~ False
+      swapMVar state (g', r, cs)
+      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+      deal conn state
+    else
+      sendText conn "Illgal Count."
+
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
   msg <- WS.receiveData conn
   let action = parseMessage msg
   case action of
     Deal -> deal conn state
-    Raise b -> do
-      (g, r, cs) <- readMVar state
-      if legal g action && g ^. turn == pId
-        then do
-          let g' = mkBid g b
-          swapMVar state (g', r, cs)
-          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
-        else sendText conn "Illegal raise."
-    Challenge -> do
-      (g, r, cs) <- readMVar state
-      if legal g action && g ^. turn == pId
-        then do
-          let g' = nextPlayer g
-          swapMVar state (g', r, cs)
-          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
-        else
-          sendText conn "Illegal Challenge."
-    Count -> do
-      (g, r, cs) <- readMVar state
-      if legal g action && g ^. turn == pId
-        then do
-          let cnt = count g (g ^. bid . bidCard)
-              result = g ^. bid . bidQuant <= cnt || cnt == 0
-              g' = scoreGame $ g & won .~ Just result & inProgress .~ False
-          swapMVar state (g', r, cs)
-          broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
-          deal conn state
-        else
-          sendText conn "Illgal Count."
+    Raise b -> raise conn state pId b
+    Challenge -> challenge conn state pId
+    Count -> count' conn state pId
     _ -> return ()
-    -- Say t -> do
-    --   (_, _, cs) <- readMVar state
-    --   broadcast t cs
-    -- Invalid t -> do
-    --   (_, _, cs) <- readMVar state
-    --   broadcast t cs
