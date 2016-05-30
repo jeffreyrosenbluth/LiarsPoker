@@ -50,6 +50,7 @@ data ClinetMsg = ClinetMsg
   , _multipleMsg  :: Int
   , _myNameMsg    :: Text
   , _myHandMsg    :: Text
+  , _errorMsg     :: Text
   } deriving (Show, Generic)
 
 instance ToJSON ClinetMsg
@@ -66,7 +67,7 @@ playerPublics g = map playerPublic (g ^.players)
     playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
 clinetMsgs :: Game -> [ClinetMsg]
-clinetMsgs g = map (\p -> ClinetMsg
+clinetMsgs g = map ( \p -> ClinetMsg
   (playerPublics g)
   (getBidderName g)
   (g ^. bid . bidQuant)
@@ -75,7 +76,9 @@ clinetMsgs g = map (\p -> ClinetMsg
   (g ^. baseStake)
   (bonus g)
   (getPlayerName g p)
-  (T.pack . displayHand $ getHand g p)) (playerIds g)
+  (T.pack . displayHand $ getHand g p)
+  "" )
+    (playerIds g)
 
 parseMessage :: Text -> Action
 parseMessage t
@@ -121,8 +124,9 @@ getName state conn = do
   case action of
     SetName nm -> do
       let g' = addPlayer g pId nm
-      putMVar state (g', r, cs ++ [conn])
-      sendText conn (last $ map (T.pack . LB.unpack . encode) $ clinetMsgs g')
+          cs' = cs ++ [conn]
+      putMVar state (g', r, cs')
+      broadcast cs' (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
       handle conn state pId
     _ -> do
       sendText conn "Must set a user name to play"
@@ -137,10 +141,13 @@ deal conn state = do
       let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
+          cm = clinetMsgs g' & traverse . errorMsg .~ ""
       swapMVar state (g', r', cs)
-      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
-    else
-      sendText conn "Cannot deal a game in progress."
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
+    else do
+      let cm = clinetMsgs g & traverse . errorMsg
+                           .~ "Cannot deal a game in progress"
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 raise :: WS.Connection -> MVar ServerState -> Int -> Bid -> IO ()
 raise conn state pId b = do
@@ -148,9 +155,13 @@ raise conn state pId b = do
   if legal g (Raise b) && g ^. turn == pId
     then do
       let g' = mkBid g b
+          cm = clinetMsgs g' & traverse . errorMsg .~ ""
       swapMVar state (g', r, cs)
-      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
-    else sendText conn "Illegal raise."
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
+    else do
+      let cm = clinetMsgs g & traverse . errorMsg
+                           .~ "Illegal Raise"
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
 challenge conn state pId = do
@@ -158,10 +169,14 @@ challenge conn state pId = do
   if legal g Challenge && g ^. turn == pId
     then do
       let g' = nextPlayer g
+          cm = clinetMsgs g' & traverse . errorMsg .~ ""
       swapMVar state (g', r, cs)
-      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
-    else
-      sendText conn "Illegal Challenge."
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
+    else do
+      let cm = clinetMsgs g & traverse . errorMsg
+                           .~ "Illegal Challenge"
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
+
 
 count' :: WS.Connection -> MVar ServerState -> Int -> IO ()
 count' conn state pId = do
@@ -171,11 +186,14 @@ count' conn state pId = do
       let cnt = count g (g ^. bid . bidCard)
           result = g ^. bid . bidQuant <= cnt || cnt == 0
           g' = scoreGame $ g & won .~ Just result & inProgress .~ False
+          cm = clinetMsgs g' & traverse . errorMsg .~ ""
       swapMVar state (g', r, cs)
-      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
       deal conn state
-    else
-      sendText conn "Illgal Count."
+    else do
+      let cm = clinetMsgs g & traverse . errorMsg
+                           .~ "Illegal Count"
+      broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
