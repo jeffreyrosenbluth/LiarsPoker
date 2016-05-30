@@ -10,7 +10,7 @@ import           LiarsPoker
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad                  (forM_, forever, replicateM)
+import           Control.Monad                  (forever, replicateM, zipWithM_)
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
@@ -47,6 +47,7 @@ data ClinetMsg = ClinetMsg
   , _bidCardMsg   :: Int
   , _turnMsg      :: Text
   , _baseStakeMsg :: Int
+  , _multipleMsg  :: Int
   , _myNameMsg    :: Text
   , _myHandMsg    :: Text
   } deriving (Show, Generic)
@@ -72,6 +73,7 @@ clinetMsgs g = map (\p -> ClinetMsg
   (g ^. bid . bidCard)
   (getTurnName g)
   (g ^. baseStake)
+  (bonus g)
   (getPlayerName g p)
   (T.pack . displayHand $ getHand g p)) (playerIds g)
 
@@ -96,9 +98,9 @@ parseMessage t
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
-broadcast :: [Text] -> Clients -> IO ()
-broadcast msgs clients =
-  forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
+broadcast :: Clients -> [Text] -> IO ()
+broadcast = zipWithM_ WS.sendTextData
+  -- forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
 
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
@@ -136,7 +138,7 @@ deal conn state = do
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
       swapMVar state (g', r', cs)
-      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
     else
       sendText conn "Cannot deal a game in progress."
 
@@ -147,7 +149,7 @@ raise conn state pId b = do
     then do
       let g' = mkBid g b
       swapMVar state (g', r, cs)
-      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
     else sendText conn "Illegal raise."
 
 challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -157,7 +159,7 @@ challenge conn state pId = do
     then do
       let g' = nextPlayer g
       swapMVar state (g', r, cs)
-      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
     else
       sendText conn "Illegal Challenge."
 
@@ -170,7 +172,7 @@ count' conn state pId = do
           result = g ^. bid . bidQuant <= cnt || cnt == 0
           g' = scoreGame $ g & won .~ Just result & inProgress .~ False
       swapMVar state (g', r, cs)
-      broadcast (map (T.pack . LB.unpack . encode) $ clinetMsgs g') cs
+      broadcast cs (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
       deal conn state
     else
       sendText conn "Illgal Count."

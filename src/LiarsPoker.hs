@@ -28,6 +28,7 @@ module LiarsPoker
   , nextPlayer
   , count
   , legal
+  , bonus
   , scoreGame
   , inProgress
   ) where
