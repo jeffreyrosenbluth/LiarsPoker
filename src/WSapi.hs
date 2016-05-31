@@ -155,11 +155,11 @@ deal conn state = do
                            .~ "Cannot deal a game in progress"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
-updateClientMsgs :: [ClientMsg] -> Game -> Text -> Bool -> Bool -> [ClientMsg]
-updateClientMsgs cs g err raiseFlag chalFlag =
+updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
+updateClientMsgs cs g err  =
   cs & traverse . errorMsg .~ err
-     & singular (ix (g ^. turn)) . raiseBtnMsg .~ raiseFlag
-     & singular (ix (g ^. turn)) . chalBtnMsg .~ chalFlag
+     & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
+     & singular (ix (g ^. turn)) . chalBtnMsg  .~ ((Just $ g ^. turn) /= g ^. bidder)
      & singular (ix (g ^. turn)) . countBtnMsg .~ ((Just $ g ^. turn) == g ^. bidder)
 
 raise :: WS.Connection -> MVar ServerState -> Int -> Bid -> IO ()
@@ -168,11 +168,12 @@ raise conn state pId b = do
   if legal g (Raise b) && g ^. turn == pId
     then do
       let g' = mkBid g b
-          cm = updateClientMsgs (clientMsgs g') g' "" True True
+          cm = updateClientMsgs (clientMsgs g') g' ""
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = updateClientMsgs (clientMsgs g) g "Illegal Raise" True True
+      let e = "Either your bid is too low or you are trying to raise a re-bid."
+          cm = updateClientMsgs (clientMsgs g) g e
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -181,11 +182,11 @@ challenge conn state pId = do
   if legal g Challenge && g ^. turn == pId
     then do
       let g' = nextPlayer g
-          cm = updateClientMsgs (clientMsgs g') g' "" True True
+          cm = updateClientMsgs (clientMsgs g') g' ""
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = updateClientMsgs (clientMsgs g) g "Illegal Challenge" True True
+      let cm = updateClientMsgs (clientMsgs g) g "Illegal Challenge"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 
