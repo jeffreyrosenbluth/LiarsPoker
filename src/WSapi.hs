@@ -155,21 +155,24 @@ deal conn state = do
                            .~ "Cannot deal a game in progress"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
+updateClientMsgs :: [ClientMsg] -> Game -> Text -> Bool -> Bool -> [ClientMsg]
+updateClientMsgs cs g err raiseFlag chalFlag =
+  cs & traverse . errorMsg .~ err
+     & singular (ix (g ^. turn)) . raiseBtnMsg .~ raiseFlag
+     & singular (ix (g ^. turn)) . chalBtnMsg .~ chalFlag
+     & singular (ix (g ^. turn)) . countBtnMsg .~ ((Just $ g ^. turn) == g ^. bidder)
+
 raise :: WS.Connection -> MVar ServerState -> Int -> Bid -> IO ()
 raise conn state pId b = do
   (g, r, cs) <- readMVar state
   if legal g (Raise b) && g ^. turn == pId
     then do
       let g' = mkBid g b
-          cm = clientMsgs g' & traverse . errorMsg .~ ""
-                             & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
-                             & singular (ix (g' ^. turn)) . chalBtnMsg .~ True
+          cm = updateClientMsgs (clientMsgs g') g' "" True True
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clientMsgs g & traverse . errorMsg .~ "Illegal Raise"
-                            & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
-                            & singular (ix (g ^. turn)) . chalBtnMsg .~ True
+      let cm = updateClientMsgs (clientMsgs g) g "Illegal Raise" True True
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -178,20 +181,11 @@ challenge conn state pId = do
   if legal g Challenge && g ^. turn == pId
     then do
       let g' = nextPlayer g
-          cm = clientMsgs g' & traverse . errorMsg .~ ""
-                             & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
-                             & singular (ix (g' ^. turn)) . chalBtnMsg .~ True
-                             & singular (ix (g' ^. turn)) . countBtnMsg
-                             .~ (g' ^. turn == fromMaybe (-1) (g' ^. bidder))
+          cm = updateClientMsgs (clientMsgs g') g' "" True True
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clientMsgs g & traverse . errorMsg .~ "Illegal Challenge"
-                            & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
-                            & singular (ix (g ^. turn)) . chalBtnMsg .~ True
-                            & singular (ix (g ^. turn)) . countBtnMsg
-                            .~ (g ^. turn == fromMaybe (-1) (g ^. bidder))
-
+      let cm = updateClientMsgs (clientMsgs g) g "Illegal Challenge" True True
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 
