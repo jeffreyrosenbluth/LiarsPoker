@@ -40,7 +40,7 @@ instance FromJSON PlayerPublic
 
 makeLenses ''PlayerPublic
 
-data ClinetMsg = ClinetMsg
+data ClientMsg = ClientMsg
   { _playersMsg   :: [PlayerPublic]
   , _bidderMsg    :: Text
   , _bidQuantMsg  :: Int
@@ -51,12 +51,14 @@ data ClinetMsg = ClinetMsg
   , _myNameMsg    :: Text
   , _myHandMsg    :: Text
   , _errorMsg     :: Text
+  , _bidBtnsMsg  :: Bool
+  , _countBtnMsg  :: Bool
   } deriving (Show, Generic)
 
-instance ToJSON ClinetMsg
-instance FromJSON ClinetMsg
+instance ToJSON ClientMsg
+instance FromJSON ClientMsg
 
-makeLenses ''ClinetMsg
+makeLenses ''ClientMsg
 
 playerIds :: Game -> [Int]
 playerIds g = [0..(numOfPlayers g - 1)]
@@ -66,8 +68,8 @@ playerPublics g = map playerPublic (g ^.players)
   where
     playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
-clinetMsgs :: Game -> [ClinetMsg]
-clinetMsgs g = map ( \p -> ClinetMsg
+clientMsgs :: Game -> [ClientMsg]
+clientMsgs g = map ( \p -> ClientMsg
   (playerPublics g)
   (getBidderName g)
   (g ^. bid . bidQuant)
@@ -77,7 +79,9 @@ clinetMsgs g = map ( \p -> ClinetMsg
   (bonus g)
   (getPlayerName g p)
   (T.pack . displayHand $ getHand g p)
-  "" )
+  ""
+  False
+  False )
     (playerIds g)
 
 parseMessage :: Text -> Action
@@ -103,7 +107,6 @@ sendText = WS.sendTextData
 
 broadcast :: Clients -> [Text] -> IO ()
 broadcast = zipWithM_ WS.sendTextData
-  -- forM_ (zip msgs clients) $ \(msg, conn) -> WS.sendTextData conn msg
 
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
@@ -126,7 +129,7 @@ getName state conn = do
       let g' = addPlayer g pId nm
           cs' = cs ++ [conn]
       putMVar state (g', r, cs')
-      broadcast cs' (map (T.pack . LB.unpack . encode) $ clinetMsgs g')
+      broadcast cs' (map (T.pack . LB.unpack . encode) $ clientMsgs g')
       handle conn state pId
     _ -> do
       sendText conn "Must set a user name to play"
@@ -141,11 +144,12 @@ deal conn state = do
       let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-          cm = clinetMsgs g' & traverse . errorMsg .~ ""
+          cm = clientMsgs g' & traverse . errorMsg .~ ""
+                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
       swapMVar state (g', r', cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clinetMsgs g & traverse . errorMsg
+      let cm = clientMsgs g & traverse . errorMsg
                            .~ "Cannot deal a game in progress"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
@@ -155,11 +159,12 @@ raise conn state pId b = do
   if legal g (Raise b) && g ^. turn == pId
     then do
       let g' = mkBid g b
-          cm = clinetMsgs g' & traverse . errorMsg .~ ""
+          cm = clientMsgs g' & traverse . errorMsg .~ ""
+                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clinetMsgs g & traverse . errorMsg
+      let cm = clientMsgs g & traverse . errorMsg
                            .~ "Illegal Raise"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
@@ -169,11 +174,14 @@ challenge conn state pId = do
   if legal g Challenge && g ^. turn == pId
     then do
       let g' = nextPlayer g
-          cm = clinetMsgs g' & traverse . errorMsg .~ ""
+          cm = clientMsgs g' & traverse . errorMsg .~ ""
+                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
+                             & singular (ix (g' ^. turn)) . countBtnMsg .~
+                                 (g' ^. turn == fromMaybe (-1) (g' ^. bidder))
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clinetMsgs g & traverse . errorMsg
+      let cm = clientMsgs g & traverse . errorMsg
                            .~ "Illegal Challenge"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
@@ -186,12 +194,12 @@ count' conn state pId = do
       let cnt = count g (g ^. bid . bidCard)
           result = g ^. bid . bidQuant <= cnt || cnt == 0
           g' = scoreGame $ g & won .~ Just result & inProgress .~ False
-          cm = clinetMsgs g' & traverse . errorMsg .~ ""
+          cm = clientMsgs g' & traverse . errorMsg .~ ""
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
       deal conn state
     else do
-      let cm = clinetMsgs g & traverse . errorMsg
+      let cm = clientMsgs g & traverse . errorMsg
                            .~ "Illegal Count"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
