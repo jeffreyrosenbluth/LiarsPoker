@@ -51,7 +51,8 @@ data ClientMsg = ClientMsg
   , _myNameMsg    :: Text
   , _myHandMsg    :: Text
   , _errorMsg     :: Text
-  , _bidBtnsMsg  :: Bool
+  , _raiseBtnMsg  :: Bool
+  , _chalBtnMsg   :: Bool
   , _countBtnMsg  :: Bool
   } deriving (Show, Generic)
 
@@ -80,6 +81,7 @@ clientMsgs g = map ( \p -> ClientMsg
   (getPlayerName g p)
   (T.pack . displayHand $ getHand g p)
   ""
+  False
   False
   False )
     (playerIds g)
@@ -145,7 +147,7 @@ deal conn state = do
                    $ getRandomR (0, 9)) r
           g' = resetGame $ dealHands g (chunksOf cardsPerHand cards)
           cm = clientMsgs g' & traverse . errorMsg .~ ""
-                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
+                             & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
       swapMVar state (g', r', cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
@@ -160,12 +162,14 @@ raise conn state pId b = do
     then do
       let g' = mkBid g b
           cm = clientMsgs g' & traverse . errorMsg .~ ""
-                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
+                             & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
+                             & singular (ix (g' ^. turn)) . chalBtnMsg .~ True
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clientMsgs g & traverse . errorMsg
-                           .~ "Illegal Raise"
+      let cm = clientMsgs g & traverse . errorMsg .~ "Illegal Raise"
+                            & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
+                            & singular (ix (g ^. turn)) . chalBtnMsg .~ True
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 challenge :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -175,14 +179,19 @@ challenge conn state pId = do
     then do
       let g' = nextPlayer g
           cm = clientMsgs g' & traverse . errorMsg .~ ""
-                             & singular (ix (g' ^. turn)) . bidBtnsMsg .~ True
-                             & singular (ix (g' ^. turn)) . countBtnMsg .~
-                                 (g' ^. turn == fromMaybe (-1) (g' ^. bidder))
+                             & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
+                             & singular (ix (g' ^. turn)) . chalBtnMsg .~ True
+                             & singular (ix (g' ^. turn)) . countBtnMsg
+                             .~ (g' ^. turn == fromMaybe (-1) (g' ^. bidder))
       swapMVar state (g', r, cs)
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
     else do
-      let cm = clientMsgs g & traverse . errorMsg
-                           .~ "Illegal Challenge"
+      let cm = clientMsgs g & traverse . errorMsg .~ "Illegal Challenge"
+                            & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
+                            & singular (ix (g ^. turn)) . chalBtnMsg .~ True
+                            & singular (ix (g ^. turn)) . countBtnMsg
+                            .~ (g ^. turn == fromMaybe (-1) (g ^. bidder))
+
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
 
