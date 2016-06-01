@@ -122,7 +122,7 @@ application state pending = do
 getName :: MVar ServerState -> WS.Connection -> IO ()
 getName state conn = do
   (g, r, cs) <- takeMVar state
-  sendText conn "Please set a user name."
+  sendText conn ":signin"
   msg <- WS.receiveData conn
   let pId = numOfPlayers g
       action = parseMessage msg
@@ -134,7 +134,7 @@ getName state conn = do
       broadcast cs' (map (T.pack . LB.unpack . encode) $ clientMsgs g')
       handle conn state pId
     _ -> do
-      sendText conn "Must set a user name to play"
+      sendText conn ":signin"
       putMVar state (g, r, cs)
       getName state conn
 
