@@ -132,11 +132,37 @@ getName state conn = do
           cs' = cs ++ [conn]
       putMVar state (g', r, cs')
       broadcast cs' (map (T.pack . LB.unpack . encode) $ clientMsgs g')
-      handle conn state pId
+      handle' conn state pId
     _ -> do
       sendText conn ":signin"
       putMVar state (g, r, cs)
       getName state conn
+
+handle' :: WS.Connection -> MVar ServerState -> Int -> IO ()
+handle' conn state pId = forever $ do
+  msg        <- WS.receiveData conn
+  (g, r, cs) <- readMVar state
+  let action         = parseMessage msg
+      ((g', cm), r') = case action of
+                         Deal      -> deal' g r
+                         Raise b   -> (raise' g pId b, r)
+                         Challenge -> (challenge' g pId, r)
+                         Count     -> (count'' g pId, r)
+  swapMVar state (g', r', cs)
+  broadcast cs (map (T.pack . LB.unpack . encode) cm)
+
+deal' :: Game -> StdGen -> ((Game, [ClientMsg]), StdGen)
+deal' g r
+  | legal g Deal =
+      let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
+                      $ getRandomR (0, 9)) r
+          g'          = resetGame $ dealHands g (chunksOf cardsPerHand cards)
+          cm          = clientMsgs g' & traverse . errorMsg .~ ""
+                                      & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
+      in ((g', cm), r')
+  | otherwise =
+      let cm = clientMsgs g & traverse . errorMsg .~ "Cannot deal a game in progress"
+      in  ((g, cm), r)
 
 deal :: WS.Connection -> MVar ServerState -> IO ()
 deal conn state = do
@@ -161,6 +187,17 @@ updateClientMsgs cs g err  =
      & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
      & singular (ix (g ^. turn)) . chalBtnMsg  .~ ((Just $ g ^. turn) /= g ^. bidder)
      & singular (ix (g ^. turn)) . countBtnMsg .~ ((Just $ g ^. turn) == g ^. bidder)
+
+raise' :: Game -> Int -> Bid -> (Game, [ClientMsg])
+raise' g pId b
+  | legal g (Raise b) && g ^. turn == pId =
+      let g' = mkBid g b
+          cm = updateClientMsgs (clientMsgs g') g' ""
+      in  (g', cm)
+  | otherwise =
+      let e  = "Either your bid is too low or you are trying to raise a re-bid."
+          cm = updateClientMsgs (clientMsgs g) g e
+      in (g, cm)
 
 raise :: WS.Connection -> MVar ServerState -> Int -> Bid -> IO ()
 raise conn state pId b = do
@@ -189,6 +226,13 @@ challenge conn state pId = do
       let cm = updateClientMsgs (clientMsgs g) g "Illegal Challenge"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
+challenge' :: Game -> Int -> (Game, [ClientMsg])
+challenge' g pId
+  | legal g Challenge && g ^. turn == pId =
+      let g' = nextPlayer g
+          cm = updateClientMsgs (clientMsgs g') g' ""
+      in  (g', cm)
+  | otherwise = (g, updateClientMsgs (clientMsgs g) g "Illegal Challenge")
 
 count' :: WS.Connection -> MVar ServerState -> Int -> IO ()
 count' conn state pId = do
@@ -206,6 +250,17 @@ count' conn state pId = do
       let cm = clientMsgs g & traverse . errorMsg
                            .~ "Illegal Count"
       broadcast cs (map (T.pack . LB.unpack . encode) cm)
+
+count'' :: Game -> Int -> (Game, [ClientMsg])
+count'' g pId
+  | legal g Count && g ^. turn == pId =
+      let cnt = count g (g ^. bid . bidCard)
+          result = g ^. bid . bidQuant <= cnt || cnt == 0
+          g' = scoreGame $ g & won .~ Just result & inProgress .~ False
+          cm = clientMsgs g' & traverse . errorMsg .~ ""
+      in  (g', cm)
+  | otherwise = (g, updateClientMsgs (clientMsgs g) g "Illegal Count")
+
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
