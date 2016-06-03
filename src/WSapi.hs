@@ -69,19 +69,20 @@ playerPublics g = map playerPublic (g ^.players)
 
 clientMsgs :: Game -> [ClientMsg]
 clientMsgs g = map ( \p -> ClientMsg
-  (playerPublics g)
-  (getBidderName g)
-  (g ^. bid . bidQuant)
-  (g ^. bid . bidCard)
-  (getTurnName g)
-  (g ^. baseStake)
-  (bonus g)
-  (getPlayerName g p)
-  (T.pack . displayHand $ getHand g p)
-  ""
-  False
-  False
-  False )
+  { _cmPlayers = playerPublics g
+  , _cmBidder = getBidderName g
+  , _cmBidQuant = g ^. bid . bidQuant
+  , _cmBidCard = g ^. bid . bidCard
+  , _cmTurn = getTurnName g
+  , _cmBaseStake = g ^. baseStake
+  , _cmMultiple = bonus g
+  , _cmMyName = getPlayerName g p
+  , _cmMyHand = T.pack . displayHand $ getHand g p
+  , _cmError = ""
+  , _cmRaiseBtn = False
+  , _cmChalBtn = False
+  , _cmCountBtn = False
+  } )
     (playerIds g)
 
 parseMessage :: Text -> Action
@@ -160,8 +161,9 @@ deal g r
                   $ getRandomR (0, 9)) r
       (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
       g'          = resetGame f $ dealHands g (chunksOf cardsPerHand cards)
-      cm          = clientMsgs g' & traverse . cmError .~ ""
-                                  & singular (ix (g' ^. turn)) . cmRaiseBtn .~ True
+      cm          = clientMsgs g'
+                  & traverse . cmError .~ ""
+                  & singular (ix (g' ^. turn)) . cmRaiseBtn .~ True
       cm'         = clientMsgs g
                   & traverse . cmError .~ "Cannot deal a game in progress"
 
