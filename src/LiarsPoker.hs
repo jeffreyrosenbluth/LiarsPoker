@@ -5,33 +5,7 @@
 {-# LANGUAGE TupleSections        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module LiarsPoker
-  ( Card, cardsPerHand
-  , Bid(..), bidCard, bidQuant
-  , Player(..), name, hand, score, playerId
-  , Game(..), players, bidder, bid, turn, won, rebid, baseStake
-  , Action(..), _Raise, _Challenge, _Count
-  , Hand
-
-  , newGame
-  , resetGame
-  , addPlayer
-  , numOfPlayers
-  , dealHands
-  , toHand
-  , displayHand
-  , getHand
-  , getPlayerName
-  , getBidderName
-  , getTurnName
-  , mkBid
-  , nextPlayer
-  , count
-  , legal
-  , bonus
-  , scoreGame
-  , inProgress
-  ) where
+module LiarsPoker where
 
 import           Control.Lens
 import           Data.Aeson
@@ -117,8 +91,8 @@ numOfPlayers :: Game -> Int
 numOfPlayers g = length $ g ^. players
 
 -- | Total number of Card in the game.
-count :: Game -> Card -> Int
-count game card = sum $ getCount . view hand <$> game ^. players
+countCard :: Game -> Card -> Int
+countCard game card = sum $ getCount . view hand <$> game ^. players
   where
     getCount h = fromMaybe 0 (M.lookup card h)
 
@@ -146,7 +120,6 @@ getBidderName g = fromMaybe "" $ fmap (\i -> view (ix i . name) ps) b
 
 getTurnName :: Game -> Text
 getTurnName g = ps ^. ix b . name
-  -- view (ix i . name) ps) b
   where
     b = g ^. turn
     ps = g ^. players
@@ -217,7 +190,7 @@ bonus game = sixes * mult
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game -> Int
-hero game = if q == 0 && count game bc > 0 then 1 else 0
+hero game = if q == 0 && countCard game bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
     q = fromMaybe 0 $ M.lookup bc (game ^. players . singular (ix bdr) . hand)
@@ -239,7 +212,7 @@ scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
                                       then (-winStake, winB)
                                       else (lossStake, -lossB))
                              (game ^. won)
-    cnt       = count game (game ^. bid . bidCard)
+    cnt       = countCard game (game ^. bid . bidCard)
     -- The n+3 rule.
     bns       = bonus game
     -- The skunk rule.

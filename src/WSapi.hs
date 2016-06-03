@@ -14,10 +14,8 @@ import           Control.Monad                  (forever, replicateM, zipWithM_)
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
-import           Data.Char                      (digitToInt, isDigit)
 import           Data.FileEmbed                 (embedDir)
 import           Data.List.Split                (chunksOf)
-import           Data.Maybe
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
 import           Data.Text.Read                 (decimal)
@@ -30,9 +28,9 @@ type ServerState = (Game, StdGen, Clients)
 type Clients     = [WS.Connection]
 
 data PlayerPublic = PlayerPublic
-  { _playerIdOP :: Int
-  , _nameOP     :: Text
-  , _scoreOP    :: Int
+  { _pbPlayerId :: Int
+  , _pbName     :: Text
+  , _pbScore    :: Int
   } deriving (Show, Generic)
 
 instance ToJSON PlayerPublic
@@ -41,19 +39,19 @@ instance FromJSON PlayerPublic
 makeLenses ''PlayerPublic
 
 data ClientMsg = ClientMsg
-  { _playersMsg   :: [PlayerPublic]
-  , _bidderMsg    :: Text
-  , _bidQuantMsg  :: Int
-  , _bidCardMsg   :: Int
-  , _turnMsg      :: Text
-  , _baseStakeMsg :: Int
-  , _multipleMsg  :: Int
-  , _myNameMsg    :: Text
-  , _myHandMsg    :: Text
-  , _errorMsg     :: Text
-  , _raiseBtnMsg  :: Bool
-  , _chalBtnMsg   :: Bool
-  , _countBtnMsg  :: Bool
+  { _cmPlayers   :: [PlayerPublic]
+  , _cmBidder    :: Text
+  , _cmBidQuant  :: Int
+  , _cmBidCard   :: Int
+  , _cmTurn      :: Text
+  , _cmBaseStake :: Int
+  , _cmMultiple  :: Int
+  , _cmMyName    :: Text
+  , _cmMyHand    :: Text
+  , _cmError     :: Text
+  , _cmRaiseBtn  :: Bool
+  , _cmChalBtn   :: Bool
+  , _cmCountBtn  :: Bool
   } deriving (Show, Generic)
 
 instance ToJSON ClientMsg
@@ -124,7 +122,7 @@ getName state conn = do
   (g, r, cs) <- takeMVar state
   sendText conn ":signin"
   msg <- WS.receiveData conn
-  let pId = numOfPlayers g
+  let pId    = numOfPlayers g
       action = parseMessage msg
   case action of
     SetName nm -> do
@@ -147,7 +145,9 @@ handle conn state pId = forever $ do
                          Deal      -> deal g r
                          Raise b   -> (raise g pId b, r)
                          Challenge -> (challenge g pId, r)
-                         Count     -> count' g r pId
+                         Count     -> count g r pId
+                         Say m     -> error "Not implemented yet"
+                         Invalid m -> error (T.unpack m)
   swapMVar state (g', r', cs)
   broadcast cs (map (T.pack . LB.unpack . encode) cm)
 
@@ -157,19 +157,19 @@ deal g r
       let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                       $ getRandomR (0, 9)) r
           g'          = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-          cm          = clientMsgs g' & traverse . errorMsg .~ ""
-                                      & singular (ix (g' ^. turn)) . raiseBtnMsg .~ True
+          cm          = clientMsgs g' & traverse . cmError .~ ""
+                                      & singular (ix (g' ^. turn)) . cmRaiseBtn .~ True
       in ((g', cm), r')
   | otherwise =
-      let cm = clientMsgs g & traverse . errorMsg .~ "Cannot deal a game in progress"
+      let cm = clientMsgs g & traverse . cmError .~ "Cannot deal a game in progress"
       in  ((g, cm), r)
 
 updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
 updateClientMsgs cs g err  =
-  cs & traverse . errorMsg .~ err
-     & singular (ix (g ^. turn)) . raiseBtnMsg .~ True
-     & singular (ix (g ^. turn)) . chalBtnMsg  .~ ((Just $ g ^. turn) /= g ^. bidder)
-     & singular (ix (g ^. turn)) . countBtnMsg .~ ((Just $ g ^. turn) == g ^. bidder)
+  cs & traverse . cmError .~ err
+     & singular (ix (g ^. turn)) . cmRaiseBtn .~ True
+     & singular (ix (g ^. turn)) . cmChalBtn  .~ ((Just $ g ^. turn) /= g ^. bidder)
+     & singular (ix (g ^. turn)) . cmCountBtn .~ ((Just $ g ^. turn) == g ^. bidder)
 
 raise :: Game -> Int -> Bid -> (Game, [ClientMsg])
 raise g pId b
@@ -190,12 +190,11 @@ challenge g pId
       in  (g', cm)
   | otherwise = (g, updateClientMsgs (clientMsgs g) g "Illegal Challenge")
 
-count' :: Game -> StdGen -> Int -> ((Game, [ClientMsg]), StdGen)
-count' g r pId
+count :: Game -> StdGen -> Int -> ((Game, [ClientMsg]), StdGen)
+count g r pId
   | legal g Count && g ^. turn == pId =
-      let cnt = count g (g ^. bid . bidCard)
+      let cnt    = countCard g (g ^. bid . bidCard)
           result = g ^. bid . bidQuant <= cnt || cnt == 0
-          g' = scoreGame $ g & won .~ Just result & inProgress .~ False
-          -- cm = clientMsgs g' & traverse . errorMsg .~ ""
+          g'     = scoreGame $ g & won .~ Just result & inProgress .~ False
       in  deal g' r
   | otherwise = ((g, updateClientMsgs (clientMsgs g) g "Illegal Count"), r)
