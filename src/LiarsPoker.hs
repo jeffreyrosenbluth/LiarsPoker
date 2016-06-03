@@ -127,10 +127,10 @@ getTurnName g = ps ^. ix b . name
 newGame :: Game
 newGame = Game [] Nothing (Bid 0 0) 0 Nothing False False 1
 
-resetGame :: Game -> Game
-resetGame g = g & bidder .~ Nothing
+resetGame :: Int -> Game -> Game
+resetGame n g = g & bidder .~ Nothing
                 & bid .~ Bid 0 0
-                & turn .~ fromMaybe 0 (g ^. bidder)
+                & turn .~ fromMaybe (n `mod` (numOfPlayers g)) (g ^. bidder)
                 & won .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True

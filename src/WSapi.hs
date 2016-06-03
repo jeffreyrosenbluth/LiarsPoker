@@ -153,16 +153,17 @@ handle conn state pId = forever $ do
 
 deal :: Game -> StdGen -> ((Game, [ClientMsg]), StdGen)
 deal g r
-  | legal g Deal =
-      let (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
-                      $ getRandomR (0, 9)) r
-          g'          = resetGame $ dealHands g (chunksOf cardsPerHand cards)
-          cm          = clientMsgs g' & traverse . cmError .~ ""
-                                      & singular (ix (g' ^. turn)) . cmRaiseBtn .~ True
-      in ((g', cm), r')
-  | otherwise =
-      let cm = clientMsgs g & traverse . cmError .~ "Cannot deal a game in progress"
-      in  ((g, cm), r)
+  | legal g Deal = ((g', cm), r'')
+  | otherwise    = ((g, cm'), r)
+    where
+      (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
+                  $ getRandomR (0, 9)) r
+      (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
+      g'          = resetGame f $ dealHands g (chunksOf cardsPerHand cards)
+      cm          = clientMsgs g' & traverse . cmError .~ ""
+                                  & singular (ix (g' ^. turn)) . cmRaiseBtn .~ True
+      cm'         = clientMsgs g
+                  & traverse . cmError .~ "Cannot deal a game in progress"
 
 updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
 updateClientMsgs cs g err  =
@@ -173,28 +174,27 @@ updateClientMsgs cs g err  =
 
 raise :: Game -> Int -> Bid -> (Game, [ClientMsg])
 raise g pId b
-  | legal g (Raise b) && g ^. turn == pId =
-      let g' = mkBid g b
-          cm = updateClientMsgs (clientMsgs g') g' ""
-      in  (g', cm)
-  | otherwise =
-      let e  = "Either your bid is too low or you are trying to raise a re-bid."
-          cm = updateClientMsgs (clientMsgs g) g e
-      in (g, cm)
+  | legal g (Raise b) && g ^. turn == pId = (g', cm)
+  | otherwise = (g, cm')
+    where
+      g'  = mkBid g b
+      cm  = updateClientMsgs (clientMsgs g') g' ""
+      cm' = updateClientMsgs (clientMsgs g) g e
+      e   = "Either your bid is too low or you are trying to raise a re-bid."
 
 challenge :: Game -> Int -> (Game, [ClientMsg])
 challenge g pId
-  | legal g Challenge && g ^. turn == pId =
-      let g' = nextPlayer g
-          cm = updateClientMsgs (clientMsgs g') g' ""
-      in  (g', cm)
+  | legal g Challenge && g ^. turn == pId = (g', cm)
   | otherwise = (g, updateClientMsgs (clientMsgs g) g "Illegal Challenge")
+      where
+        g' = nextPlayer g
+        cm = updateClientMsgs (clientMsgs g') g' ""
 
 count :: Game -> StdGen -> Int -> ((Game, [ClientMsg]), StdGen)
 count g r pId
-  | legal g Count && g ^. turn == pId =
-      let cnt    = countCard g (g ^. bid . bidCard)
-          result = g ^. bid . bidQuant <= cnt || cnt == 0
-          g'     = scoreGame $ g & won .~ Just result & inProgress .~ False
-      in  deal g' r
+  | legal g Count && g ^. turn == pId = deal g' r
   | otherwise = ((g, updateClientMsgs (clientMsgs g) g "Illegal Count"), r)
+      where
+        cnt    = countCard g (g ^. bid . bidCard)
+        result = g ^. bid . bidQuant <= cnt || cnt == 0
+        g'     = scoreGame $ g & won .~ Just result & inProgress .~ False
