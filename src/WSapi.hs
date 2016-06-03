@@ -68,22 +68,23 @@ playerPublics g = map playerPublic (g ^.players)
     playerPublic p = PlayerPublic (p ^. playerId) (p ^. name) (p ^. score)
 
 clientMsgs :: Game -> [ClientMsg]
-clientMsgs g = map ( \p -> ClientMsg
-  { _cmPlayers = playerPublics g
-  , _cmBidder = getBidderName g
-  , _cmBidQuant = g ^. bid . bidQuant
-  , _cmBidCard = g ^. bid . bidCard
-  , _cmTurn = getTurnName g
-  , _cmBaseStake = g ^. baseStake
-  , _cmMultiple = bonus g
-  , _cmMyName = getPlayerName g p
-  , _cmMyHand = T.pack . displayHand $ getHand g p
-  , _cmError = ""
-  , _cmRaiseBtn = False
-  , _cmChalBtn = False
-  , _cmCountBtn = False
-  } )
-    (playerIds g)
+clientMsgs g = map cm (playerIds g)
+  where
+    cm p =  ClientMsg
+      { _cmPlayers = playerPublics g
+      , _cmBidder = getBidderName g
+      , _cmBidQuant = g ^. bid . bidQuant
+      , _cmBidCard = g ^. bid . bidCard
+      , _cmTurn = getTurnName g
+      , _cmBaseStake = g ^. baseStake
+      , _cmMultiple = bonus g
+      , _cmMyName = getPlayerName g p
+      , _cmMyHand = T.pack . displayHand $ getHand g p
+      , _cmError = ""
+      , _cmRaiseBtn = False
+      , _cmChalBtn = False
+      , _cmCountBtn = False
+      }
 
 parseMessage :: Text -> Action
 parseMessage t
