@@ -111,7 +111,7 @@ broadcast :: Clients -> [Text] -> IO ()
 broadcast = zipWithM_ WS.sendTextData
 
 staticApp :: Network.Wai.Application
-staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "./static")
+staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "../static")
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
