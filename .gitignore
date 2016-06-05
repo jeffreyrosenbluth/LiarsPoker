@@ -12,7 +12,7 @@ Backend/history
 Backend/TAGS
 Backend/.cabal-sandbox
 Backend/cabal.sandbox.config
-Backend/.stack-work
+.stack-work
 
 Frontend/elm-stuff
 Frontend/node_modules

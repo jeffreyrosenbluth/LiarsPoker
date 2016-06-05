@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jeffreyrosenbluth/LiarsPoker-Elm.git"
+    "url": "git+https://github.com/jeffreyrosenbluth/LiarsPoker.git"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Jeffrey Rosenbluth",
+  "license": "BSD3",
   "bugs": {
-    "url": "https://github.com/jeffreyrosenbluth/LiarsPoker-Elm/issues"
+    "url": "https://github.com/jeffreyrosenbluth/LiarsPoker/issues"
   },
-  "homepage": "https://github.com/jeffreyrosenbluth/LiarsPoker-Elm#readme",
+  "homepage": "https://github.com/jeffreyrosenbluth/LiarsPoker#readme",
   "dependencies": {
     "basscss": "^7.1.1",
     "css-loader": "^0.23.1",

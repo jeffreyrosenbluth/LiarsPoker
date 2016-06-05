@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "Liars Poker frontend",
-    "repository": "https://github.com/jeffreyrosenbluth/liarspoker-elm.git",
+    "repository": "https://github.com/jeffreyrosenbluth/liarspoker.git",
     "license": "BSD3",
     "source-directories": [
         "src"
