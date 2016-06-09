@@ -1,10 +1,11 @@
 module LiarsPoker exposing (..)
 
+import Array as A exposing (Array, get)
+import Maybe as M exposing (withDefault)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
-import Json.Decode exposing ( (:=), string, int, andThen, succeed, decodeString
-                            , bool, Decoder )
+import Json.Decode exposing (..)
 import WebSocket
 
 --------------------------------------------------------------------------------
@@ -38,63 +39,97 @@ init =
     , Cmd.none
   )
 
-type alias PlayerPublic =
+type alias Bid =
+  { bidCard : Int
+  , bidQuant : Int
+  }
+
+bid : Decoder Bid
+bid =
+  ( "_bidCard" := int) `andThen` \p0 ->
+  ( "_bidQuant" := int) `andThen` \p1 ->
+  succeed { bidCard = p0, bidQuant = p1 }
+
+type alias Player =
   { playerId : Int
   , name : String
   , score : Int
   }
 
-playerPublic : Decoder PlayerPublic
-playerPublic =
-  ( "_pbPlayerId" := int) `andThen` \p1 ->
-  ( "_pbName" := string) `andThen` \p2 ->
-  ( "_pbScore" := int) `andThen` \p3 ->
+player : Decoder Player
+player =
+  ( "_playerId" := int) `andThen` \p1 ->
+  ( "_name" := string) `andThen` \p2 ->
+  ( "_score" := int) `andThen` \p3 ->
   succeed { playerId = p1, name = p2, score = p3 }
 
+type alias Game =
+  { players : Array Player
+  , bidder : Maybe Int
+  , bid : Bid
+  , turn : Int
+  , won : Maybe Bool
+  , rebid : Bool
+  , inProgress : Bool
+  , baseStake : Int
+  }
+
+game : Decoder Game
+game =
+  ( "_players" := array player) `andThen` \p0 ->
+  ( maybe ("_bidder" := int)) `andThen` \p1 ->
+  ( "_bid" := bid) `andThen` \p2 ->
+  ( "_turn" := int) `andThen` \p3 ->
+  ( maybe ("_won" := bool)) `andThen` \p4 ->
+  ( "_rebid" := bool) `andThen` \p5 ->
+  ( "_inProgress" := bool) `andThen` \p6 ->
+  ( "_baseStake" := int) `andThen` \p7 ->
+  succeed { players = p0
+         , bidder = p1
+         , bid = p2
+         , turn = p3
+         , won = p4
+         , rebid = p5
+         , inProgress = p6
+         , baseStake = p7
+         }
+
+type alias BtnFlags =
+  { bfRaise : Bool
+  , bfChallenge : Bool
+  , bfCount : Bool
+  }
+
+btnFlags : Decoder BtnFlags
+btnFlags =
+  ( "_bfRaise" := bool) `andThen` \p0 ->
+  ( "_bfChallenge" := bool) `andThen` \p1 ->
+  ( "_bfCount" := bool) `andThen` \p2 ->
+  succeed { bfRaise = p0, bfChallenge = p1, bfCount = p2 }
+
 type alias ClientMsg =
-  { playersMsg : List PlayerPublic
-  , bidderMsg : String
-  , bidQuantMsg : Int
-  , bidCardMsg : Int
-  , turnMsg : String
-  , baseStakeMsg : Int
-  , multipleMsg : Int
-  , myNameMsg : String
-  , myHandMsg : String
-  , errorMsg : String
-  , raiseBtnMsg : Bool
-  , chalBtnMsg : Bool
-  , countBtnMsg : Bool
+  { cmGame : Game
+  , cmHand : String
+  , cmError : String
+  , cmMultiple : Int
+  , cmButtons : BtnFlags
+  , cmName : String
   }
 
 clientMsg : Decoder ClientMsg
 clientMsg =
-  ("_cmPlayers" := Json.Decode.list playerPublic) `andThen` \p0 ->
-  ("_cmBidder" := string) `andThen` \p1 ->
-  ("_cmBidQuant" := int) `andThen` \p2 ->
-  ("_cmBidCard" := int) `andThen` \p3 ->
-  ("_cmTurn" := string) `andThen` \p4 ->
-  ("_cmBaseStake" := int) `andThen` \p5 ->
-  ("_cmMultiple" := int) `andThen` \p6 ->
-  ("_cmMyName" := string) `andThen` \p7 ->
-  ("_cmMyHand" := string) `andThen` \p8 ->
-  ("_cmError" := string) `andThen` \p9 ->
-  ("_cmRaiseBtn" := bool) `andThen` \p10 ->
-  ("_cmChalBtn" := bool) `andThen` \p11 ->
-  ("_cmCountBtn" := bool) `andThen` \p12 ->
-  succeed { playersMsg = p0
-          , bidderMsg = p1
-          , bidQuantMsg = p2
-          , bidCardMsg = p3
-          , turnMsg = p4
-          , baseStakeMsg = p5
-          , multipleMsg = p6
-          , myNameMsg = p7
-          , myHandMsg = p8
-          , errorMsg = p9
-          , raiseBtnMsg = p10
-          , chalBtnMsg = p11
-          , countBtnMsg = p12
+  ("_cmGame" := game) `andThen` \p0 ->
+  ("_cmHand" := string) `andThen` \p1 ->
+  ("_cmError" := string) `andThen` \p2 ->
+  ("_cmMultiple" := int) `andThen` \p3 ->
+  ("_cmButtons" := btnFlags) `andThen` \p4 ->
+  ("_cmName" := string) `andThen` \p5 ->
+  succeed { cmGame = p0
+          , cmHand = p1
+          , cmError = p2
+          , cmMultiple = p3
+          , cmButtons = p4
+          , cmName = p5
           }
 
 --------------------------------------------------------------------------------
@@ -131,96 +166,99 @@ view model =
       Err e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
 
 mainView : Model -> ClientMsg -> Html Msg
-mainView m pm =
+mainView m c =
   div [ class "flex flex-column m2 border border-box"
       , style [ ("max-width", "40em") ]
       ]
-      [ div [ class "flex-justify border border-box"] [currentPlayerView pm, handView pm ]
+      [ div [ class "flex-justify border border-box"] [currentPlayerView c, handView c ]
       , div [ class "flex bg-white"]
-          [ div [ style [("width", "50%")]] [bidderView pm]
-          , div [ style [("width", "50%")]] [playerView pm]
+          [ div [ style [("width", "50%")]] [bidderView c]
+          , div [ style [("width", "50%")]] [playerView c]
           ]
       , div [ class "flex bg-white"]
-          [ div [ style [("width", "50%")]] [stakesView pm]
-          , div [ style [("width", "50%")]] [multipleView pm]
+          [ div [ style [("width", "50%")]] [stakesView c]
+          , div [ style [("width", "50%")]] [multipleView c]
           ]
-      , div [ class "bg-white"] [bidView pm]
+      , div [ class "bg-white"] [bidView c]
       , div [ class "flex bg-white border-box border h2"]
-          [ playerListView pm
-          , scoreListView pm
+          [ playerListView c
+          , scoreListView c
           ]
       , quantEntryView m
       , rankEntryView m
-      , playView m pm
-      , div [ class "p1 center red"] [text pm.errorMsg]
-      , if pm.myHandMsg == "" then viewTest m else div [] []
+      , playView m c
+      , div [ class "p1 center red"] [text c.cmError]
+      , if c.cmHand == "" then viewTest m else div [] []
       ]
 
 currentPlayerView : ClientMsg -> Html Msg
-currentPlayerView pm =
-  div [class "center mt2 h2", style [("color", "#3CA962")]] [text pm.myNameMsg]
+currentPlayerView c =
+  div [class "center mt2 h2", style [("color", "#3CA962")]] [text c.cmName]
 
 handView : ClientMsg -> Html Msg
-handView pm =
-  div [class "center p2 h1 bold", style [("color", "#3CA962")]] [text pm.myHandMsg]
+handView c =
+  div [class "center p2 h1 bold", style [("color", "#3CA962")]] [text c.cmHand]
 
 bidderView : ClientMsg -> Html Msg
-bidderView pm =
-  div [class "flex bg-white"]
-    [ div [class "ml1 p1 h2 gray"] [text "Bidder"]
-    , div [class "p1 h2"] [text  pm.bidderMsg]
-    ]
+bidderView c =
+  let b = c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
+      b' = withDefault "" (M.map .name b)
+  in  div [class "flex bg-white"]
+        [ div [class "ml1 p1 h2 gray"] [text "Bidder"]
+        , div [class "p1 h2"] [text  b']
+        ]
 
 bidView : ClientMsg -> Html Msg
-bidView pm =
+bidView c =
   div [class "flex bold", style [("background-color", "gainsboro")]]
     [ div [class "flex-auto"] []
     , div [class "p1 h2", style [("color", "navy")]] [text "Bid"]
     , div [class "p1 h2", style [("color", "navy")]]
-          [text  <| toString pm.bidQuantMsg ++ " "
-                 ++ toString pm.bidCardMsg ++ "s"]
+          [text  <| toString c.cmGame.bid.bidQuant ++ " "
+                 ++ toString c.cmGame.bid.bidCard ++ "s"]
     , div [class "flex-auto"] []
     ]
 
 stakesView : ClientMsg -> Html Msg
-stakesView pm =
+stakesView c =
   div [class "flex bg-white"]
     [ div [class "ml1 p1 h2 gray"] [text "Base Stake"]
-    , div [class "p1 h2"] [text <| toString pm.baseStakeMsg]
+    , div [class "p1 h2"] [text <| toString c.cmGame.baseStake]
     ]
 
 multipleView : ClientMsg -> Html Msg
-multipleView pm =
+multipleView c =
   div [class "flex bg-white"]
     [ div [class "p1 h2 gray"] [text "Multiple"]
-    , div [class "p1 h2"] [text <| toString  pm.multipleMsg]
+    , div [class "p1 h2"] [text <| toString  c.cmMultiple]
     ]
 
 playerView : ClientMsg -> Html Msg
-playerView pm =
-  div [class "flex bg-white"]
-    [ div [class "p1 h2 gray"] [text "Current"]
-    , div [class "p1 h2"] [text pm.turnMsg]
-    ]
+playerView c =
+  let t = withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
+  in  div [class "flex bg-white"]
+        [ div [class "p1 h2 gray"] [text "Current"]
+        , div [class "p1 h2"] [text t]
+        ]
 
 playerListView : ClientMsg -> Html Msg
-playerListView pm =
+playerListView c =
   let
-    sty x =
-      if x == pm.bidderMsg
-        then [style [("color", "firebrick")]]
-      else if x == pm.turnMsg
-        then [style [("color", "darkblue")]]
-      else [style [("color", "gray")]]
-    ps = List.map (\x -> li (sty x) [text x]) (List.map .name pm.playersMsg)
+    sty x = [style [("color", "gray")]]
+      -- if x == c.bidderMsg
+      --   then [style [("color", "firebrick")]]
+      -- else if x == c.turnMsg
+      --   then [style [("color", "darkblue")]]
+      -- else [style [("color", "gray")]]
+    ps = A.toList <| A.map (\x -> li (sty x) [text x]) (A.map .name c.cmGame.players)
   in
     ul [class "list-reset ml2 mt1", style [("width", "70%")]] ps
 
 scoreListView : ClientMsg -> Html Msg
-scoreListView pm =
+scoreListView c =
   let
-    ss = List.map (\x -> li [] [text x])
-                  (List.map (toString << .score) pm.playersMsg)
+    ss = A.toList <| A.map (\x -> li [] [text x])
+                   ( A.map (toString << .score) c.cmGame.players)
   in
     ul [class "list-reset mt1", style [("width", "30%")]] ss
 
@@ -267,7 +305,7 @@ rankEntryView m =
     ]
 
 playView : Model -> ClientMsg -> Html Msg
-playView m pm =
+playView m c =
   div [class "flex bg-white"]
     [ div [class "flex-auto"] []
     , button [ class "btn btn-primary bg-gray black m2"
@@ -275,19 +313,19 @@ playView m pm =
                        <| "bid " ++ toString  m.quant
                                  ++ " "
                                  ++ toString  m.card
-             , disabled <| not pm.raiseBtnMsg
+             , disabled <| not c.cmButtons.bfRaise
              ]
              [ text "Raise" ]
     , div [class "flex-auto"] []
     , button [ class "btn btn-primary bg-gray black m2"
              , onClick <| WSoutgoing "challenge"
-             , disabled <| not pm.chalBtnMsg
+             , disabled <| not c.cmButtons.bfChallenge
              ]
              [text "Challenge"]
     , div [class "flex-auto"] []
     , button [ class "btn btn-primary bg-gray black m2"
              , onClick <| WSoutgoing "count"
-             , disabled <| not pm.countBtnMsg
+             , disabled <| not c.cmButtons.bfCount
              ]
              [text "Count"]
     , div [class "flex-auto"] []
@@ -298,7 +336,7 @@ viewTest model =
   div [ class "flex p2 m2 border"]
     [ input
         [ placeholder "Enter Command"
-        , value model.test
+        , Html.Attributes.value model.test
         , onInput Test
         , class "p1 center"
         , style [("width", "150px")]

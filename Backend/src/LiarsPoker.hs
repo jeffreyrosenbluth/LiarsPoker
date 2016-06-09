@@ -17,8 +17,8 @@ import           Data.Text    (Text)
 import           GHC.Generics
 
 type Card = Int
-
 type Hand = Map Card Int
+type Hands = [Hand]
 
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
@@ -47,7 +47,6 @@ makeLenses ''Bid
 data Player = Player
   { _playerId :: Int
   , _name     :: Text
-  , _hand     :: Hand
   , _score    :: Int
   } deriving (Show, Eq, Generic)
 makeLenses ''Player
@@ -91,18 +90,19 @@ numOfPlayers :: Game -> Int
 numOfPlayers g = length $ g ^. players
 
 -- | Total number of Card in the game.
-countCard :: Game -> Card -> Int
-countCard game card = sum $ getCount . view hand <$> game ^. players
+countCard :: Hands -> Card -> Int
+countCard hands card = sum $ getCount <$> hands
   where
     getCount h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players hand if the playerId exists.
-getHand :: Game -> Int -> Hand
-getHand game pId = game ^. players ^?! ix pId . hand
-
--- | Given a game and a playerId, return the players hand if the playerId exists.
 getPlayerName :: Game -> Int -> Text
 getPlayerName game pId = game ^. players ^?! ix pId . name
+
+-- | Return the players hand if the playerId exists.
+getHand :: Hands -> Int -> Hand
+getHand hands pId = hands ^?! ix pId
+
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -138,12 +138,10 @@ resetGame n g = g & bidder .~ Nothing
 addPlayer :: Game -> Int -> Text -> Game
 addPlayer game pId nm = game & players <>~ [player]
   where
-    player = Player pId nm M.empty 0
+    player = Player pId nm 0
 
-dealHands :: Game -> [[Int]] -> Game
-dealHands game cs = game & players %~ setHands (toHand <$> cs)
-  where
-    setHands =  zipWith (set hand)
+dealHands :: [[Int]] -> Hands
+dealHands cs = toHand <$> cs
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -190,18 +188,18 @@ bonus game = sixes * mult
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
-hero :: Game -> Int
-hero game = if q == 0 && countCard game bc > 0 then 1 else 0
+hero :: Game -> Hands -> Int
+hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ M.lookup bc (game ^. players . singular (ix bdr) . hand)
+    q = fromMaybe 0 $ M.lookup bc (hands ^. singular (ix bdr))
     bc = game ^. bid ^. bidCard
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
-scoreGame :: Game -> Game
-scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
+scoreGame :: Game -> Hands -> Game
+scoreGame game hands = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
                       & baseStake .~ (if h == 1 then 2 else bns)
   where
     reScore p
@@ -213,13 +211,13 @@ scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
                                       then (-winStake, winB)
                                       else (lossStake, -lossB))
                              (game ^. won)
-    cnt       = countCard game (game ^. bid . bidCard)
+    cnt       = countCard hands (game ^. bid . bidCard)
     -- The n+3 rule.
     bns       = bonus game
     -- The skunk rule.
     mult      = if cnt == 0 then max 1 (2 * numOfPlayers game - 6) else bns
     -- The hero bump.
-    h         = hero game
+    h         = hero game hands
     -- The score for non bidders.
     winStake  = (mult + h) * game ^. baseStake
     lossStake = game ^. baseStake
