@@ -113,7 +113,7 @@ displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
     f k a b = replicate a (head $ show k) ++ b
 
 getBidderName :: Game -> Text
-getBidderName g = fromMaybe "" $ fmap (\i -> view (ix i . name) ps) b
+getBidderName g = maybe "" (\i -> view (ix i . name) ps) b
   where
     b = g ^. bidder
     ps = g ^. players
@@ -130,7 +130,7 @@ newGame = Game [] Nothing (Bid 0 0) 0 Nothing False False 1
 resetGame :: Int -> Game -> Game
 resetGame n g = g & bidder .~ Nothing
                 & bid .~ Bid 0 0
-                & turn .~ fromMaybe (n `mod` (numOfPlayers g)) (g ^. bidder)
+                & turn .~ fromMaybe (n `mod` numOfPlayers g) (g ^. bidder)
                 & won .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
@@ -143,7 +143,7 @@ addPlayer game pId nm = game & players <>~ [player]
 dealHands :: Game -> [[Int]] -> Game
 dealHands game cs = game & players %~ setHands (toHand <$> cs)
   where
-    setHands hs ps =  zipWith (set hand) hs ps
+    setHands =  zipWith (set hand)
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -163,6 +163,7 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
     numPlayers = numOfPlayers game
 
+-- | Is this 'Action' legal to take from the current game state?
 legal :: Game -> Action -> Bool
 legal game action = case action of
   SetName _ -> not (game ^. inProgress)
@@ -205,9 +206,9 @@ scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
   where
     reScore p
       | game ^. bidder == Just p =
-          (over score (+ x)) (game ^. players . singular (ix p))
+          over score (+ x) (game ^. players . singular (ix p))
       | otherwise =
-          (over score (+ a)) (game ^. players . singular (ix p))
+          over score (+ a) (game ^. players . singular (ix p))
     (a , x)   = maybe (0, 0) (\w -> if w
                                       then (-winStake, winB)
                                       else (lossStake, -lossB))
