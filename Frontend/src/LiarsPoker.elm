@@ -44,14 +44,14 @@ type alias PlayerPublic =
   , score : Int
   }
 
-publicPlayer : Decoder PlayerPublic
-publicPlayer =
+playerPublic : Decoder PlayerPublic
+playerPublic =
   ( "_pbPlayerId" := int) `andThen` \p1 ->
   ( "_pbName" := string) `andThen` \p2 ->
   ( "_pbScore" := int) `andThen` \p3 ->
   succeed { playerId = p1, name = p2, score = p3 }
 
-type alias PlayerMsg =
+type alias ClientMsg =
   { playersMsg : List PlayerPublic
   , bidderMsg : String
   , bidQuantMsg : Int
@@ -67,9 +67,9 @@ type alias PlayerMsg =
   , countBtnMsg : Bool
   }
 
-playerMsg : Decoder PlayerMsg
-playerMsg =
-  ("_cmPlayers" := Json.Decode.list publicPlayer) `andThen` \p0 ->
+clientMsg : Decoder ClientMsg
+clientMsg =
+  ("_cmPlayers" := Json.Decode.list playerPublic) `andThen` \p0 ->
   ("_cmBidder" := string) `andThen` \p1 ->
   ("_cmBidQuant" := int) `andThen` \p2 ->
   ("_cmBidCard" := int) `andThen` \p3 ->
@@ -126,11 +126,11 @@ view model =
   if model.wsIncoming == ":signin" then
     viewTest model
   else
-    case decodeString playerMsg model.wsIncoming of
+    case decodeString clientMsg model.wsIncoming of
       Ok pm -> mainView model pm
       Err e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
 
-mainView : Model -> PlayerMsg -> Html Msg
+mainView : Model -> ClientMsg -> Html Msg
 mainView m pm =
   div [ class "flex flex-column m2 border border-box"
       , style [ ("max-width", "40em") ]
@@ -156,22 +156,22 @@ mainView m pm =
       , if pm.myHandMsg == "" then viewTest m else div [] []
       ]
 
-currentPlayerView : PlayerMsg -> Html Msg
+currentPlayerView : ClientMsg -> Html Msg
 currentPlayerView pm =
   div [class "center mt2 h2", style [("color", "#3CA962")]] [text pm.myNameMsg]
 
-handView : PlayerMsg -> Html Msg
+handView : ClientMsg -> Html Msg
 handView pm =
   div [class "center p2 h1 bold", style [("color", "#3CA962")]] [text pm.myHandMsg]
 
-bidderView : PlayerMsg -> Html Msg
+bidderView : ClientMsg -> Html Msg
 bidderView pm =
   div [class "flex bg-white"]
     [ div [class "ml1 p1 h2 gray"] [text "Bidder"]
     , div [class "p1 h2"] [text  pm.bidderMsg]
     ]
 
-bidView : PlayerMsg -> Html Msg
+bidView : ClientMsg -> Html Msg
 bidView pm =
   div [class "flex bold", style [("background-color", "gainsboro")]]
     [ div [class "flex-auto"] []
@@ -182,28 +182,28 @@ bidView pm =
     , div [class "flex-auto"] []
     ]
 
-stakesView : PlayerMsg -> Html Msg
+stakesView : ClientMsg -> Html Msg
 stakesView pm =
   div [class "flex bg-white"]
     [ div [class "ml1 p1 h2 gray"] [text "Base Stake"]
     , div [class "p1 h2"] [text <| toString pm.baseStakeMsg]
     ]
 
-multipleView : PlayerMsg -> Html Msg
+multipleView : ClientMsg -> Html Msg
 multipleView pm =
   div [class "flex bg-white"]
     [ div [class "p1 h2 gray"] [text "Multiple"]
     , div [class "p1 h2"] [text <| toString  pm.multipleMsg]
     ]
 
-playerView : PlayerMsg -> Html Msg
+playerView : ClientMsg -> Html Msg
 playerView pm =
   div [class "flex bg-white"]
     [ div [class "p1 h2 gray"] [text "Current"]
     , div [class "p1 h2"] [text pm.turnMsg]
     ]
 
-playerListView : PlayerMsg -> Html Msg
+playerListView : ClientMsg -> Html Msg
 playerListView pm =
   let
     sty x =
@@ -216,7 +216,7 @@ playerListView pm =
   in
     ul [class "list-reset ml2 mt1", style [("width", "70%")]] ps
 
-scoreListView : PlayerMsg -> Html Msg
+scoreListView : ClientMsg -> Html Msg
 scoreListView pm =
   let
     ss = List.map (\x -> li [] [text x])
@@ -266,7 +266,7 @@ rankEntryView m =
              [ text "+" ]
     ]
 
-playView : Model -> PlayerMsg -> Html Msg
+playView : Model -> ClientMsg -> Html Msg
 playView m pm =
   div [class "flex bg-white"]
     [ div [class "flex-auto"] []
