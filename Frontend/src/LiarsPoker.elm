@@ -199,13 +199,17 @@ handView : ClientMsg -> Html Msg
 handView c =
   div [class "center p2 h1 bold", style [("color", "#3CA962")]] [text c.cmHand]
 
+bidder : ClientMsg -> String
+bidder c =
+  let b = c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
+  in  withDefault  "" (M.map .name b)
+
 bidderView : ClientMsg -> Html Msg
 bidderView c =
-  let b = c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
-      b' = withDefault "" (M.map .name b)
+  let b = bidder c
   in  div [class "flex bg-white"]
         [ div [class "ml1 p1 h2 gray"] [text "Bidder"]
-        , div [class "p1 h2"] [text  b']
+        , div [class "p1 h2"] [text  b]
         ]
 
 bidView : ClientMsg -> Html Msg
@@ -233,23 +237,25 @@ multipleView c =
     , div [class "p1 h2"] [text <| toString  c.cmMultiple]
     ]
 
+turn : ClientMsg -> String
+turn c = withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
+
 playerView : ClientMsg -> Html Msg
 playerView c =
-  let t = withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
-  in  div [class "flex bg-white"]
-        [ div [class "p1 h2 gray"] [text "Current"]
-        , div [class "p1 h2"] [text t]
-        ]
+  div [class "flex bg-white"]
+    [ div [class "p1 h2 gray"] [text "Current"]
+    , div [class "p1 h2"] [text <| turn c]
+    ]
 
 playerListView : ClientMsg -> Html Msg
 playerListView c =
   let
-    sty x = [style [("color", "gray")]]
-      -- if x == c.bidderMsg
-      --   then [style [("color", "firebrick")]]
-      -- else if x == c.turnMsg
-      --   then [style [("color", "darkblue")]]
-      -- else [style [("color", "gray")]]
+    sty x =
+      if x == bidder c
+        then [style [("color", "firebrick")]]
+      else if x == turn c
+        then [style [("color", "darkblue")]]
+      else [style [("color", "gray")]]
     ps = A.toList <| A.map (\x -> li (sty x) [text x]) (A.map .name c.cmGame.players)
   in
     ul [class "list-reset ml2 mt1", style [("width", "70%")]] ps
