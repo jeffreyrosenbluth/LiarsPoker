@@ -162,7 +162,7 @@ deal gs@(GameState g _ r)
 updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
 updateClientMsgs cs g err  =
   cs & traverse . cmError .~ err
-     & singular (ix (g ^. turn)) . cmButtons . bfRaise .~ True
+     & singular (ix (g ^. turn)) . cmButtons . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid) 
      & singular (ix (g ^. turn)) . cmButtons . bfChallenge  .~ ((Just $ g ^. turn) /= g ^. bidder)
      & singular (ix (g ^. turn)) . cmButtons . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
