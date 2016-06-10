@@ -132,6 +132,13 @@ clientMsg =
           , cmName = p5
           }
 
+higher : Model -> ClientMsg -> Bool
+higher m c =
+  let mCard = if m.card == 0 then 10 else m.card
+      cCard = if c.cmGame.bid.bidCard == 0 then 10 else c.cmGame.bid.bidCard
+      cQuant = c.cmGame.bid.bidQuant
+  in  m.quant > cQuant || (m.quant == cQuant && mCard > cCard )
+
 --------------------------------------------------------------------------------
 -- Update
 --------------------------------------------------------------------------------
@@ -319,7 +326,7 @@ playView m c =
                        <| "bid " ++ toString  m.quant
                                  ++ " "
                                  ++ toString  m.card
-             , disabled <| not c.cmButtons.bfRaise
+             , disabled <| not c.cmButtons.bfRaise || not (higher m c)
              ]
              [ text "Raise" ]
     , div [class "flex-auto"] []
