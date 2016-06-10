@@ -101,7 +101,7 @@ getPlayerName game pId = game ^. players ^?! ix pId . name
 
 -- | Return the players hand if the playerId exists.
 getHand :: Hands -> Int -> Hand
-getHand hands pId = hands ^?! ix pId
+getHand hands pId = fromMaybe M.empty $ preview (ix pId) hands
 
 
 toHand :: [Int] -> Hand
