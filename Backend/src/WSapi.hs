@@ -97,8 +97,13 @@ parseMessage t
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
+-- | Send a list a messages to a list of clients.
 broadcast :: Clients -> [Text] -> IO ()
 broadcast = zipWithM_ WS.sendTextData
+
+-- | Serialize a list of client messages to a list of JSON text.
+encodeCMs :: [ClientMsg] -> [Text]
+encodeCMs = map $ T.pack . LB.unpack . encode
 
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "../Frontend/dist")
@@ -121,7 +126,8 @@ getName state conn = do
       let g' = addPlayer g pId nm
           cs' = cs ++ [conn]
       putMVar state (GameState g' [] r, cs')
-      broadcast cs' (map (T.pack . LB.unpack . encode) $ clientMsgs g' [])
+      broadcast cs' (encodeCMs $ clientMsgs g' [])
+      -- broadcast cs' (encodeCMs $ clientMsgs g' [])
       handle conn state pId
     _ -> do
       sendText conn ":signin"
@@ -132,16 +138,17 @@ handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
   msg      <- WS.receiveData conn
   (gs, cs) <- readMVar state
-  let action         = parseMessage msg
-      (gs', cm) = case action of
-                         Deal      -> deal gs
-                         Raise b   -> raise gs pId b
-                         Challenge -> challenge gs pId
-                         Count     -> count gs pId
-                         Say m     -> error "Not implemented yet"
-                         Invalid m -> error (T.unpack m)
+  let action    = parseMessage msg
+      (gs', cm) =
+        case action of
+          Deal      -> deal gs
+          Raise b   -> raise gs pId b
+          Challenge -> challenge gs pId
+          Count     -> count gs pId
+          Say m     -> error "Not implemented yet"
+          Invalid m -> error (T.unpack m)
   swapMVar state (gs', cs)
-  broadcast cs (map (T.pack . LB.unpack . encode) cm)
+  broadcast cs (encodeCMs cm)
 
 deal :: GameState -> (GameState, [ClientMsg])
 deal gs@(GameState g _ r)
@@ -162,7 +169,7 @@ deal gs@(GameState g _ r)
 updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
 updateClientMsgs cs g err  =
   cs & traverse . cmError .~ err
-     & singular (ix (g ^. turn)) . cmButtons . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid) 
+     & singular (ix (g ^. turn)) . cmButtons . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
      & singular (ix (g ^. turn)) . cmButtons . bfChallenge  .~ ((Just $ g ^. turn) /= g ^. bidder)
      & singular (ix (g ^. turn)) . cmButtons . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
