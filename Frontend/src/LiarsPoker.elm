@@ -173,7 +173,7 @@ view model =
   case model.wsIncoming of
     RawMsg ":signin" -> viewTest model
     RawMsg _ -> div [class "h2 p2 m2 red"] [text "Illegal Raw Message."]
-    JsonMsg cm -> mainView  model cm
+    JsonMsg cm -> mainView model cm
     ErrorMsg e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
 
 mainView : Model -> ClientMsg -> Html Msg
@@ -181,24 +181,24 @@ mainView m c =
   div [ class "flex flex-column m2 border border-box"
       , style [ ("max-width", "40em") ]
       ]
-      [ div [ class "flex-justify border border-box"] [currentPlayerView c, handView c ]
-      , div [ class "flex bg-white"]
+      [ div [class "flex-justify border border-box"] [currentPlayerView c, handView c]
+      , div [class "flex bg-white"]
           [ div [ style [("width", "50%")]] [bidderView c]
           , div [ style [("width", "50%")]] [playerView c]
           ]
-      , div [ class "flex bg-white"]
+      , div [class "flex bg-white"]
           [ div [ style [("width", "50%")]] [stakesView c]
           , div [ style [("width", "50%")]] [multipleView c]
           ]
-      , div [ class "bg-white"] [bidView c]
-      , div [ class "flex bg-white border-box border h2"]
+      , div [class "bg-white"] [bidView c]
+      , div [class "flex bg-white border-box border h2"]
           [ playerListView c
           , scoreListView c
           ]
       , quantEntryView m
       , rankEntryView m
       , playView m c
-      , div [ class "p1 center red"] [text <| showServerMsg m.wsIncoming]
+      , div [class "p1 center red"] [text <| showServerMsg m.wsIncoming]
       , if c.cmHand == "" then viewTest m else div [] []
       ]
 
@@ -359,6 +359,9 @@ viewTest model =
         , style [("width", "150px")]
         ]
         []
-    , button [class "ml3 btn btn-primary bg-gray h3", onClick <| WSoutgoing model.test]
-             [text "Submit"]
+    , button
+        [ class "ml3 btn btn-primary bg-gray h3"
+        , onClick <| WSoutgoing model.test
+        ]
+        [text "Submit"]
     ]
