@@ -9,6 +9,7 @@ module LiarsPoker where
 
 import           Control.Lens
 import           Data.Aeson
+import qualified Data.IntMap as IM
 import           Data.List    (intersperse)
 import           Data.Map     (Map)
 import qualified Data.Map     as M
@@ -27,8 +28,8 @@ instance FromJSON Hand where
   parseJSON = fmap M.fromList . parseJSON
 
 data Bid = Bid
-  { _bidCard  :: Card
-  , _bidQuant :: Int
+  { _bidCard  :: !Card
+  , _bidQuant :: !Int
   } deriving (Eq, Generic)
 
 instance Show Bid where
@@ -45,9 +46,9 @@ instance Ord Bid where
 makeLenses ''Bid
 
 data Player = Player
-  { _playerId :: Int
-  , _name     :: Text
-  , _score    :: Int
+  { _playerId :: !Int
+  , _name     :: !Text
+  , _score    :: !Int
   } deriving (Show, Eq, Generic)
 makeLenses ''Player
 
@@ -55,14 +56,14 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _players    :: [Player]
-  , _bidder     :: Maybe Int  -- ^ playerId
-  , _bid        :: Bid
-  , _turn       :: Int        -- ^ playerId
-  , _won        :: Maybe Bool
-  , _rebid      :: Bool
-  , _inProgress :: Bool
-  , _baseStake  :: Int
+  { _players    :: ![Player]
+  , _bidder     :: !(Maybe Int)  -- ^ playerId
+  , _bid        :: !Bid
+  , _turn       :: !Int        -- ^ playerId
+  , _won        :: !(Maybe Bool)
+  , _rebid      :: !Bool
+  , _inProgress :: !Bool
+  , _baseStake  :: !Int
   } deriving (Show, Generic)
 makeLenses ''Game
 
@@ -95,14 +96,14 @@ countCard hands card = sum $ getCount <$> hands
   where
     getCount h = fromMaybe 0 (M.lookup card h)
 
--- | Given a game and a playerId, return the players hand if the playerId exists.
+-- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game -> Int -> Text
-getPlayerName game pId = game ^. players ^?! ix pId . name
+getPlayerName game pId =
+   fromMaybe "Error: getPlayerName" $ game ^? players . ix pId . name
 
 -- | Return the players hand if the playerId exists.
 getHand :: Hands -> Int -> Hand
-getHand hands pId = fromMaybe M.empty $ preview (ix pId) hands
-
+getHand hands pId = fromMaybe M.empty $ hands ^? ix pId
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -113,10 +114,10 @@ displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
     f k a b = replicate a (head $ show k) ++ b
 
 getBidderName :: Game -> Text
-getBidderName g = maybe "" (\i -> view (ix i . name) ps) b
-  where
-    b = g ^. bidder
-    ps = g ^. players
+getBidderName g =
+  maybe "Error: getBidderName"
+        (\i -> g ^. players . ix i . name)
+        (g ^. bidder)
 
 getTurnName :: Game -> Text
 getTurnName g = ps ^. ix b . name
