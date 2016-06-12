@@ -22,11 +22,23 @@ subscriptions model = WebSocket.listen wsURL WSincoming
 -- Model
 --------------------------------------------------------------------------------
 
+type ServerMsg
+  = RawMsg String
+  | JsonMsg ClientMsg
+  | ErrorMsg String
+
+showServerMsg : ServerMsg -> String
+showServerMsg sm =
+  case sm of
+    RawMsg s -> s
+    JsonMsg cm -> cm.cmError
+    ErrorMsg e -> e
+
 type alias Model =
   { quant : Int
   , card : Int
   , test : String
-  , wsIncoming : String
+  , wsIncoming : ServerMsg
   }
 
 init : (Model, Cmd Msg)
@@ -34,7 +46,7 @@ init =
   ( { quant = 0
     , card = 0
     , test = "Enter command"
-    , wsIncoming = ""
+    , wsIncoming = RawMsg ""
     }
     , Cmd.none
   )
@@ -140,7 +152,16 @@ update msg model =
     RaiseRank c -> ({ model | card = c}, Cmd.none)
     RaiseQuant q -> ({ model | quant = q}, Cmd.none)
     Test s -> ({ model | test = s}, Cmd.none)
-    WSincoming s -> ({ model | wsIncoming = s}, Cmd.none)
+    WSincoming s ->
+      let
+        m = if s == ":signin" then
+              RawMsg ":signin"
+            else
+              case decodeString clientMsgDecoder s of
+                Ok pm -> JsonMsg pm
+                Err e -> ErrorMsg e
+      in
+        ({ model | wsIncoming = m}, Cmd.none)
     WSoutgoing s -> (model, WebSocket.send wsURL s)
 
 --------------------------------------------------------------------------------
@@ -149,12 +170,11 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  if model.wsIncoming == ":signin" then
-     viewTest model
-  else
-    case decodeString clientMsgDecoder model.wsIncoming of
-      Ok pm -> mainView model pm
-      Err e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
+  case model.wsIncoming of
+    RawMsg ":signin" -> viewTest model
+    RawMsg _ -> div [class "h2 p2 m2 red"] [text "Illegal Raw Message."]
+    JsonMsg cm -> mainView  model cm
+    ErrorMsg e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
 
 mainView : Model -> ClientMsg -> Html Msg
 mainView m c =
@@ -178,7 +198,7 @@ mainView m c =
       , quantEntryView m
       , rankEntryView m
       , playView m c
-      , div [ class "p1 center red"] [text c.cmError]
+      , div [ class "p1 center red"] [text <| showServerMsg m.wsIncoming]
       , if c.cmHand == "" then viewTest m else div [] []
       ]
 
