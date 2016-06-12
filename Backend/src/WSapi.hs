@@ -128,7 +128,6 @@ getName state conn = do
           cs' = cs ++ [conn]
       putMVar state (GameState g' IM.empty r, cs')
       broadcast cs' (encodeCMs $ clientMsgs g' IM.empty)
-      -- broadcast cs' (encodeCMs $ clientMsgs g' [])
       handle conn state pId
     _ -> do
       sendText conn ":signin"

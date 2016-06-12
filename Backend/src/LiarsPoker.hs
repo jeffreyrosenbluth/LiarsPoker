@@ -7,7 +7,7 @@
 
 module LiarsPoker where
 
-import           Control.Lens
+import           Control.Lens  hiding ((.=))
 import           Data.Aeson
 import           Data.IntMap   (IntMap)
 import qualified Data.IntMap   as IM
@@ -57,7 +57,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _players    :: ![Player]
+  { _players    :: IntMap Player
   , _bidder     :: !(Maybe Int)  -- ^ playerId
   , _bid        :: !Bid
   , _turn       :: !Int        -- ^ playerId
@@ -68,8 +68,19 @@ data Game = Game
   } deriving (Show, Generic)
 makeLenses ''Game
 
-instance ToJSON Game
 instance FromJSON Game
+
+instance ToJSON Game where
+  toJSON p = object
+    [ "_players"    .= (snd <$> IM.toList (_players p))
+    , "_bidder"     .= _bidder p
+    , "_bid"        .= _bid p
+    , "_turn"       .= _turn p
+    , "_won"        .= _won p
+    , "_rebid"      .= _rebid p
+    , "_inProgress" .= _inProgress p
+    , "_baseStake"  .= _baseStake p
+    ]
 
 data Action
   = SetName Text
@@ -89,7 +100,7 @@ cardsPerHand :: Int
 cardsPerHand = 8
 
 numOfPlayers :: Game -> Int
-numOfPlayers g = length $ g ^. players
+numOfPlayers g = IM.size $ g ^. players
 
 -- | Total number of Card in the game.
 countCard :: Hands -> Card -> Int
@@ -127,7 +138,7 @@ getTurnName g = ps ^. ix b . name
     ps = g ^. players
 
 newGame :: Game
-newGame = Game [] Nothing (Bid 0 0) 0 Nothing False False 1
+newGame = Game IM.empty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game
 resetGame n g = g & bidder .~ Nothing
@@ -138,7 +149,7 @@ resetGame n g = g & bidder .~ Nothing
                 & inProgress .~ True
 
 addPlayer :: Game -> Int -> Text -> Game
-addPlayer game pId nm = game & players <>~ [player]
+addPlayer game pId nm = game & players <>~ IM.singleton pId player
   where
     player = Player pId nm 0
 
@@ -201,9 +212,10 @@ hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
-scoreGame game hands = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
+scoreGame game hands = game & players .~ IM.fromList (zip idxs (reScore <$> idxs))
                             & baseStake .~ (if h == 1 then 2 else bns)
   where
+    idxs = IM.keys $ game ^. players
     reScore :: Int -> Player
     reScore p
       | game ^. bidder == Just p = over score (+ x) playerP
