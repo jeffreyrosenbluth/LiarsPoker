@@ -55,14 +55,14 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _players      :: [Player]
-  , _bidder       :: Maybe Int  -- ^ playerId
-  , _bid          :: Bid
-  , _turn         :: Int        -- ^ playerId
-  , _won          :: Maybe Bool
-  , _rebid        :: Bool
-  , _inProgress   :: Bool
-  , _baseStake    :: Int
+  { _players    :: [Player]
+  , _bidder     :: Maybe Int  -- ^ playerId
+  , _bid        :: Bid
+  , _turn       :: Int        -- ^ playerId
+  , _won        :: Maybe Bool
+  , _rebid      :: Bool
+  , _inProgress :: Bool
+  , _baseStake  :: Int
   } deriving (Show, Generic)
 makeLenses ''Game
 
