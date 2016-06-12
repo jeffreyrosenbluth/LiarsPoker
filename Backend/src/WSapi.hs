@@ -15,11 +15,11 @@ import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import qualified Data.IntMap                    as IM
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
 import           Data.Text.Read                 (decimal)
+import qualified Data.Vector                    as V
 import           GHC.Generics
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
@@ -126,12 +126,12 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
           cs' = cs ++ [conn]
-      putMVar state (GameState g' IM.empty r, cs')
-      broadcast cs' (encodeCMs $ clientMsgs g' IM.empty)
+      putMVar state (GameState g' V.empty r, cs')
+      broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
       handle conn state pId
     _ -> do
       sendText conn ":signin"
-      putMVar state (GameState g IM.empty r, cs)
+      putMVar state (GameState g V.empty r, cs)
       getName state conn
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -159,7 +159,7 @@ deal gs@(GameState g _ r)
                   $ getRandomR (0, 9)) r
       (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
       g'          = resetGame f g
-      hs          = IM.fromList $ zip [0..] (toHand <$> chunksOf cardsPerHand cards)
+      hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
       cm          = clientMsgs g' hs
                   & traverse . cmError .~ ""
                   & singular (ix (g' ^. turn)) . cmButtons . bfRaise .~ True

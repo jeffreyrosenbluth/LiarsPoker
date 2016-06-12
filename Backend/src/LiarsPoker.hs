@@ -9,8 +9,8 @@ module LiarsPoker where
 
 import           Control.Lens hiding ((.=))
 import           Data.Aeson
-import           Data.IntMap  (IntMap)
-import qualified Data.IntMap  as IM
+import           Data.Vector  (Vector, (!?))
+import qualified Data.Vector  as V
 import           Data.List    (intersperse, sortOn)
 import           Data.Map     (Map)
 import qualified Data.Map     as M
@@ -20,7 +20,7 @@ import           GHC.Generics
 
 type Card = Int
 type Hand = Map Card Int
-type Hands = IntMap Hand
+type Hands = Vector Hand
 
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
@@ -57,7 +57,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _players    :: IntMap Player
+  { _players    :: Vector Player
   , _bidder     :: !(Maybe Int)  -- ^ playerId
   , _bid        :: !Bid
   , _turn       :: !Int        -- ^ playerId
@@ -70,17 +70,18 @@ makeLenses ''Game
 
 instance FromJSON Game
 
-instance ToJSON Game where
-  toJSON p = object
-    [ "_players"    .= (snd <$> sortOn fst (IM.toList (_players p)))
-    , "_bidder"     .= _bidder p
-    , "_bid"        .= _bid p
-    , "_turn"       .= _turn p
-    , "_won"        .= _won p
-    , "_rebid"      .= _rebid p
-    , "_inProgress" .= _inProgress p
-    , "_baseStake"  .= _baseStake p
-    ]
+instance ToJSON Game
+-- where
+--   toJSON p = object
+--     [ "_players"    .= (snd <$> sortOn fst (IM.toList (_players p)))
+--     , "_bidder"     .= _bidder p
+--     , "_bid"        .= _bid p
+--     , "_turn"       .= _turn p
+--     , "_won"        .= _won p
+--     , "_rebid"      .= _rebid p
+--     , "_inProgress" .= _inProgress p
+--     , "_baseStake"  .= _baseStake p
+--     ]
 
 data Action
   = SetName Text
@@ -100,7 +101,7 @@ cardsPerHand :: Int
 cardsPerHand = 8
 
 numOfPlayers :: Game -> Int
-numOfPlayers g = IM.size $ g ^. players
+numOfPlayers g = V.length $ g ^. players
 
 -- | Total number of Card in the game.
 countCard :: Hands -> Card -> Int
@@ -115,7 +116,7 @@ getPlayerName game pId =
 
 -- | Return the players hand if the playerId exists.
 getHand :: Hands -> Int -> Hand
-getHand hands pId = IM.findWithDefault M.empty pId hands
+getHand hands pId = fromMaybe M.empty (hands !? pId)
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -138,7 +139,7 @@ getTurnName g = ps ^. ix b . name
     ps = g ^. players
 
 newGame :: Game
-newGame = Game IM.empty Nothing (Bid 0 0) 0 Nothing False False 1
+newGame = Game V.empty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game
 resetGame n g = g & bidder .~ Nothing
@@ -149,12 +150,12 @@ resetGame n g = g & bidder .~ Nothing
                 & inProgress .~ True
 
 addPlayer :: Game -> Int -> Text -> Game
-addPlayer game pId nm = game & players <>~ IM.singleton pId player
+addPlayer game pId nm = game & players %~ flip V.snoc player
   where
     player = Player pId nm 0
 
 dealHands :: [[Int]] -> Hands
-dealHands cs = IM.fromList $ zip [0..] (toHand <$> cs)
+dealHands cs = V.fromList (toHand <$> cs)
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -205,14 +206,14 @@ hero :: Game -> Hands -> Int
 hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ M.lookup bc =<< IM.lookup bdr hands
+    q = fromMaybe 0 $ M.lookup bc =<< hands !? bdr
     bc = game ^. bid ^. bidCard
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
-scoreGame game hands = game & players %~ IM.mapWithKey reScore
+scoreGame game hands = game & players %~ V.imap reScore
                             & baseStake .~ (if h == 1 then 2 else bns)
   where
     reScore :: Int -> Player -> Player

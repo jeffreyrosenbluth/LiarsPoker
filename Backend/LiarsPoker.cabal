@@ -31,7 +31,8 @@ library
                      , aeson >= 0.9 && < 0.12
                      , transformers >= 0.4 && < 0.5
                      , file-embed
-                     , text >=1.2 && <1.3
+                     , text >=1.2 && < 1.3
+                     , vector >= 0.11 && < 0.12
   default-language:    Haskell2010
 
 executable Serve
@@ -45,6 +46,7 @@ executable Serve
                      , wai-websockets
                      , websockets
                      , random >= 1.1 && < 1.2
+                     , vector >= 0.11 && < 0.12
 
   default-language:    Haskell2010
 
