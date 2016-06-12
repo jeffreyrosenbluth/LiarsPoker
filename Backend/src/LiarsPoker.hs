@@ -7,11 +7,11 @@
 
 module LiarsPoker where
 
-import           Control.Lens  hiding ((.=))
+import           Control.Lens hiding ((.=))
 import           Data.Aeson
-import           Data.IntMap   (IntMap)
-import qualified Data.IntMap   as IM
-import           Data.List    (intersperse)
+import           Data.IntMap  (IntMap)
+import qualified Data.IntMap  as IM
+import           Data.List    (intersperse, sortOn)
 import           Data.Map     (Map)
 import qualified Data.Map     as M
 import           Data.Maybe
@@ -72,7 +72,7 @@ instance FromJSON Game
 
 instance ToJSON Game where
   toJSON p = object
-    [ "_players"    .= (snd <$> IM.toList (_players p))
+    [ "_players"    .= (snd <$> sortOn fst (IM.toList (_players p)))
     , "_bidder"     .= _bidder p
     , "_bid"        .= _bid p
     , "_turn"       .= _turn p
@@ -212,21 +212,17 @@ hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
-scoreGame game hands = game & players .~ IM.fromList (zip idxs (reScore <$> idxs))
+scoreGame game hands = game & players %~ IM.mapWithKey reScore
                             & baseStake .~ (if h == 1 then 2 else bns)
   where
-    idxs = IM.keys $ game ^. players
-    reScore :: Int -> Player
-    reScore p
-      | game ^. bidder == Just p = over score (+ x) playerP
-      | otherwise                = over score (+ a) playerP
-          where
-            -- XXX Partial Function
-            playerP = game ^?! players . ix p
-    (a , x)   = maybe (0, 0) (\w -> if w
-                                      then (-winStake, winB)
-                                      else (lossStake, -lossB))
-                             (game ^. won)
+    reScore :: Int -> Player -> Player
+    reScore idx p
+      | game ^. bidder == Just idx = over score (+ x) p
+      | otherwise                  = over score (+ a) p
+
+    (a, x)    = maybe (0, 0)
+                      (\w -> if w then (-winStake, winB) else (lossStake, -lossB))
+                      (game ^. won)
     cnt       = countCard hands (game ^. bid . bidCard)
     -- The n+3 rule.
     bns       = bonus game
