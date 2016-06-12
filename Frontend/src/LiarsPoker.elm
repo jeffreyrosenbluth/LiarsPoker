@@ -44,11 +44,13 @@ type alias Bid =
   , bidQuant : Int
   }
 
-bid : Decoder Bid
-bid =
-  ( "_bidCard" := int) `andThen` \p0 ->
-  ( "_bidQuant" := int) `andThen` \p1 ->
-  succeed { bidCard = p0, bidQuant = p1 }
+(<*>) : Decoder (a -> b) -> Decoder a -> Decoder b
+(<*>) = object2 (<|)
+
+bidDecoder : Decoder Bid
+bidDecoder = succeed Bid
+        <*> ("_bidCard" := int)
+        <*> ("_bidQuant" := int)
 
 type alias Player =
   { playerId : Int
@@ -56,12 +58,11 @@ type alias Player =
   , score : Int
   }
 
-player : Decoder Player
-player =
-  ( "_playerId" := int) `andThen` \p1 ->
-  ( "_name" := string) `andThen` \p2 ->
-  ( "_score" := int) `andThen` \p3 ->
-  succeed { playerId = p1, name = p2, score = p3 }
+playerDecoder : Decoder Player
+playerDecoder = succeed Player
+          <*> ( "_playerId" := int)
+          <*> ( "_name" := string)
+          <*> ( "_score" := int)
 
 type alias Game =
   { players : Array Player
@@ -74,25 +75,16 @@ type alias Game =
   , baseStake : Int
   }
 
-game : Decoder Game
-game =
-  ( "_players" := array player) `andThen` \p0 ->
-  ( maybe ("_bidder" := int)) `andThen` \p1 ->
-  ( "_bid" := bid) `andThen` \p2 ->
-  ( "_turn" := int) `andThen` \p3 ->
-  ( maybe ("_won" := bool)) `andThen` \p4 ->
-  ( "_rebid" := bool) `andThen` \p5 ->
-  ( "_inProgress" := bool) `andThen` \p6 ->
-  ( "_baseStake" := int) `andThen` \p7 ->
-  succeed { players = p0
-         , bidder = p1
-         , bid = p2
-         , turn = p3
-         , won = p4
-         , rebid = p5
-         , inProgress = p6
-         , baseStake = p7
-         }
+gameDecoder : Decoder Game
+gameDecoder = succeed Game
+        <*> ( "_players" := array playerDecoder)
+        <*> ( maybe ("_bidder" := int))
+        <*> ( "_bid" := bidDecoder)
+        <*> ( "_turn" := int)
+        <*> ( maybe ("_won" := bool))
+        <*> ( "_rebid" := bool)
+        <*> ( "_inProgress" := bool)
+        <*> ( "_baseStake" := int)
 
 type alias BtnFlags =
   { bfRaise : Bool
@@ -100,12 +92,11 @@ type alias BtnFlags =
   , bfCount : Bool
   }
 
-btnFlags : Decoder BtnFlags
-btnFlags =
-  ( "_bfRaise" := bool) `andThen` \p0 ->
-  ( "_bfChallenge" := bool) `andThen` \p1 ->
-  ( "_bfCount" := bool) `andThen` \p2 ->
-  succeed { bfRaise = p0, bfChallenge = p1, bfCount = p2 }
+btnFlagsDecoder : Decoder BtnFlags
+btnFlagsDecoder = succeed BtnFlags
+            <*> ( "_bfRaise" := bool)
+            <*> ( "_bfChallenge" := bool)
+            <*> ( "_bfCount" := bool)
 
 type alias ClientMsg =
   { cmGame : Game
@@ -116,21 +107,14 @@ type alias ClientMsg =
   , cmName : String
   }
 
-clientMsg : Decoder ClientMsg
-clientMsg =
-  ("_cmGame" := game) `andThen` \p0 ->
-  ("_cmHand" := string) `andThen` \p1 ->
-  ("_cmError" := string) `andThen` \p2 ->
-  ("_cmMultiple" := int) `andThen` \p3 ->
-  ("_cmButtons" := btnFlags) `andThen` \p4 ->
-  ("_cmName" := string) `andThen` \p5 ->
-  succeed { cmGame = p0
-          , cmHand = p1
-          , cmError = p2
-          , cmMultiple = p3
-          , cmButtons = p4
-          , cmName = p5
-          }
+clientMsgDecoder : Decoder ClientMsg
+clientMsgDecoder = succeed ClientMsg
+              <*> ("_cmGame" := gameDecoder)
+              <*> ("_cmHand" := string)
+              <*> ("_cmError" := string)
+              <*> ("_cmMultiple" := int)
+              <*> ("_cmButtons" := btnFlagsDecoder)
+              <*> ("_cmName" := string)
 
 higher : Model -> ClientMsg -> Bool
 higher m c =
@@ -166,9 +150,9 @@ update msg model =
 view : Model -> Html Msg
 view model =
   if model.wsIncoming == ":signin" then
-    viewTest model
+     viewTest model
   else
-    case decodeString clientMsg model.wsIncoming of
+    case decodeString clientMsgDecoder model.wsIncoming of
       Ok pm -> mainView model pm
       Err e -> div [class "h2 p2 m2 red"] [text "Cannot parse server message"]
 
