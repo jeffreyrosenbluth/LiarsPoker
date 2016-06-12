@@ -9,7 +9,8 @@ module LiarsPoker where
 
 import           Control.Lens
 import           Data.Aeson
-import qualified Data.IntMap as IM
+import           Data.IntMap   (IntMap)
+import qualified Data.IntMap   as IM
 import           Data.List    (intersperse)
 import           Data.Map     (Map)
 import qualified Data.Map     as M
@@ -19,7 +20,7 @@ import           GHC.Generics
 
 type Card = Int
 type Hand = Map Card Int
-type Hands = [Hand]
+type Hands = IntMap Hand
 
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
@@ -103,7 +104,7 @@ getPlayerName game pId =
 
 -- | Return the players hand if the playerId exists.
 getHand :: Hands -> Int -> Hand
-getHand hands pId = fromMaybe M.empty $ hands ^? ix pId
+getHand hands pId = IM.findWithDefault M.empty pId hands
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -142,7 +143,7 @@ addPlayer game pId nm = game & players <>~ [player]
     player = Player pId nm 0
 
 dealHands :: [[Int]] -> Hands
-dealHands cs = toHand <$> cs
+dealHands cs = IM.fromList $ zip [0..] (toHand <$> cs)
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -193,7 +194,7 @@ hero :: Game -> Hands -> Int
 hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ M.lookup bc (hands ^. singular (ix bdr))
+    q = fromMaybe 0 $ M.lookup bc =<< IM.lookup bdr hands
     bc = game ^. bid ^. bidCard
 
 
@@ -201,13 +202,15 @@ hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
 scoreGame game hands = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
-                      & baseStake .~ (if h == 1 then 2 else bns)
+                            & baseStake .~ (if h == 1 then 2 else bns)
   where
+    reScore :: Int -> Player
     reScore p
-      | game ^. bidder == Just p =
-          over score (+ x) (game ^. players . singular (ix p))
-      | otherwise =
-          over score (+ a) (game ^. players . singular (ix p))
+      | game ^. bidder == Just p = over score (+ x) playerP
+      | otherwise                = over score (+ a) playerP
+          where
+            -- XXX Partial Function
+            playerP = game ^?! players . ix p
     (a , x)   = maybe (0, 0) (\w -> if w
                                       then (-winStake, winB)
                                       else (lossStake, -lossB))

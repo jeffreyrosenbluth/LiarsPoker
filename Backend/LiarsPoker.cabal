@@ -39,6 +39,7 @@ executable Serve
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
+                     , containers >= 0.5 && < 0.6
                      , LiarsPoker
                      , warp >= 3.2 && < 3.3
                      , wai-websockets

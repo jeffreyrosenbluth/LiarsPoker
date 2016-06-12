@@ -15,6 +15,7 @@ import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
+import qualified Data.IntMap                    as IM
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
@@ -27,9 +28,9 @@ import qualified Network.WebSockets             as WS
 type Clients     = [WS.Connection]
 
 data GameState = GameState
-  { _stGame    :: Game
-  , _stHands   :: Hands
-  , _stStdGen  :: StdGen
+  { _stGame   :: Game
+  , _stHands  :: Hands
+  , _stStdGen :: StdGen
   }
 
 makeLenses ''GameState
@@ -125,13 +126,13 @@ getName state conn = do
     SetName nm -> do
       let g' = addPlayer g pId nm
           cs' = cs ++ [conn]
-      putMVar state (GameState g' [] r, cs')
-      broadcast cs' (encodeCMs $ clientMsgs g' [])
+      putMVar state (GameState g' IM.empty r, cs')
+      broadcast cs' (encodeCMs $ clientMsgs g' IM.empty)
       -- broadcast cs' (encodeCMs $ clientMsgs g' [])
       handle conn state pId
     _ -> do
       sendText conn ":signin"
-      putMVar state (GameState g [] r, cs)
+      putMVar state (GameState g IM.empty r, cs)
       getName state conn
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
@@ -159,7 +160,7 @@ deal gs@(GameState g _ r)
                   $ getRandomR (0, 9)) r
       (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
       g'          = resetGame f g
-      hs          = toHand <$> chunksOf cardsPerHand cards
+      hs          = IM.fromList $ zip [0..] (toHand <$> chunksOf cardsPerHand cards)
       cm          = clientMsgs g' hs
                   & traverse . cmError .~ ""
                   & singular (ix (g' ^. turn)) . cmButtons . bfRaise .~ True
