@@ -5,21 +5,23 @@
 {-# LANGUAGE TupleSections        #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
+{-# OPTIONS_GHC -funbox-strict-fields #-}
+
 module LiarsPoker where
 
 import           Control.Lens hiding ((.=))
 import           Data.Aeson
-import           Data.Vector  (Vector, (!?))
-import qualified Data.Vector  as V
 import           Data.List    (intersperse, sortOn)
 import           Data.Map     (Map)
 import qualified Data.Map     as M
 import           Data.Maybe
 import           Data.Text    (Text)
+import           Data.Vector  (Vector, (!?))
+import qualified Data.Vector  as V
 import           GHC.Generics
 
-type Card = Int
-type Hand = Map Card Int
+type Card  = Int
+type Hand  = Map Card Int
 type Hands = Vector Hand
 
 instance ToJSON Hand where
@@ -57,7 +59,7 @@ instance ToJSON Player
 instance FromJSON Player
 
 data Game = Game
-  { _players    :: Vector Player
+  { _players    :: !(Vector Player)
   , _bidder     :: !(Maybe Int)  -- ^ playerId
   , _bid        :: !Bid
   , _turn       :: !Int        -- ^ playerId
@@ -68,29 +70,17 @@ data Game = Game
   } deriving (Show, Generic)
 makeLenses ''Game
 
+instance ToJSON Game
 instance FromJSON Game
 
-instance ToJSON Game
--- where
---   toJSON p = object
---     [ "_players"    .= (snd <$> sortOn fst (IM.toList (_players p)))
---     , "_bidder"     .= _bidder p
---     , "_bid"        .= _bid p
---     , "_turn"       .= _turn p
---     , "_won"        .= _won p
---     , "_rebid"      .= _rebid p
---     , "_inProgress" .= _inProgress p
---     , "_baseStake"  .= _baseStake p
---     ]
-
 data Action
-  = SetName Text
+  = SetName !Text
   | Deal
-  | Raise Bid
+  | Raise !Bid
   | Challenge
   | Count
-  | Say Text
-  | Invalid Text
+  | Say !Text
+  | Invalid !Text
   deriving (Show, Generic)
 makePrisms ''Action
 
