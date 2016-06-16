@@ -4,9 +4,11 @@ import Array as A exposing (Array, get)
 import Json.Decode exposing (..)
 import WebSocket
 
+
 --------------------------------------------------------------------------------
 -- Subscriptions
 --------------------------------------------------------------------------------
+
 
 wsURL : String
 wsURL =
@@ -17,9 +19,12 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     WebSocket.listen wsURL WSincoming
 
+
+
 --------------------------------------------------------------------------------
 -- Model
 --------------------------------------------------------------------------------
+
 
 type Msg
     = RaiseRank Int
@@ -27,6 +32,7 @@ type Msg
     | Test String
     | WSincoming String
     | WSoutgoing String
+
 
 type ServerMsg
     = RawMsg String
