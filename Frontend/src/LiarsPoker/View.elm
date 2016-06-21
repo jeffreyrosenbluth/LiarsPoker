@@ -1,6 +1,7 @@
 module LiarsPoker.View exposing (..)
 
 import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
+import LiarsPoker.Views.SignIn exposing (..)
 import Array as A exposing (Array, get)
 import Maybe as M exposing (withDefault)
 import Html exposing (..)
@@ -17,7 +18,7 @@ view : Model -> Html Msg
 view model =
     case model.wsIncoming of
         RawMsg ":signin" ->
-            viewTest model
+            signInView model
 
         RawMsg _ ->
             div [ class "h2 p2 m2 red" ] [ text "Illegal Raw Message." ]
