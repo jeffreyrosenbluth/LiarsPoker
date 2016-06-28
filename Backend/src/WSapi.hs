@@ -117,21 +117,19 @@ application state pending = do
 
 getName :: MVar ServerState -> WS.Connection -> IO ()
 getName state conn = do
-  (GameState g hs r, cs) <- takeMVar state
   sendText conn ":signin"
   msg <- WS.receiveData conn
-  let pId    = numOfPlayers g
-      action = parseMessage msg
-  case action of
+  case parseMessage msg of
     SetName nm -> do
-      let g' = addPlayer g pId nm
+      (GameState g hs r, cs) <- takeMVar state
+      let pId = numOfPlayers g
+          g' = addPlayer g pId nm
           cs' = cs ++ [conn]
       putMVar state (GameState g' V.empty r, cs')
       broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
       handle conn state pId
     _ -> do
       sendText conn ":signin"
-      putMVar state (GameState g V.empty r, cs)
       getName state conn
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()

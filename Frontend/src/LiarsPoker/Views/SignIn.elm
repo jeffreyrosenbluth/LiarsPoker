@@ -22,8 +22,8 @@ nickView m =
       [ div [ class "h2 ml1 p1 gray" ] [ text "Nickname" ]
       , input
           [ placeholder "John"
-          -- , Html.Attributes.value model.test
-          -- , onInput Test
+          , Html.Attributes.value m.test
+          , onInput Test
           , class "ml1 p1"
           , style [ ( "min-width", "200px" ) ]
           ]
@@ -38,7 +38,7 @@ joinView m =
         [ div [ class "h2 center p1 gray" ] [ text "Game Id" ]
         , input
             [ placeholder "ABC123"
-            -- , Html.Attributes.value model.test
+            -- , Html.Attributes.value m.test
             -- , onInput Test
             , class "center p1"
             , style [ ( "width", "200px" ) ]
@@ -48,10 +48,30 @@ joinView m =
       , button
           [ class "btn btn-outline mr4  ml4 mt2 mb2 h6"
           , style [ ( "width", "200px" ) ]
-          -- , onClick (RaiseQuant <| Basics.max 0 (m.quant - 1))
+          , onClick <| WSoutgoing ("name " ++ m.test)
           ]
           [ text "Join" ]
       ]
 
 startView : Model -> Html Msg
-startView m = div [ class "center mt2 h2", style [ ( "color", "#3CA962" ) ] ] [ text "startView" ]
+startView m =
+  div [ class "flex flex-column bg-white" ]
+      [ div [ class "p1 center red" ] [ text "Start a new game" ]
+      , div [ class "flex flex-row"]
+        [ div [ class "h2 center p1 gray" ] [ text "Number of players" ]
+        , input
+            [ placeholder "3"
+            -- , Html.Attributes.value m.test
+            -- , onInput Test
+            , class "center p1"
+            , style [ ( "width", "200px" ) ]
+            ]
+            []
+         ]
+      , button
+          [ class "btn btn-outline mr4  ml4 mt2 mb2 h6"
+          , style [ ( "width", "200px" ) ]
+          -- , onClick <| WSoutgoing ("name " ++ m.test)
+          ]
+          [ text "Start" ]
+      ]
