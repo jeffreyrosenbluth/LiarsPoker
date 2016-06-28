@@ -19,8 +19,11 @@ update msg model =
         RaiseQuant q ->
             ( { model | quant = q }, Cmd.none )
 
-        Test s ->
-            ( { model | test = s }, Cmd.none )
+        Name n ->
+            ( { model | name = n }, Cmd.none )
+
+        GameId g ->
+            ( { model | gameId = g }, Cmd.none )
 
         WSincoming s ->
             let

@@ -29,7 +29,8 @@ subscriptions model =
 type Msg
     = RaiseRank Int
     | RaiseQuant Int
-    | Test String
+    | Name String
+    | GameId String
     | WSincoming String
     | WSoutgoing String
 
@@ -54,18 +55,20 @@ showServerMsg sm =
 
 
 type alias Model =
-    { quant : Int
+    { name : String
+    , gameId : String
+    , quant : Int
     , card : Int
-    , test : String
     , wsIncoming : ServerMsg
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { quant = 0
+    ( { name = ""
+      , gameId = ""
+      , quant = 0
       , card = 0
-      , test = "Enter command"
       , wsIncoming = RawMsg ""
       }
     , Cmd.none

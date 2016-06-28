@@ -55,7 +55,7 @@ mainView m c =
         , playView m c
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
         , if c.cmHand == "" then
-            viewTest m
+            viewDeal m
           else
             div [] []
         ]
@@ -248,20 +248,12 @@ playView m c =
         ]
 
 
-viewTest : Model -> Html Msg
-viewTest model =
+viewDeal : Model -> Html Msg
+viewDeal model =
     div [ class "flex p2 m2 border" ]
-        [ input
-            [ placeholder "Enter Command"
-            , Html.Attributes.value model.test
-            , onInput Test
-            , class "p1 center"
-            , style [ ( "width", "150px" ) ]
+        [ button
+            [ class "ml3 btn btn-primary h3"
+            , onClick <| WSoutgoing "deal"
             ]
-            []
-        , button
-            [ class "ml3 btn btn-primary bg-gray h3"
-            , onClick <| WSoutgoing model.test
-            ]
-            [ text "Submit" ]
+            [ text "Deal" ]
         ]

@@ -81,14 +81,16 @@ parseMessage :: Text -> Action
 parseMessage t
   | "name " `T.isPrefixOf` t = SetName $ T.drop 5 t
   | "deal" == t = Deal
-  | "bid " `T.isPrefixOf` t = do
-      let r = do
-                (b1, t') <- decimal $ T.drop 4 t
-                (b2, _ ) <- decimal $ T.drop 1 t'
-                return (b2, b1)
-      case r of
-        Right (d1, d2) -> Raise (Bid d1 d2)
-        Left e         -> Invalid (T.pack e)
+  | "bid " `T.isPrefixOf` t =
+      let
+        r = do
+          (b1, t') <- decimal $ T.drop 4 t
+          (b2, _ ) <- decimal $ T.drop 1 t'
+          return (b2, b1)
+      in
+        case r of
+          Right (d1, d2) -> Raise (Bid d1 d2)
+          Left e         -> Invalid (T.pack e)
   | "challenge" == t = Challenge
   | "count" == t = Count
   | "say " `T.isPrefixOf` t = Say $ T.drop 4 t
