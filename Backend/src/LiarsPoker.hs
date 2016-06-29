@@ -68,6 +68,7 @@ data Game = Game
   , _inProgress :: !Bool
   , _baseStake  :: !Int
   , _gameId     :: !Int
+  , _numPlyrs   :: !Int
   } deriving (Show, Generic)
 makeLenses ''Game
 
@@ -130,7 +131,8 @@ getTurnName g = ps ^. ix b . name
     b = g ^. turn
     ps = g ^. players
 
-newGame :: Int -> Game
+-- | Create a new game from a gameId and a number of invited players.
+newGame :: Int -> Int -> Game
 newGame = Game V.empty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game

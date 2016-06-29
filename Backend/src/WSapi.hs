@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
@@ -10,7 +11,7 @@ import           LiarsPoker
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad                  (forever, replicateM, zipWithM_)
+import           Control.Monad                  (forever, replicateM, zipWithM_, when)
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
@@ -82,8 +83,8 @@ clientMsgs g hs = map cm (playerIds g)
       , _cmName = getPlayerName g p
       }
 
-parseJoin :: Text -> Maybe (Text, Int)
-parseJoin t = case ns of
+parseTextInt :: Text -> Maybe (Text, Int)
+parseTextInt t = case ns of
     []    -> Nothing
     (i:_) -> Just (name, fst i)
   where
@@ -94,10 +95,13 @@ parseJoin t = case ns of
 parseMessage :: Text -> Action
 parseMessage t
   | "join " `T.isPrefixOf` t =
-      case parseJoin (T.drop 5 t) of
+      case parseTextInt (T.drop 5 t) of
         Nothing -> Invalid "Client send an invalid join message"
         Just (n, i) -> Join n i
-  | "new " `T.isPrefixOf` t = New (T.drop 4 t) 0
+  | "new " `T.isPrefixOf` t =
+      case parseTextInt (T.drop 4 t) of
+        Nothing -> Invalid "Client send an invalid new message"
+        Just (n, i) -> New n i
   | "deal" == t = Deal
   | "bid " `T.isPrefixOf` t =
       let
@@ -140,29 +144,42 @@ singIn gmRef conn = do
   sendText conn ":signin"
   msg <- WS.receiveData conn
   case parseMessage msg of
-    New nm nPlyrs -> do
-      r <- getStdGen
-      gm <- takeMVar gmRef
-      let key = if null gm then 0 else 1 + (maximum . keys $ gm)
-          g = addPlayer (newGame key) 0 nm
-          state = GameState g V.empty r
-      gs <- newMVar (state, [conn])
-      putMVar gmRef (insert key gs gm)
-      broadcast [conn] (encodeCMs $ clientMsgs g V.empty)
-      handle conn gs 0
-    Join nm gId -> do
-      gm <- readMVar gmRef
-      let state = gm ! gId
-      (GameState g hs r, cs) <- takeMVar state
-      let pId = numOfPlayers g
-          g' = addPlayer g pId nm
-          cs' = cs ++ [conn]
-      putMVar state (GameState g' V.empty r, cs')
-      broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
-      handle conn state pId
+    New nm nPlyrs -> new gmRef conn nm nPlyrs
+    Join nm gId -> join gmRef conn nm gId
     _ -> do
       sendText conn ":signin"
       singIn gmRef conn
+
+new :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
+new gmRef conn nm nPlyrs = do
+  r <- getStdGen
+  gm <- takeMVar gmRef
+  let key = if null gm then 0 else 1 + (maximum . keys $ gm)
+      g = addPlayer (newGame key nPlyrs) 0 nm
+      state = GameState g V.empty r
+  gs <- newMVar (state, [conn])
+  putMVar gmRef (insert key gs gm)
+  broadcast [conn] (encodeCMs $ clientMsgs g V.empty)
+  handle conn gs 0
+
+join :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
+join gmRef conn nm gId = do
+  gm <- readMVar gmRef
+  let state = gm ! gId
+  (GameState g hs r, cs) <- takeMVar state
+  let pId = numOfPlayers g
+      g'  = addPlayer g pId nm
+      cs' = cs ++ [conn]
+  if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
+         let (gs, cms) = deal $ GameState g' V.empty r
+         putMVar state (gs, cs')
+         broadcast cs' (encodeCMs cms)
+         handle conn state pId
+     | V.length (g ^. players) < g ^. numPlyrs -> do
+         putMVar state (GameState g' V.empty r, cs')
+         broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
+         handle conn state pId
+     | otherwise -> putMVar state (GameState g hs r, cs)
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do

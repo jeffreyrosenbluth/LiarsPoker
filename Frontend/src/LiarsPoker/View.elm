@@ -55,7 +55,7 @@ mainView m c =
         , playView m c
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
         , if c.cmHand == "" then
-            dealView m c
+            waitingView m c
           else
             div [] []
         ]
@@ -248,16 +248,13 @@ playView m c =
         ]
 
 
-dealView : Model -> ClientMsg -> Html Msg
-dealView model c =
+waitingView : Model -> ClientMsg -> Html Msg
+waitingView model c =
     div [ class "flex p2 m2 border" ]
-        [ button
-            [ class "ml3 btn btn-primary bg-olive h3"
-            , onClick <| WSoutgoing "deal"
-            ]
-            [ text "Deal" ]
+        [
+            div [ class "p1 h3 red"] [text <| "Waiting for players"]
           , div [ class "flex-auto" ] []
           , div [class "p1 h3"] [text <| "Game Id: " ++ toString c.cmGame.gameId]
           , div [ class "flex-auto" ] []
-          , div [class "p1 h4 olive"] [text "Use this to invite other players"]
+          , div [class "p1 h4 olive italic"] [text "Use this to invite other players"]
         ]
