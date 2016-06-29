@@ -18,13 +18,13 @@ import           Types
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad                  (forever, replicateM,
+import           Control.Monad                  (forever, replicateM, when,
                                                  zipWithM_)
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import           Data.IntMap                    (insert, keys, (!))
+import           Data.IntMap                    (insert, keys, member, (!))
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
@@ -128,21 +128,23 @@ new gmRef conn nm nPlyrs = do
 join :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
 join gmRef conn nm gId = do
   gm <- readMVar gmRef
-  let state = gm ! gId
-  (GameState g hs r, cs) <- takeMVar state
-  let pId = numOfPlayers g
-      g'  = addPlayer g pId nm
-      cs' = cs ++ [conn]
-  if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
-         let (gs, cms) = deal $ GameState g' V.empty r
-         putMVar state (gs, cs')
-         broadcast cs' (encodeCMs cms)
-         handle conn state pId
-     | V.length (g ^. players) < g ^. numPlyrs -> do
-         putMVar state (GameState g' V.empty r, cs')
-         broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
-         handle conn state pId
-     | otherwise -> putMVar state (GameState g hs r, cs)
+  -- Only try to join if the 'gameId' is in the 'GameMap'
+  when (member gId gm) $ do
+    let state = gm ! gId
+    (GameState g hs r, cs) <- takeMVar state
+    let pId = numOfPlayers g
+        g'  = addPlayer g pId nm
+        cs' = cs ++ [conn]
+    if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
+           let (gs, cms) = deal $ GameState g' V.empty r
+           putMVar state (gs, cs')
+           broadcast cs' (encodeCMs cms)
+           handle conn state pId
+       | V.length (g ^. players) < g ^. numPlyrs -> do
+           putMVar state (GameState g' V.empty r, cs')
+           broadcast cs' (encodeCMs $ clientMsgs g' V.empty)
+           handle conn state pId
+       | otherwise -> putMVar state (GameState g hs r, cs)
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
