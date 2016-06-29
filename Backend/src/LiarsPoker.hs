@@ -2,6 +2,12 @@
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
+----------------------------------------------------------
+-- |
+-- Game logic for LiarsPoker multiplayer game.
+-- (c) 2016 Jeffrey Rosenbluth
+--------------------------------------------------------
+
 module LiarsPoker where
 
 import           Types

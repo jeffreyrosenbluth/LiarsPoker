@@ -4,7 +4,14 @@
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-{-# OPTIONS_GHC -funbox-strict-fields #-}
+{-# OPTIONS_GHC -funbox-strict-fields  #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
+----------------------------------------------------------
+-- |
+-- Types for LiarsPoker multiplayer game
+-- (c) 2016 Jeffrey Rosenbluth
+----------------------------------------------------------
 
 module Types where
 
@@ -20,7 +27,6 @@ import           GHC.Generics
 import qualified Network.WebSockets      as WS
 import           System.Random           (StdGen)
 
-
 type Card  = Int
 type Hand  = Map Card Int
 type Hands = Vector Hand
@@ -34,10 +40,7 @@ instance FromJSON Hand where
 data Bid = Bid
   { _bidCard  :: !Card
   , _bidQuant :: !Int
-  } deriving (Eq, Generic)
-
-instance Show Bid where
-  show (Bid c q) = show q ++ " " ++ show c ++ "'s"
+  } deriving (Eq, Generic, Show)
 
 instance ToJSON Bid
 instance FromJSON Bid
@@ -102,7 +105,6 @@ data GameState = GameState
 makeLenses ''GameState
 
 type ServerState = (GameState, Clients)
-
 type GameMap = IntMap (MVar ServerState)
 
 data BtnFlags = BtnFlags

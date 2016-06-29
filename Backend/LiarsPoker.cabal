@@ -9,7 +9,7 @@ author:              Author Jeffrey Rosenbluth
 maintainer:          example@example.com
 copyright:           2016 Jeffrey Rosenbluth
 category:            Web
-build-type:          Simples
+build-type:          Simple
 cabal-version:       >=1.10
 
 executable Serve

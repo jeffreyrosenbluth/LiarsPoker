@@ -5,6 +5,12 @@
 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
+----------------------------------------------------------
+-- |
+-- Websockets API for LiarsPoker multiplayer game
+-- (c) 2016 Jeffrey Rosenbluth
+--------------------------------------------------------
+
 module WSapi where
 
 import           LiarsPoker
@@ -28,11 +34,8 @@ import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
-playerIds :: Game -> [Int]
-playerIds g = [0..(numOfPlayers g - 1)]
-
 clientMsgs :: Game -> Hands -> [ClientMsg]
-clientMsgs g hs = map cm (playerIds g)
+clientMsgs g hs = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =  ClientMsg
       { _cmGame = g
