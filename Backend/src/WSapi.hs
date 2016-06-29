@@ -15,6 +15,8 @@ import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
+import           Data.IntMap                    (IntMap, (!), keys, insert)
+import qualified Data.IntMap.Strict             as IM
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
@@ -24,6 +26,7 @@ import           GHC.Generics
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
+import           System.Random                  (getStdGen)
 
 type Clients     = [WS.Connection]
 
@@ -36,6 +39,8 @@ data GameState = GameState
 makeLenses ''GameState
 
 type ServerState = (GameState, Clients)
+
+type GameMap = IntMap (MVar ServerState)
 
 data BtnFlags = BtnFlags
   { _bfRaise     :: Bool
@@ -79,7 +84,8 @@ clientMsgs g hs = map cm (playerIds g)
 
 parseMessage :: Text -> Action
 parseMessage t
-  | "name " `T.isPrefixOf` t = SetName $ T.drop 5 t
+  | "name " `T.isPrefixOf` t = Join (T.drop 5 t) 0
+  | "new " `T.isPrefixOf` t = New (T.drop 4 t) 0
   | "deal" == t = Deal
   | "bid " `T.isPrefixOf` t =
       let
@@ -111,18 +117,31 @@ encodeCMs = map $ T.pack . LB.unpack . encode
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
-application :: MVar ServerState -> WS.ServerApp
-application state pending = do
+application :: MVar GameMap -> WS.ServerApp
+application gm pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
-  getName state conn
+  singIn gm conn
 
-getName :: MVar ServerState -> WS.Connection -> IO ()
-getName state conn = do
+singIn :: MVar GameMap -> WS.Connection -> IO ()
+singIn gmRef conn = do
   sendText conn ":signin"
   msg <- WS.receiveData conn
   case parseMessage msg of
-    SetName nm -> do
+    New nm nPlyrs -> do
+      r <- getStdGen
+      let g = addPlayer newGame 0 nm
+          state = GameState g V.empty r
+      gs <- newMVar (state, [conn])
+      gm <- takeMVar gmRef
+      let key = if null gm then 0 else 1 + (maximum . keys $ gm)
+          gm' = insert key gs gm
+      putMVar gmRef gm'
+      broadcast [conn] (encodeCMs $ clientMsgs g V.empty)
+      handle conn gs 0
+    Join nm gId -> do
+      gm <- readMVar gmRef
+      let state = gm ! gId
       (GameState g hs r, cs) <- takeMVar state
       let pId = numOfPlayers g
           g' = addPlayer g pId nm
@@ -132,7 +151,7 @@ getName state conn = do
       handle conn state pId
     _ -> do
       sendText conn ":signin"
-      getName state conn
+      singIn gmRef conn
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn state pId = forever $ do
@@ -141,6 +160,8 @@ handle conn state pId = forever $ do
   let action    = parseMessage msg
       (gs', cm) =
         case action of
+          Join n _  -> error $ "Cannot reset player name to: " ++ T.unpack n
+          New n _   -> error "Cannot start a new game"
           Deal      -> deal gs
           Raise b   -> raise gs pId b
           Challenge -> challenge gs pId
@@ -169,9 +190,15 @@ deal gs@(GameState g _ r)
 updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
 updateClientMsgs cs g err  =
   cs & traverse . cmError .~ err
-     & singular (ix (g ^. turn)) . cmButtons . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
-     & singular (ix (g ^. turn)) . cmButtons . bfChallenge  .~ ((Just $ g ^. turn) /= g ^. bidder)
-     & singular (ix (g ^. turn)) . cmButtons . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
+     & singular (ix (g ^. turn))
+     . cmButtons
+     . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
+     & singular (ix (g ^. turn))
+     . cmButtons
+     . bfChallenge .~ ((Just $ g ^. turn) /= g ^. bidder)
+     & singular (ix (g ^. turn))
+     . cmButtons
+     . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
 raise :: GameState -> Int -> Bid -> (GameState, [ClientMsg])
 raise gs@(GameState g hs r) pId b

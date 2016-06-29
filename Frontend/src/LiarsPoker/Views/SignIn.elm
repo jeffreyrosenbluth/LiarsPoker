@@ -21,7 +21,8 @@ signInView m =
 nickView : Model -> Html Msg
 nickView m =
     div [ class "center p2 bg-white" ]
-        [ div [ class "h2 ml1 p1 gray" ] [ text "Nickname" ]
+        [ div [ class "h2 p1" ] [ text "Enter your player name" ]
+        , div [ class "h3 gray" ] [ text "Nickname" ]
         , input
             [ Html.Attributes.value m.name
             , onInput Name
@@ -35,9 +36,9 @@ nickView m =
 joinView : Model -> Html Msg
 joinView m =
     div [ class "flex flex-column bg-white" ]
-        [ div [ class "p1 center red" ] [ text "Join an existing game" ]
+        [ div [ class "h2 p1 center" ] [ text "Join an existing game" ]
         , div [ class "center" ]
-            [ div [ class "h2 center ml2 p1 gray" ] [ text "Game Id" ]
+            [ div [ class "h3 center  gray" ] [ text "Game Id" ]
             , input
                 [ Html.Attributes.value m.gameId
                 , onInput GameId
@@ -48,9 +49,10 @@ joinView m =
             ]
         , div [ class "center" ]
             [ button
-                [ class "btn btn-primary mr4  ml4 mt2 mb2 h6"
+                [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
                 , style [ ( "width", "200px" ) ]
                 , onClick <| WSoutgoing ("name " ++ m.name)
+                , disabled <| m.name == "" || m.gameId == ""
                 ]
                 [ text "Join" ]
             ]
@@ -60,23 +62,27 @@ joinView m =
 startView : Model -> Html Msg
 startView m =
     div [ class "flex flex-column bg-white" ]
-        [ div [ class "p1 center red" ] [ text "Start a new game" ]
+        [ div [ class "h2 p1 center" ] [ text "Start a new game" ]
         , div [ class "center" ]
-            [ div [ class "h2 ml2 p1 gray" ] [ text "Number of players" ]
-            , input
-                [ placeholder "3"
-                  -- , Html.Attributes.value m.test
-                  -- , onInput Test
-                , class "center p1"
-                , style [ ( "width", "200px" ) ]
+            [ div [ class "h3 gray" ] [ text "Number of players" ]
+            , div [ class "h2 p1" ] [ text <| toString m.numPlayers ]
+            , div []
+                [ button
+                    [ class "btn btn-outline h6 m1"
+                    , onClick (NumPlayers <| Basics.max 0 (m.numPlayers - 1))
+                    ]
+                    [ text "-" ]
+                , button
+                    [ class "btn btn-outline h6 m1"
+                    , onClick (NumPlayers <| m.numPlayers + 1)
+                    ]
+                    [ text "+" ]
                 ]
-                []
-            ]
-        , div [ class "center" ]
-            [ button
-                [ class "btn btn-primary mr4  ml4 mt2 mb2 h6"
+            , button
+                [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
                 , style [ ( "width", "200px" ) ]
-                  -- , onClick <| WSoutgoing ("name " ++ m.test)
+                , onClick <| WSoutgoing ("new " ++ m.name)
+                , disabled <| m.name == "" || m.numPlayers == 0
                 ]
                 [ text "Start" ]
             ]

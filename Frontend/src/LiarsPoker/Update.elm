@@ -25,6 +25,9 @@ update msg model =
         GameId g ->
             ( { model | gameId = g }, Cmd.none )
 
+        NumPlayers n ->
+            ( { model | numPlayers = n }, Cmd.none )
+
         WSincoming s ->
             let
                 m =

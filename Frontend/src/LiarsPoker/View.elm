@@ -252,7 +252,7 @@ viewDeal : Model -> Html Msg
 viewDeal model =
     div [ class "flex p2 m2 border" ]
         [ button
-            [ class "ml3 btn btn-primary h3"
+            [ class "ml3 btn btn-primary bg-olive h3"
             , onClick <| WSoutgoing "deal"
             ]
             [ text "Deal" ]

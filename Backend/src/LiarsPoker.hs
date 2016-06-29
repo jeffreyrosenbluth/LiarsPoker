@@ -74,7 +74,8 @@ instance ToJSON Game
 instance FromJSON Game
 
 data Action
-  = SetName !Text
+  = Join !Text !Int
+  | New !Text !Int
   | Deal
   | Raise !Bid
   | Challenge
@@ -168,7 +169,8 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
 -- | Is this 'Action' legal to take from the current game state?
 legal :: Game -> Action -> Bool
 legal game action = case action of
-  SetName _ -> not (game ^. inProgress)
+  Join _ _  -> not (game ^. inProgress)
+  New _ _   -> not (game ^. inProgress)
   Deal      -> not (game ^. inProgress)
   -- You can't raise a rebid, if you are the bidder and rebid is True
   -- it is illegal to bid again.

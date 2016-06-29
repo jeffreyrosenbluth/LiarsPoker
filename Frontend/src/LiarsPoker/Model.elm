@@ -31,6 +31,7 @@ type Msg
     | RaiseQuant Int
     | Name String
     | GameId String
+    | NumPlayers Int
     | WSincoming String
     | WSoutgoing String
 
@@ -57,6 +58,7 @@ showServerMsg sm =
 type alias Model =
     { name : String
     , gameId : String
+    , numPlayers : Int
     , quant : Int
     , card : Int
     , wsIncoming : ServerMsg
@@ -66,7 +68,8 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     ( { name = ""
-      , gameId = ""
+      , gameId = "0"
+      , numPlayers = 0
       , quant = 0
       , card = 0
       , wsIncoming = RawMsg ""
