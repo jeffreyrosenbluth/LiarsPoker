@@ -1,94 +1,18 @@
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TupleSections        #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
 module LiarsPoker where
 
+import           Types
+
 import           Control.Lens hiding ((.=))
-import           Data.Aeson
-import           Data.List    (intersperse, sortOn)
-import           Data.Map     (Map)
+import           Data.List    (intersperse)
 import qualified Data.Map     as M
 import           Data.Maybe
 import           Data.Text    (Text)
-import           Data.Vector  (Vector, (!?))
+import           Data.Vector  ((!?))
 import qualified Data.Vector  as V
-import           GHC.Generics
-
-type Card  = Int
-type Hand  = Map Card Int
-type Hands = Vector Hand
-
-instance ToJSON Hand where
-  toJSON = toJSON . M.toList
-
-instance FromJSON Hand where
-  parseJSON = fmap M.fromList . parseJSON
-
-data Bid = Bid
-  { _bidCard  :: !Card
-  , _bidQuant :: !Int
-  } deriving (Eq, Generic)
-
-instance Show Bid where
-  show (Bid c q) = show q ++ " " ++ show c ++ "'s"
-
-instance ToJSON Bid
-instance FromJSON Bid
-
-instance Ord Bid where
-  Bid c1 q1 <= Bid c2 q2 = (q1, f c1) <= (q2, f c2)
-    where
-      f j = if j == 0 then 10 else j
-
-makeLenses ''Bid
-
-data Player = Player
-  { _playerId :: !Int
-  , _name     :: !Text
-  , _score    :: !Int
-  } deriving (Show, Eq, Generic)
-makeLenses ''Player
-
-instance ToJSON Player
-instance FromJSON Player
-
-data Game = Game
-  { _players    :: !(Vector Player)
-  , _bidder     :: !(Maybe Int)  -- ^ playerId
-  , _bid        :: !Bid
-  , _turn       :: !Int        -- ^ playerId
-  , _won        :: !(Maybe Bool)
-  , _rebid      :: !Bool
-  , _inProgress :: !Bool
-  , _baseStake  :: !Int
-  , _gameId     :: !Int
-  , _numPlyrs   :: !Int
-  } deriving (Show, Generic)
-makeLenses ''Game
-
-instance ToJSON Game
-instance FromJSON Game
-
-data Action
-  = Join !Text !Int
-  | New !Text !Int
-  | Deal
-  | Raise !Bid
-  | Challenge
-  | Count
-  | Say !Text
-  | Invalid !Text
-  deriving (Show, Generic)
-makePrisms ''Action
-
-instance ToJSON Action
-instance FromJSON Action
 
 cardsPerHand :: Int
 cardsPerHand = 8

@@ -8,65 +8,25 @@
 module WSapi where
 
 import           LiarsPoker
+import           Types
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad                  (forever, replicateM, zipWithM_, when)
+import           Control.Monad                  (forever, replicateM,
+                                                 zipWithM_)
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import           Data.IntMap                    (IntMap, insert, keys, (!))
-import qualified Data.IntMap.Strict             as IM
+import           Data.IntMap                    (insert, keys, (!))
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
 import           Data.Text.Read                 (decimal)
 import qualified Data.Vector                    as V
-import           GHC.Generics
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
-import           System.Random                  (getStdGen)
-
-type Clients     = [WS.Connection]
-
-data GameState = GameState
-  { _stGame   :: Game
-  , _stHands  :: Hands
-  , _stStdGen :: StdGen
-  }
-
-makeLenses ''GameState
-
-type ServerState = (GameState, Clients)
-
-type GameMap = IntMap (MVar ServerState)
-
-data BtnFlags = BtnFlags
-  { _bfRaise     :: Bool
-  , _bfChallenge :: Bool
-  , _bfCount     :: Bool
-  } deriving (Show, Generic)
-
-instance ToJSON BtnFlags
-instance FromJSON BtnFlags
-
-makeLenses ''BtnFlags
-
-data ClientMsg = ClientMsg
-  { _cmGame     :: Game
-  , _cmHand     :: Text
-  , _cmError    :: Text
-  , _cmMultiple :: Int
-  , _cmButtons  :: BtnFlags
-  , _cmName     :: Text
-  } deriving (Show, Generic)
-
-instance ToJSON ClientMsg
-instance FromJSON ClientMsg
-
-makeLenses ''ClientMsg
 
 playerIds :: Game -> [Int]
 playerIds g = [0..(numOfPlayers g - 1)]
@@ -86,9 +46,9 @@ clientMsgs g hs = map cm (playerIds g)
 parseTextInt :: Text -> Maybe (Text, Int)
 parseTextInt t = case ns of
     []    -> Nothing
-    (i:_) -> Just (name, fst i)
+    (i:_) -> Just (nm, fst i)
   where
-    (name, gId) = T.breakOn ":-:" t
+    (nm, gId) = T.breakOn ":-:" t
     gId' = T.drop 3 gId
     ns = reads $ T.unpack gId'
 
@@ -189,12 +149,12 @@ handle conn state pId = forever $ do
       (gs', cm) =
         case action of
           Join n _  -> error $ "Cannot reset player name to: " ++ T.unpack n
-          New n _   -> error "Cannot start a new game"
+          New _ _   -> error "Cannot start a new game"
           Deal      -> deal gs
           Raise b   -> raise gs pId b
           Challenge -> challenge gs pId
           Count     -> count gs pId
-          Say m     -> error "Not implemented yet"
+          Say _     -> error "Not implemented yet"
           Invalid m -> error (T.unpack m)
   swapMVar state (gs', cs)
   broadcast cs (encodeCMs cm)
@@ -229,7 +189,7 @@ updateClientMsgs cs g err  =
      . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
 raise :: GameState -> Int -> Bid -> (GameState, [ClientMsg])
-raise gs@(GameState g hs r) pId b
+raise gs@(GameState g hs _) pId b
   | legal g (Raise b) && g ^. turn == pId = (gs', cm)
   | otherwise = (gs, cm')
     where
@@ -240,7 +200,7 @@ raise gs@(GameState g hs r) pId b
       e   = "Either your bid is too low or you are trying to raise a re-bid."
 
 challenge :: GameState -> Int -> (GameState, [ClientMsg])
-challenge gs@(GameState g hs r) pId
+challenge gs@(GameState g hs _) pId
   | legal g Challenge && g ^. turn == pId = (gs & stGame .~ g', cm)
   | otherwise = (gs, updateClientMsgs (clientMsgs g hs) g "Illegal Challenge")
       where
@@ -248,7 +208,7 @@ challenge gs@(GameState g hs r) pId
         cm = updateClientMsgs (clientMsgs g' hs) g' ""
 
 count :: GameState -> Int -> (GameState, [ClientMsg])
-count gs@(GameState g hs r) pId
+count gs@(GameState g hs _) pId
   | legal g Count && g ^. turn == pId = deal (gs & stGame .~ g')
   | otherwise = (gs, updateClientMsgs (clientMsgs g hs) g "Illegal Count")
       where
