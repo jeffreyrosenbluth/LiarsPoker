@@ -67,6 +67,7 @@ data Game = Game
   , _rebid      :: !Bool
   , _inProgress :: !Bool
   , _baseStake  :: !Int
+  , _gameId     :: !Int
   } deriving (Show, Generic)
 makeLenses ''Game
 
@@ -129,7 +130,7 @@ getTurnName g = ps ^. ix b . name
     b = g ^. turn
     ps = g ^. players
 
-newGame :: Game
+newGame :: Int -> Game
 newGame = Game V.empty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game

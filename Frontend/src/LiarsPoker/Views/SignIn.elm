@@ -51,8 +51,8 @@ joinView m =
             [ button
                 [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
                 , style [ ( "width", "200px" ) ]
-                , onClick <| WSoutgoing ("name " ++ m.name)
-                , disabled <| m.name == "" || m.gameId == ""
+                , onClick <| WSoutgoing ("join " ++ m.name ++ ":-:" ++ m.gameId)
+                , disabled <| m.name == ""
                 ]
                 [ text "Join" ]
             ]

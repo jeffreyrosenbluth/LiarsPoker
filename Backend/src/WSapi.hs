@@ -82,9 +82,21 @@ clientMsgs g hs = map cm (playerIds g)
       , _cmName = getPlayerName g p
       }
 
+parseJoin :: Text -> Maybe (Text, Int)
+parseJoin t = case ns of
+    []    -> Nothing
+    (i:_) -> Just (name, fst i)
+  where
+    (name, gId) = T.breakOn ":-:" t
+    gId' = T.drop 3 gId
+    ns = reads $ T.unpack gId'
+
 parseMessage :: Text -> Action
 parseMessage t
-  | "name " `T.isPrefixOf` t = Join (T.drop 5 t) 0
+  | "join " `T.isPrefixOf` t =
+      case parseJoin (T.drop 5 t) of
+        Nothing -> Invalid "Client send an invalid join message"
+        Just (n, i) -> Join n i
   | "new " `T.isPrefixOf` t = New (T.drop 4 t) 0
   | "deal" == t = Deal
   | "bid " `T.isPrefixOf` t =
@@ -130,13 +142,12 @@ singIn gmRef conn = do
   case parseMessage msg of
     New nm nPlyrs -> do
       r <- getStdGen
-      let g = addPlayer newGame 0 nm
-          state = GameState g V.empty r
-      gs <- newMVar (state, [conn])
       gm <- takeMVar gmRef
       let key = if null gm then 0 else 1 + (maximum . keys $ gm)
-          gm' = insert key gs gm
-      putMVar gmRef gm'
+          g = addPlayer (newGame key) 0 nm
+          state = GameState g V.empty r
+      gs <- newMVar (state, [conn])
+      putMVar gmRef (insert key gs gm)
       broadcast [conn] (encodeCMs $ clientMsgs g V.empty)
       handle conn gs 0
     Join nm gId -> do

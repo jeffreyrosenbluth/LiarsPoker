@@ -120,6 +120,7 @@ type alias Game =
     , rebid : Bool
     , inProgress : Bool
     , baseStake : Int
+    , gameId : Int
     }
 
 
@@ -134,6 +135,7 @@ gameDecoder =
         <*> ("_rebid" := bool)
         <*> ("_inProgress" := bool)
         <*> ("_baseStake" := int)
+        <*> ("_gameId" := int)
 
 
 type alias BtnFlags =
