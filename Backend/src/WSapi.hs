@@ -15,7 +15,7 @@ import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import           Data.IntMap                    (IntMap, (!), keys, insert)
+import           Data.IntMap                    (IntMap, insert, keys, (!))
 import qualified Data.IntMap.Strict             as IM
 import           Data.List.Split                (chunksOf)
 import           Data.Text                      (Text)

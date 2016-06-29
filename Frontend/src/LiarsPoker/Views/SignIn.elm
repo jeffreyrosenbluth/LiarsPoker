@@ -87,3 +87,21 @@ startView m =
                 [ text "Start" ]
             ]
         ]
+
+
+-- gameIdView : Model -> Html Msg
+-- gameIdView m =
+--     div [ class "flex flex-column bg-white" ]
+--         [ div [ class "h2 p1 center" ] [ text "Invite other players with this Game Id" ]
+--         , div [ class "center" ]
+--             [ div [ class "h2 center blue bold" ] [ text m.gameId ]
+--             , div [ class "center" ]
+--                 [ button
+--                     [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
+--                     , style [ ( "width", "200px" ) ]
+--                     , onClick <| WSoutgoing ("name " ++ m.name)
+--                     ]
+--                     [ text "Join" ]
+--                 ]
+--             ]
+--         ]
