@@ -1,12 +1,12 @@
 name:                LiarsPoker
 version:             0.1.0.0
-synopsis:            Liaars Poker web app.
+synopsis:            Liaars Poker Websockets server.
 description:         Please see README.md
-homepage:            http://github.com/githubuser/LiarsPoker#readme
+homepage:            http://github.com/jeffreyrosenbluth/LiarsPoker.git
 license:             BSD3
 license-file:        LICENSE
-author:              Author Jeffrey Rosenbluth
-maintainer:          example@example.com
+author:              Jeffrey Rosenbluth
+maintainer:          jeffrey.rosenbluth@gmail.com
 copyright:           2016 Jeffrey Rosenbluth
 category:            Web
 build-type:          Simple
@@ -50,4 +50,4 @@ test-suite LiarsPoker-test
 
 source-repository head
   type:     git
-  location: https://github.com/jeffreyrosenbluth/LiarsPoker
+  location: https://github.com/jeffreyrosenbluth/LiarsPoker.git
