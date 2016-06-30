@@ -1,108 +1,45 @@
-{-# LANGUAGE DeriveGeneric        #-}
-{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE TemplateHaskell      #-}
-{-# LANGUAGE TupleSections        #-}
-{-# LANGUAGE TypeSynonymInstances #-}
+
+{-# OPTIONS_GHC -funbox-strict-fields #-}
+
+----------------------------------------------------------
+-- |
+-- Game logic for LiarsPoker multiplayer game.
+-- (c) 2016 Jeffrey Rosenbluth
+--------------------------------------------------------
 
 module LiarsPoker where
 
-import           Control.Lens
-import           Data.Aeson
+import           Types
+
+import           Control.Lens hiding ((.=))
 import           Data.List    (intersperse)
-import           Data.Map     (Map)
 import qualified Data.Map     as M
 import           Data.Maybe
 import           Data.Text    (Text)
-import           GHC.Generics
-
-type Card = Int
-
-type Hand = Map Card Int
-
-instance ToJSON Hand where
-  toJSON = toJSON . M.toList
-
-instance FromJSON Hand where
-  parseJSON = fmap M.fromList . parseJSON
-
-data Bid = Bid
-  { _bidCard  :: Card
-  , _bidQuant :: Int
-  } deriving (Eq, Generic)
-
-instance Show Bid where
-  show (Bid c q) = show q ++ " " ++ show c ++ "'s"
-
-instance ToJSON Bid
-instance FromJSON Bid
-
-instance Ord Bid where
-  Bid c1 q1 <= Bid c2 q2 = (q1, f c1) <= (q2, f c2)
-    where
-      f j = if j == 0 then 10 else j
-
-makeLenses ''Bid
-
-data Player = Player
-  { _playerId :: Int
-  , _name     :: Text
-  , _hand     :: Hand
-  , _score    :: Int
-  } deriving (Show, Eq, Generic)
-makeLenses ''Player
-
-instance ToJSON Player
-instance FromJSON Player
-
-data Game = Game
-  { _players      :: [Player]
-  , _bidder       :: Maybe Int  -- ^ playerId
-  , _bid          :: Bid
-  , _turn         :: Int        -- ^ playerId
-  , _won          :: Maybe Bool
-  , _rebid        :: Bool
-  , _inProgress   :: Bool
-  , _baseStake    :: Int
-  } deriving (Show, Generic)
-makeLenses ''Game
-
-instance ToJSON Game
-instance FromJSON Game
-
-data Action
-  = SetName Text
-  | Deal
-  | Raise Bid
-  | Challenge
-  | Count
-  | Say Text
-  | Invalid Text
-  deriving (Show, Generic)
-makePrisms ''Action
-
-instance ToJSON Action
-instance FromJSON Action
+import           Data.Vector  ((!?))
+import qualified Data.Vector  as V
 
 cardsPerHand :: Int
 cardsPerHand = 8
 
 numOfPlayers :: Game -> Int
-numOfPlayers g = length $ g ^. players
+numOfPlayers g = V.length $ g ^. players
 
 -- | Total number of Card in the game.
-countCard :: Game -> Card -> Int
-countCard game card = sum $ getCount . view hand <$> game ^. players
+countCard :: Hands -> Card -> Int
+countCard hands card = sum $ getCount <$> hands
   where
     getCount h = fromMaybe 0 (M.lookup card h)
 
--- | Given a game and a playerId, return the players hand if the playerId exists.
-getHand :: Game -> Int -> Hand
-getHand game pId = game ^. players ^?! ix pId . hand
-
--- | Given a game and a playerId, return the players hand if the playerId exists.
+-- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game -> Int -> Text
-getPlayerName game pId = game ^. players ^?! ix pId . name
+getPlayerName game pId =
+   fromMaybe "Error: getPlayerName" $ game ^? players . ix pId . name
+
+-- | Return the players hand if the playerId exists.
+getHand :: Hands -> Int -> Hand
+getHand hands pId = fromMaybe M.empty (hands !? pId)
 
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
@@ -113,10 +50,10 @@ displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
     f k a b = replicate a (head $ show k) ++ b
 
 getBidderName :: Game -> Text
-getBidderName g = maybe "" (\i -> view (ix i . name) ps) b
-  where
-    b = g ^. bidder
-    ps = g ^. players
+getBidderName g =
+  maybe "Error: getBidderName"
+        (\i -> g ^. players . ix i . name)
+        (g ^. bidder)
 
 getTurnName :: Game -> Text
 getTurnName g = ps ^. ix b . name
@@ -124,8 +61,9 @@ getTurnName g = ps ^. ix b . name
     b = g ^. turn
     ps = g ^. players
 
-newGame :: Game
-newGame = Game [] Nothing (Bid 0 0) 0 Nothing False False 1
+-- | Create a new game from a gameId and a number of invited players.
+newGame :: Int -> Int -> Game
+newGame = Game V.empty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game
 resetGame n g = g & bidder .~ Nothing
@@ -136,14 +74,12 @@ resetGame n g = g & bidder .~ Nothing
                 & inProgress .~ True
 
 addPlayer :: Game -> Int -> Text -> Game
-addPlayer game pId nm = game & players <>~ [player]
+addPlayer game pId nm = game & players %~ flip V.snoc player
   where
-    player = Player pId nm M.empty 0
+    player = Player pId nm 0
 
-dealHands :: Game -> [[Int]] -> Game
-dealHands game cs = game & players %~ setHands (toHand <$> cs)
-  where
-    setHands =  zipWith (set hand)
+dealHands :: [[Int]] -> Hands
+dealHands cs = V.fromList (toHand <$> cs)
 
 -- | Change bid to (Bid Card Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
@@ -166,7 +102,8 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
 -- | Is this 'Action' legal to take from the current game state?
 legal :: Game -> Action -> Bool
 legal game action = case action of
-  SetName _ -> not (game ^. inProgress)
+  Join _ _  -> not (game ^. inProgress)
+  New _ _   -> not (game ^. inProgress)
   Deal      -> not (game ^. inProgress)
   -- You can't raise a rebid, if you are the bidder and rebid is True
   -- it is illegal to bid again.
@@ -190,36 +127,35 @@ bonus game = sixes * mult
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
-hero :: Game -> Int
-hero game = if q == 0 && countCard game bc > 0 then 1 else 0
+hero :: Game -> Hands -> Int
+hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ M.lookup bc (game ^. players . singular (ix bdr) . hand)
+    q = fromMaybe 0 $ M.lookup bc =<< hands !? bdr
     bc = game ^. bid ^. bidCard
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
-scoreGame :: Game -> Game
-scoreGame game = game & players .~ (reScore <$> [0..(numOfPlayers game - 1)])
-                      & baseStake .~ (if h == 1 then 2 else bns)
+scoreGame :: Game -> Hands -> Game
+scoreGame game hands = game & players %~ V.imap reScore
+                            & baseStake .~ (if h == 1 then 2 else bns)
   where
-    reScore p
-      | game ^. bidder == Just p =
-          over score (+ x) (game ^. players . singular (ix p))
-      | otherwise =
-          over score (+ a) (game ^. players . singular (ix p))
-    (a , x)   = maybe (0, 0) (\w -> if w
-                                      then (-winStake, winB)
-                                      else (lossStake, -lossB))
-                             (game ^. won)
-    cnt       = countCard game (game ^. bid . bidCard)
+    reScore :: Int -> Player -> Player
+    reScore idx p
+      | game ^. bidder == Just idx = over score (+ x) p
+      | otherwise                  = over score (+ a) p
+
+    (a, x)    = maybe (0, 0)
+                      (\w -> if w then (-winStake, winB) else (lossStake, -lossB))
+                      (game ^. won)
+    cnt       = countCard hands (game ^. bid . bidCard)
     -- The n+3 rule.
     bns       = bonus game
     -- The skunk rule.
     mult      = if cnt == 0 then max 1 (2 * numOfPlayers game - 6) else bns
     -- The hero bump.
-    h         = hero game
+    h         = hero game hands
     -- The score for non bidders.
     winStake  = (mult + h) * game ^. baseStake
     lossStake = game ^. baseStake
