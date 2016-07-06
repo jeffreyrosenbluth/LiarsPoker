@@ -12,7 +12,8 @@ import WebSocket
 
 wsURL : String
 wsURL =
-    "ws://localhost:9160/"
+    "ws://frozen-thicket-35077.herokuapp.com/"
+    -- "ws://localhost:9160/"
 
 
 subscriptions : Model -> Sub Msg
