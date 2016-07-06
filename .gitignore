@@ -18,7 +18,6 @@ Frontend/elm-stuff
 Frontend/node_modules
 Frontend/elm.js
 Frontend/npm-debug.log
-Frontend/dist
 
 .DS_Store
 npm-debug.log
