@@ -7,6 +7,9 @@ and the frontend is in elm.
 Todo
 ----------------
 
-- [ ] Finish backend.
-- [ ] Finish frontend.
+- [ ] Use wss instead of ws.
+- [ ] Remove players from game when they close tab or browser.
+- [ ] Add a sound and visual effect after each move.
+- [ ] Add Chat feature.
+- [ ] Stylize the frontend.
 - [ ] Add deployment script.
