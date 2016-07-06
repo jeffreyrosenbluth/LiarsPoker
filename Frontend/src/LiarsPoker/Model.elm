@@ -12,7 +12,7 @@ import WebSocket
 
 wsURL : String
 wsURL =
-    "ws://frozen-thicket-35077.herokuapp.com/"
+    "ws://frozen-thicket-35077.herokuapp.com"
     -- "ws://localhost:9160/"
 
 
