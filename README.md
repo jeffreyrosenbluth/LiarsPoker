@@ -7,7 +7,8 @@ and the frontend is in elm.
 Todo
 ----------------
 
-- [ ] Use wss instead of ws.
+- [X] Use wss instead of ws.
+- [ ] Use https instead of http.
 - [ ] Handle closing of tabs or browser.
 - [ ] Reveal the total count after a game.
 - [ ] Allow old game ids to be reused.

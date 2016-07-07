@@ -63,12 +63,18 @@ mainView m c =
 
 currentPlayerView : ClientMsg -> Html Msg
 currentPlayerView c =
-    div [ class "center mt2 h2", style [ ( "color", "#3CA962" ) ] ] [ text c.cmName ]
+    let
+      fmt =
+        if M.Just c.cmName == (M.map .name <| get (c.cmGame.turn) c.cmGame.players)
+          then "center p2 h2 white bold bg-black"
+          else "center p2 h2 bold"
+    in
+      div [ class fmt ] [ text c.cmName ]
 
 
 handView : ClientMsg -> Html Msg
 handView c =
-    div [ class "center p2 h1 bold", style [ ( "color", "#3CA962" ) ] ] [ text c.cmHand ]
+    div [ class "center p1 h1 bold olive" ] [ text c.cmHand ]
 
 
 bidder : ClientMsg -> String

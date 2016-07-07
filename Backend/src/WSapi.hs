@@ -117,8 +117,8 @@ new :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
   r <- getStdGen
   gm <- takeMVar gmRef
-  let key = if null gm then 0 else 1 + (maximum . keys $ gm)
-      g = addPlayer (newGame key nPlyrs) 0 nm
+  let key   = if null gm then 0 else 1 + (maximum . keys $ gm)
+      g     = addPlayer (newGame key nPlyrs) 0 nm
       state = GameState g V.empty r
   gs <- newMVar (state, [conn])
   putMVar gmRef (insert key gs gm)
