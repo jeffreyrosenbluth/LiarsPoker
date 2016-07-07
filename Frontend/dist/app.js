@@ -8672,7 +8672,7 @@
 				return _p0._0;
 		}
 	};
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$wsURL = 'ws://frozen-thicket-35077.herokuapp.com';
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$wsURL = 'ws://liarspoker.herokuapp.com';
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$Model = F6(
 		function (a, b, c, d, e, f) {
 			return {name: a, gameId: b, numPlayers: c, quant: d, card: e, wsIncoming: f};

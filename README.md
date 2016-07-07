@@ -8,7 +8,7 @@ Todo
 ----------------
 
 - [ ] Use wss instead of ws.
-- [ ] Remove players from game when they close tab or browser.
+- [ ] Handle closing of tabs or browser.
 - [ ] Reveal the total count after a game.
 - [ ] Allow old game ids to be reused.
 - [ ] Add a sound and visual effect after each move.
