@@ -12,8 +12,8 @@ import WebSocket
 
 wsURL : String
 wsURL =
-    -- "wss://liarspoker.herokuapp.com"
-    "ws://localhost:9160/"
+    "wss://liarspoker.herokuapp.com"
+    -- "ws://localhost:9160/"
 
 
 subscriptions : Model -> Sub Msg
@@ -157,7 +157,7 @@ type alias PrevGame =
   { pgBidder : String
   , pgBid : Bid
   , pgCount : Int
-  , pgMe : Int
+  , pgMe : Array Int
   }
 
 prevGameDecoder : Decoder PrevGame
@@ -166,7 +166,7 @@ prevGameDecoder =
     <*> ("_pgBidder" := string)
     <*> ("_pgBid" := bidDecoder)
     <*> ("_pgCount" := int)
-    <*> ("_pgMe" := int)
+    <*> ("_pgMe" := array int)
 
 type alias ClientMsg =
     { cmGame : Game
@@ -176,6 +176,7 @@ type alias ClientMsg =
     , cmButtons : BtnFlags
     , cmName : String
     , cmPrevGame : PrevGame
+    , cmPlyrId : Int
     }
 
 
@@ -189,6 +190,7 @@ clientMsgDecoder =
         <*> ("_cmButtons" := btnFlagsDecoder)
         <*> ("_cmName" := string)
         <*> ("_cmPrevGame" := prevGameDecoder)
+        <*> ("_cmPlyrId" := int)
 
 
 higher : Model -> ClientMsg -> Bool

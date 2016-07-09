@@ -284,26 +284,30 @@ previousHandView c =
                 ++ "s"
 
         you =
-            toString c.cmPrevGame.pgMe
+            toString <| withDefault 0 <| get c.cmPlyrId c.cmPrevGame.pgMe
 
         total =
-            toString  c.cmPrevGame.pgCount
+            toString c.cmPrevGame.pgCount
 
         result =
-            if c.cmPrevGame.pgCount >= c.cmPrevGame.pgBid.bidQuant
-              then "won"
-              else "lost"
+            if c.cmPrevGame.pgCount >= c.cmPrevGame.pgBid.bidQuant then
+                "won"
+            else
+                "lost"
     in
         div [ class "m1 center italic blue" ]
             [ text
-                <| nm
-                ++ " "
-                ++ result
-                ++ " with a bid of "
-                ++ bd
-                ++ " -- you had "
-                ++ you
-                ++ " -- there were "
-                ++ total
-                ++ " total"
+                <| if nm == "" then
+                    ""
+                   else
+                    nm
+                        ++ " "
+                        ++ result
+                        ++ " with a bid of "
+                        ++ bd
+                        ++ " -- you had "
+                        ++ you
+                        ++ " -- there were "
+                        ++ total
+                        ++ " total"
             ]

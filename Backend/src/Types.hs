@@ -97,20 +97,17 @@ instance FromJSON Action
 type Clients     = [WS.Connection]
 
 data GameState = GameState
-  { _stGame   :: Game
-  , _stHands  :: Hands
+  { _stGame   :: !Game
+  , _stHands  :: !Hands
   , _stStdGen :: StdGen
   }
 
 makeLenses ''GameState
 
-type ServerState = (GameState, Clients)
-type GameMap = IntMap (MVar ServerState)
-
 data BtnFlags = BtnFlags
-  { _bfRaise     :: Bool
-  , _bfChallenge :: Bool
-  , _bfCount     :: Bool
+  { _bfRaise     :: !Bool
+  , _bfChallenge :: !Bool
+  , _bfCount     :: !Bool
   } deriving (Show, Generic)
 
 instance ToJSON BtnFlags
@@ -119,10 +116,10 @@ instance FromJSON BtnFlags
 makeLenses ''BtnFlags
 
 data PrevGame = PrevGame
-  { _pgBidder :: Text
-  , _pgBid    :: Bid
-  , _pgCount  :: Int
-  , _pgMe     :: Int
+  { _pgBidder :: !Text
+  , _pgBid    :: !Bid
+  , _pgCount  :: !Int
+  , _pgMe     :: !(Vector Int)
   } deriving (Show, Generic)
 
 instance ToJSON PrevGame
@@ -131,16 +128,20 @@ instance FromJSON PrevGame
 makeLenses ''PrevGame
 
 data ClientMsg = ClientMsg
-  { _cmGame     :: Game
-  , _cmHand     :: Text
-  , _cmError    :: Text
-  , _cmMultiple :: Int
-  , _cmButtons  :: BtnFlags
-  , _cmName     :: Text
-  , _cmPrevGame :: PrevGame
+  { _cmGame     :: !Game
+  , _cmHand     :: !Text
+  , _cmError    :: !Text
+  , _cmMultiple :: !Int
+  , _cmButtons  :: !BtnFlags
+  , _cmName     :: !Text
+  , _cmPrevGame :: !PrevGame
+  , _cmPlyrId   :: !Int
   } deriving (Show, Generic)
 
 instance ToJSON ClientMsg
 instance FromJSON ClientMsg
 
 makeLenses ''ClientMsg
+
+type ServerState = (GameState, PrevGame, Clients)
+type GameMap = IntMap (MVar ServerState)

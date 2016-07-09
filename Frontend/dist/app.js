@@ -8753,9 +8753,9 @@
 				A2(_elm_lang$core$Json_Decode_ops[':='], '_bfRaise', _elm_lang$core$Json_Decode$bool)),
 			A2(_elm_lang$core$Json_Decode_ops[':='], '_bfChallenge', _elm_lang$core$Json_Decode$bool)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_bfCount', _elm_lang$core$Json_Decode$bool));
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame = F3(
-		function (a, b, c) {
-			return {pgBidder: a, pgBid: b, pgCount: c};
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame = F4(
+		function (a, b, c, d) {
+			return {pgBidder: a, pgBid: b, pgCount: c, pgMe: d};
 		});
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$prevGameDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
@@ -8763,13 +8763,19 @@
 			_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
 			A2(
 				_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
-				_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBidder', _elm_lang$core$Json_Decode$string)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBid', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$bidDecoder)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_pgCount', _elm_lang$core$Json_Decode$int));
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg = F7(
-		function (a, b, c, d, e, f, g) {
-			return {cmGame: a, cmHand: b, cmError: c, cmMultiple: d, cmButtons: e, cmName: f, cmPrevGame: g};
+				A2(
+					_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+					_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBidder', _elm_lang$core$Json_Decode$string)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBid', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$bidDecoder)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_pgCount', _elm_lang$core$Json_Decode$int)),
+		A2(
+			_elm_lang$core$Json_Decode_ops[':='],
+			'_pgMe',
+			_elm_lang$core$Json_Decode$array(_elm_lang$core$Json_Decode$int)));
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg = F8(
+		function (a, b, c, d, e, f, g, h) {
+			return {cmGame: a, cmHand: b, cmError: c, cmMultiple: d, cmButtons: e, cmName: f, cmPrevGame: g, cmPlyrId: h};
 		});
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$clientMsgDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
@@ -8785,14 +8791,17 @@
 							_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
 							A2(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
-								_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg),
-								A2(_elm_lang$core$Json_Decode_ops[':='], '_cmGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$gameDecoder)),
-							A2(_elm_lang$core$Json_Decode_ops[':='], '_cmHand', _elm_lang$core$Json_Decode$string)),
-						A2(_elm_lang$core$Json_Decode_ops[':='], '_cmError', _elm_lang$core$Json_Decode$string)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_cmMultiple', _elm_lang$core$Json_Decode$int)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmButtons', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$btnFlagsDecoder)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$prevGameDecoder));
+								A2(
+									_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+									_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg),
+									A2(_elm_lang$core$Json_Decode_ops[':='], '_cmGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$gameDecoder)),
+								A2(_elm_lang$core$Json_Decode_ops[':='], '_cmHand', _elm_lang$core$Json_Decode$string)),
+							A2(_elm_lang$core$Json_Decode_ops[':='], '_cmError', _elm_lang$core$Json_Decode$string)),
+						A2(_elm_lang$core$Json_Decode_ops[':='], '_cmMultiple', _elm_lang$core$Json_Decode$int)),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_cmButtons', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$btnFlagsDecoder)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$prevGameDecoder)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPlyrId', _elm_lang$core$Json_Decode$int));
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$WSoutgoing = function (a) {
 		return {ctor: 'WSoutgoing', _0: a};
 	};
@@ -9208,7 +9217,25 @@
 				]));
 	};
 
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView = function (m) {
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView = function (c) {
+		var result = (_elm_lang$core$Native_Utils.cmp(c.cmPrevGame.pgCount, c.cmPrevGame.pgBid.bidQuant) > -1) ? 'won' : 'lost';
+		var total = _elm_lang$core$Basics$toString(c.cmPrevGame.pgCount);
+		var you = _elm_lang$core$Basics$toString(
+			A2(
+				_elm_lang$core$Maybe$withDefault,
+				0,
+				A2(_elm_lang$core$Array$get, c.cmPlyrId, c.cmPrevGame.pgMe)));
+		var bd = A2(
+			_elm_lang$core$Basics_ops['++'],
+			_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidQuant),
+			A2(
+				_elm_lang$core$Basics_ops['++'],
+				' ',
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidCard),
+					's')));
+		var nm = c.cmPrevGame.pgBidder;
 		return A2(
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
@@ -9217,7 +9244,32 @@
 				]),
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html$text('John lost with a bid 4 6s -- you had 1 -- there were 5 total.')
+					_elm_lang$html$Html$text(
+					_elm_lang$core$Native_Utils.eq(nm, '') ? '' : A2(
+						_elm_lang$core$Basics_ops['++'],
+						nm,
+						A2(
+							_elm_lang$core$Basics_ops['++'],
+							' ',
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								result,
+								A2(
+									_elm_lang$core$Basics_ops['++'],
+									' with a bid of ',
+									A2(
+										_elm_lang$core$Basics_ops['++'],
+										bd,
+										A2(
+											_elm_lang$core$Basics_ops['++'],
+											' -- you had ',
+											A2(
+												_elm_lang$core$Basics_ops['++'],
+												you,
+												A2(
+													_elm_lang$core$Basics_ops['++'],
+													' -- there were ',
+													A2(_elm_lang$core$Basics_ops['++'], total, ' total'))))))))))
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$waitingView = F2(
@@ -10068,7 +10120,7 @@
 								_elm_lang$html$Html$text(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$showServerMsg(m.wsIncoming))
 							])),
-						_jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView(m),
+						_jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView(c),
 						_elm_lang$core$Native_Utils.eq(c.cmHand, '') ? A2(_jeffreyrosenbluth$liarspoker$LiarsPoker_View$waitingView, m, c) : A2(
 						_elm_lang$html$Html$div,
 						_elm_lang$core$Native_List.fromArray(
