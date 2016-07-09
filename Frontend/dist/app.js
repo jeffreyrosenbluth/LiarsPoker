@@ -9290,7 +9290,15 @@
 							]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html$text('Waiting for players')
+								_elm_lang$html$Html$text('Waiting for players'),
+								A2(
+								_elm_lang$html$Html$i,
+								_elm_lang$core$Native_List.fromArray(
+									[
+										_elm_lang$html$Html_Attributes$class('fa fa-spinner fa-spin fa-lg ml1 red')
+									]),
+								_elm_lang$core$Native_List.fromArray(
+									[]))
 							])),
 						A2(
 						_elm_lang$html$Html$div,
@@ -9311,7 +9319,7 @@
 								_elm_lang$html$Html$text(
 								A2(
 									_elm_lang$core$Basics_ops['++'],
-									'Game Id: ',
+									'Game Id ',
 									_elm_lang$core$Basics$toString(c.cmGame.gameId)))
 							])),
 						A2(
@@ -9330,7 +9338,7 @@
 							]),
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html$text('Use this to invite other players')
+								_elm_lang$html$Html$text('Use this to invite players')
 							]))
 					]));
 		});
@@ -9356,7 +9364,12 @@
 						_elm_lang$html$Html$button,
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html_Attributes$class('btn btn-primary bg-gray black m2'),
+								_elm_lang$html$Html_Attributes$class('btn btn-primary m2'),
+								_elm_lang$html$Html_Attributes$style(
+								_elm_lang$core$Native_List.fromArray(
+									[
+										{ctor: '_Tuple2', _0: 'background-color', _1: 'darkgreen'}
+									])),
 								_elm_lang$html$Html_Events$onClick(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$WSoutgoing(
 									A2(
@@ -9389,7 +9402,12 @@
 						_elm_lang$html$Html$button,
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html_Attributes$class('btn btn-primary bg-gray black m2'),
+								_elm_lang$html$Html_Attributes$class('btn btn-primary m2'),
+								_elm_lang$html$Html_Attributes$style(
+								_elm_lang$core$Native_List.fromArray(
+									[
+										{ctor: '_Tuple2', _0: 'background-color', _1: 'darkgreen'}
+									])),
 								_elm_lang$html$Html_Events$onClick(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$WSoutgoing('challenge')),
 								_elm_lang$html$Html_Attributes$disabled(
@@ -9411,7 +9429,12 @@
 						_elm_lang$html$Html$button,
 						_elm_lang$core$Native_List.fromArray(
 							[
-								_elm_lang$html$Html_Attributes$class('btn btn-primary bg-gray black m2'),
+								_elm_lang$html$Html_Attributes$class('btn btn-primary m2'),
+								_elm_lang$html$Html_Attributes$style(
+								_elm_lang$core$Native_List.fromArray(
+									[
+										{ctor: '_Tuple2', _0: 'background-color', _1: 'darkgreen'}
+									])),
 								_elm_lang$html$Html_Events$onClick(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$WSoutgoing('count')),
 								_elm_lang$html$Html_Attributes$disabled(
@@ -9617,7 +9640,9 @@
 					return A2(
 						_elm_lang$html$Html$li,
 						_elm_lang$core$Native_List.fromArray(
-							[]),
+							[
+								_elm_lang$html$Html_Attributes$class('right-align')
+							]),
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_elm_lang$html$Html$text(x)
@@ -9761,7 +9786,7 @@
 					_elm_lang$html$Html_Attributes$style(
 					_elm_lang$core$Native_List.fromArray(
 						[
-							{ctor: '_Tuple2', _0: 'background-color', _1: 'gainsboro'}
+							{ctor: '_Tuple2', _0: 'background-color', _1: '#D0C6AD'}
 						]))
 				]),
 			_elm_lang$core$Native_List.fromArray(
@@ -9833,7 +9858,7 @@
 			});
 		return A2(
 			_elm_lang$core$Maybe$withDefault,
-			'',
+			'None',
 			A2(
 				_elm_lang$core$Maybe$map,
 				function (_) {
@@ -9928,7 +9953,7 @@
 					_elm_lang$html$Html_Attributes$style(
 					_elm_lang$core$Native_List.fromArray(
 						[
-							{ctor: '_Tuple2', _0: 'width', _1: '70%'}
+							{ctor: '_Tuple2', _0: 'width', _1: '50%'}
 						]))
 				]),
 			ps);
@@ -9938,16 +9963,31 @@
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html_Attributes$class('center p1 h1 bold'),
+					_elm_lang$html$Html_Attributes$class('center p1 h1'),
 					_elm_lang$html$Html_Attributes$style(
 					_elm_lang$core$Native_List.fromArray(
 						[
-							{ctor: '_Tuple2', _0: 'color', _1: 'firebrick'}
+							{ctor: '_Tuple2', _0: 'color', _1: 'darkgreen'},
+							{ctor: '_Tuple2', _0: 'background-image', _1: 'url(\"./static/DollarBill.png\")'},
+							{ctor: '_Tuple2', _0: 'height', _1: '8em'}
 						]))
 				]),
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html$text(c.cmHand)
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('mt4')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html$text(
+							A2(
+								_elm_lang$core$Basics_ops['++'],
+								'L ',
+								A2(_elm_lang$core$Basics_ops['++'], c.cmHand, ' P')))
+						]))
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$currentPlayerView = function (c) {
@@ -9977,7 +10017,12 @@
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html_Attributes$class('center p2 h1 bold')
+					_elm_lang$html$Html_Attributes$class('center p2 h1 bold border border-box'),
+					_elm_lang$html$Html_Attributes$style(
+					_elm_lang$core$Native_List.fromArray(
+						[
+							{ctor: '_Tuple2', _0: 'background-color', _1: 'white'}
+						]))
 				]),
 			_elm_lang$core$Native_List.fromArray(
 				[
@@ -10104,7 +10149,19 @@
 						_elm_lang$core$Native_List.fromArray(
 							[
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_View$playerListView(c),
-								_jeffreyrosenbluth$liarspoker$LiarsPoker_View$scoreListView(c)
+								_jeffreyrosenbluth$liarspoker$LiarsPoker_View$scoreListView(c),
+								A2(
+								_elm_lang$html$Html$div,
+								_elm_lang$core$Native_List.fromArray(
+									[
+										_elm_lang$html$Html_Attributes$style(
+										_elm_lang$core$Native_List.fromArray(
+											[
+												{ctor: '_Tuple2', _0: 'width', _1: '20%'}
+											]))
+									]),
+								_elm_lang$core$Native_List.fromArray(
+									[]))
 							])),
 						_jeffreyrosenbluth$liarspoker$LiarsPoker_View$quantEntryView(m),
 						_jeffreyrosenbluth$liarspoker$LiarsPoker_View$rankEntryView(m),

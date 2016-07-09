@@ -36,7 +36,10 @@ mainView m c =
         [ class "flex flex-column m2 border border-box"
         , style [ ( "max-width", "40em" ) ]
         ]
-        [ div [ class "flex-justify border border-box" ] [ currentPlayerView c, handView c ]
+        [ div [ class "flex-justify border border-box" ]
+              [ currentPlayerView c
+              , handView c
+              ]
         , div [ class "flex bg-white" ]
             [ div [ style [ ( "width", "50%" ) ] ] [ bidderView c ]
             , div [ style [ ( "width", "50%" ) ] ] [ playerView c ]
@@ -72,7 +75,8 @@ currentPlayerView c =
             else
                 i [ class "fa fa-circle-o-notch ml1 green muted" ] []
     in
-        div [ class "center p2 h1 bold" ]
+        div [ class "center p2 h1 bold border border-box"
+            , style [("background-color", "white")]]
             [ text c.cmName
             , icon
             ]
@@ -80,8 +84,15 @@ currentPlayerView c =
 
 handView : ClientMsg -> Html Msg
 handView c =
-    div [ class "center p1 h1 bold", style [ ( "color", "firebrick" ) ] ]
-        [ text c.cmHand ]
+    div
+        [ class "center p1 h1"
+        , style
+            [ ( "color", "darkgreen" )
+            , ( "background-image", "url(\"./static/DollarBill.png\")" )
+            , ( "height", "8em")
+            ]
+        ]
+        [div [class "mt4"] [text <| "L\x2004" ++ c.cmHand ++ "\x2004P"] ]
 
 
 bidder : ClientMsg -> String
@@ -107,7 +118,7 @@ bidderView c =
 
 bidView : ClientMsg -> Html Msg
 bidView c =
-    div [ class "flex bold", style [ ( "background-color", "gainsboro" ) ] ]
+    div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
         [ div [ class "flex-auto" ] []
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ] [ text "Bid" ]
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
@@ -172,7 +183,7 @@ scoreListView c =
     let
         ss =
             A.toList
-                <| A.map (\x -> li [class "right-align"] [ text x ])
+                <| A.map (\x -> li [ class "right-align" ] [ text x ])
                     (A.map (toString << .score) c.cmGame.players)
     in
         ul [ class "list-reset mt1", style [ ( "width", "30%" ) ] ] ss
@@ -233,7 +244,8 @@ playView m c =
     div [ class "flex bg-white" ]
         [ div [ class "flex-auto" ] []
         , button
-            [ class "btn btn-primary bg-gray black m2"
+            [ class "btn btn-primary m2"
+            , style [("background-color", "darkgreen")]
             , onClick
                 <| WSoutgoing
                 <| "bid "
@@ -245,14 +257,16 @@ playView m c =
             [ text "Raise" ]
         , div [ class "flex-auto" ] []
         , button
-            [ class "btn btn-primary bg-gray black m2"
+            [ class "btn btn-primary m2"
+            , style [("background-color", "darkgreen")]
             , onClick <| WSoutgoing "challenge"
             , disabled <| not c.cmButtons.bfChallenge
             ]
             [ text "Challenge" ]
         , div [ class "flex-auto" ] []
         , button
-            [ class "btn btn-primary bg-gray black m2"
+            [ class "btn btn-primary m2"
+            , style [("background-color", "darkgreen")]
             , onClick <| WSoutgoing "count"
             , disabled <| not c.cmButtons.bfCount
             ]
@@ -264,11 +278,14 @@ playView m c =
 waitingView : Model -> ClientMsg -> Html Msg
 waitingView model c =
     div [ class "flex p2 m2 border" ]
-        [ div [ class "p1 h3 red" ] [ text <| "Waiting for players" ]
+        [ div [ class "p1 h3 red" ]
+              [ text <| "Waiting for players"
+              , i [ class "fa fa-spinner fa-spin fa-lg ml1 red" ] []
+              ]
         , div [ class "flex-auto" ] []
-        , div [ class "p1 h3" ] [ text <| "Game Id: " ++ toString c.cmGame.gameId ]
+        , div [ class "p1 h3" ] [ text <| "Game Id " ++ toString c.cmGame.gameId ]
         , div [ class "flex-auto" ] []
-        , div [ class "p1 h4 olive italic" ] [ text "Use this to invite other players" ]
+        , div [ class "p1 h4 olive italic" ] [ text "Use this to invite players" ]
         ]
 
 
