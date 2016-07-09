@@ -13,7 +13,7 @@ Todo
 - [ ] Use https instead of http.
 - [ ] Handle closing of tabs or browser.
 - [X] Highlight player with turn.
-- [ ] Show results at the end of a hand.
+- [ ] Show results of the previous hand.
 - [ ] Show number of hands played in the game.
 - [ ] Reset Quantity and Rank after a count.
 - [ ] Allow old game ids to be reused.

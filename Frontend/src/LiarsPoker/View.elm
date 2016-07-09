@@ -49,6 +49,7 @@ mainView m c =
         , div [ class "flex bg-white border-box border h2" ]
             [ playerListView c
             , scoreListView c
+            , div [ style [ ( "width", "20%" ) ] ] []
             ]
         , quantEntryView m
         , rankEntryView m
@@ -89,7 +90,7 @@ bidder c =
         b =
             c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
     in
-        withDefault "" (M.map .name b)
+        withDefault "None" (M.map .name b)
 
 
 bidderView : ClientMsg -> Html Msg
@@ -163,7 +164,7 @@ playerListView c =
         ps =
             A.toList <| A.map (\x -> li (sty x) [ text x ]) (A.map .name c.cmGame.players)
     in
-        ul [ class "list-reset ml2 mt1", style [ ( "width", "70%" ) ] ] ps
+        ul [ class "list-reset ml2 mt1", style [ ( "width", "50%" ) ] ] ps
 
 
 scoreListView : ClientMsg -> Html Msg
@@ -171,7 +172,7 @@ scoreListView c =
     let
         ss =
             A.toList
-                <| A.map (\x -> li [] [ text x ])
+                <| A.map (\x -> li [class "right-align"] [ text x ])
                     (A.map (toString << .score) c.cmGame.players)
     in
         ul [ class "list-reset mt1", style [ ( "width", "30%" ) ] ] ss

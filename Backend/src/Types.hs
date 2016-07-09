@@ -27,6 +27,10 @@ import           GHC.Generics
 import qualified Network.WebSockets      as WS
 import           System.Random           (StdGen)
 
+--------------------------------------------------------------------------------
+-- For game logic.
+--------------------------------------------------------------------------------
+
 type Card  = Int
 type Hand  = Map Card Int
 type Hands = Vector Hand
@@ -93,6 +97,10 @@ makePrisms ''Action
 
 instance ToJSON Action
 instance FromJSON Action
+
+--------------------------------------------------------------------------------
+-- For web api.
+--------------------------------------------------------------------------------
 
 type Clients     = [WS.Connection]
 
