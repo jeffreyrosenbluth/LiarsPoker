@@ -88,7 +88,7 @@ handView c =
         [ class "center p1 h1"
         , style
             [ ( "color", "darkgreen" )
-            , ( "background-image", "url(\"./static/DollarBill.png\")" )
+            , ( "background-image", "url(\"DollarBill.png\")" )
             , ( "height", "8em")
             ]
         ]

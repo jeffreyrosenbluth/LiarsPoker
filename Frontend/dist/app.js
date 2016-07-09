@@ -58,8 +58,9 @@
 
 	// Require index.html so it gets copied to dist
 	__webpack_require__(14);
+	__webpack_require__(15)
 
-	var Elm = __webpack_require__(15);
+	var Elm = __webpack_require__(16);
 	var mountNode = document.getElementById('main');
 
 	// The third value on embed are the initial values for incomming ports into Elm
@@ -498,6 +499,12 @@
 
 /***/ },
 /* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "DollarBill.png";
+
+/***/ },
+/* 16 */
 /***/ function(module, exports) {
 
 	
@@ -9968,7 +9975,7 @@
 					_elm_lang$core$Native_List.fromArray(
 						[
 							{ctor: '_Tuple2', _0: 'color', _1: 'darkgreen'},
-							{ctor: '_Tuple2', _0: 'background-image', _1: 'url(\"./static/DollarBill.png\")'},
+							{ctor: '_Tuple2', _0: 'background-image', _1: 'url(\"DollarBill.png\")'},
 							{ctor: '_Tuple2', _0: 'height', _1: '8em'}
 						]))
 				]),
