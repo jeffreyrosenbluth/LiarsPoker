@@ -54,6 +54,7 @@ mainView m c =
         , rankEntryView m
         , playView m c
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
+        , previousHandView m
         , if c.cmHand == "" then
             waitingView m c
           else
@@ -64,17 +65,22 @@ mainView m c =
 currentPlayerView : ClientMsg -> Html Msg
 currentPlayerView c =
     let
-      fmt =
-        if M.Just c.cmName == (M.map .name <| get (c.cmGame.turn) c.cmGame.players)
-          then "center p2 h2 white bold bg-black"
-          else "center p2 h2 bold"
+        icon =
+            if M.Just c.cmName == (M.map .name <| get (c.cmGame.turn) c.cmGame.players) then
+                i [ class "fa fa-circle-o-notch fa-spin ml1 green" ] []
+            else
+                i [ class "fa fa-circle-o-notch ml1 green muted" ] []
     in
-      div [ class fmt ] [ text c.cmName ]
+        div [ class "center p2 h1 bold" ]
+            [ text c.cmName
+            , icon
+            ]
 
 
 handView : ClientMsg -> Html Msg
 handView c =
-    div [ class "center p1 h1 bold olive" ] [ text c.cmHand ]
+    div [ class "center p1 h1 bold", style [ ( "color", "firebrick" ) ] ]
+        [ text c.cmHand ]
 
 
 bidder : ClientMsg -> String
@@ -138,7 +144,7 @@ turn c =
 playerView : ClientMsg -> Html Msg
 playerView c =
     div [ class "flex bg-white" ]
-        [ div [ class "p1 h2 gray" ] [ text "Current" ]
+        [ div [ class "p1 h2 gray" ] [ text "Player" ]
         , div [ class "p1 h2" ] [ text <| turn c ]
         ]
 
@@ -182,12 +188,12 @@ quantEntryView m =
             [ class "btn btn-outline m1 h6"
             , onClick (RaiseQuant <| Basics.max 0 (m.quant - 1))
             ]
-            [ text "-" ]
+            [ i [ class "fa fa-minus" ] [] ]
         , button
             [ class "btn btn-outline mt1 mb1 mr4 h6"
             , onClick (RaiseQuant <| m.quant + 1)
             ]
-            [ text "+" ]
+            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
@@ -212,12 +218,12 @@ rankEntryView m =
             [ class "btn btn-outline m1 h6"
             , onClick <| RaiseRank <| constrainRank <| m.card - 1
             ]
-            [ text "-" ]
+            [ i [ class "fa fa-minus" ] [] ]
         , button
             [ class "btn btn-outline mt1 mb1 mr4 h6"
             , onClick <| RaiseRank <| constrainRank <| m.card + 1
             ]
-            [ text "+" ]
+            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
@@ -257,10 +263,16 @@ playView m c =
 waitingView : Model -> ClientMsg -> Html Msg
 waitingView model c =
     div [ class "flex p2 m2 border" ]
-        [
-            div [ class "p1 h3 red"] [text <| "Waiting for players"]
-          , div [ class "flex-auto" ] []
-          , div [class "p1 h3"] [text <| "Game Id: " ++ toString c.cmGame.gameId]
-          , div [ class "flex-auto" ] []
-          , div [class "p1 h4 olive italic"] [text "Use this to invite other players"]
+        [ div [ class "p1 h3 red" ] [ text <| "Waiting for players" ]
+        , div [ class "flex-auto" ] []
+        , div [ class "p1 h3" ] [ text <| "Game Id: " ++ toString c.cmGame.gameId ]
+        , div [ class "flex-auto" ] []
+        , div [ class "p1 h4 olive italic" ] [ text "Use this to invite other players" ]
         ]
+
+previousHandView : Model -> Html Msg
+previousHandView m =
+  div [class "m1 center italic blue"]
+      [ text "John lost with a bid 4 6s -- you had 1 -- there were 5 total."
+
+      ]
