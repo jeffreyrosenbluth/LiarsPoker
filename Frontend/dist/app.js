@@ -8672,7 +8672,7 @@
 				return _p0._0;
 		}
 	};
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$wsURL = 'ws://liarspoker.herokuapp.com';
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$wsURL = 'wss://liarspoker.herokuapp.com';
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$Model = F6(
 		function (a, b, c, d, e, f) {
 			return {name: a, gameId: b, numPlayers: c, quant: d, card: e, wsIncoming: f};
@@ -8753,9 +8753,23 @@
 				A2(_elm_lang$core$Json_Decode_ops[':='], '_bfRaise', _elm_lang$core$Json_Decode$bool)),
 			A2(_elm_lang$core$Json_Decode_ops[':='], '_bfChallenge', _elm_lang$core$Json_Decode$bool)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_bfCount', _elm_lang$core$Json_Decode$bool));
-	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg = F6(
-		function (a, b, c, d, e, f) {
-			return {cmGame: a, cmHand: b, cmError: c, cmMultiple: d, cmButtons: e, cmName: f};
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame = F3(
+		function (a, b, c) {
+			return {pgBidder: a, pgBid: b, pgCount: c};
+		});
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$prevGameDecoder = A2(
+		_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+		A2(
+			_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+			A2(
+				_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+				_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$PrevGame),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBidder', _elm_lang$core$Json_Decode$string)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBid', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$bidDecoder)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_pgCount', _elm_lang$core$Json_Decode$int));
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg = F7(
+		function (a, b, c, d, e, f, g) {
+			return {cmGame: a, cmHand: b, cmError: c, cmMultiple: d, cmButtons: e, cmName: f, cmPrevGame: g};
 		});
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$clientMsgDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
@@ -8769,13 +8783,16 @@
 						_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
 						A2(
 							_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
-							_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg),
-							A2(_elm_lang$core$Json_Decode_ops[':='], '_cmGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$gameDecoder)),
-						A2(_elm_lang$core$Json_Decode_ops[':='], '_cmHand', _elm_lang$core$Json_Decode$string)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_cmError', _elm_lang$core$Json_Decode$string)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmMultiple', _elm_lang$core$Json_Decode$int)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmButtons', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$btnFlagsDecoder)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string));
+							A2(
+								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model_ops['<*>'],
+								_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$ClientMsg),
+								A2(_elm_lang$core$Json_Decode_ops[':='], '_cmGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$gameDecoder)),
+							A2(_elm_lang$core$Json_Decode_ops[':='], '_cmHand', _elm_lang$core$Json_Decode$string)),
+						A2(_elm_lang$core$Json_Decode_ops[':='], '_cmError', _elm_lang$core$Json_Decode$string)),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_cmMultiple', _elm_lang$core$Json_Decode$int)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmButtons', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$btnFlagsDecoder)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$prevGameDecoder));
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_Model$WSoutgoing = function (a) {
 		return {ctor: 'WSoutgoing', _0: a};
 	};
@@ -9191,6 +9208,18 @@
 				]));
 	};
 
+	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView = function (m) {
+		return A2(
+			_elm_lang$html$Html$div,
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html_Attributes$class('m1 center italic blue')
+				]),
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html$text('John lost with a bid 4 6s -- you had 1 -- there were 5 total.')
+				]));
+	};
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$waitingView = F2(
 		function (model, c) {
 			return A2(
@@ -9410,7 +9439,14 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('-')
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-minus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
 						])),
 					A2(
 					_elm_lang$html$Html$button,
@@ -9423,7 +9459,14 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('+')
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-plus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
 						]))
 				]));
 	};
@@ -9484,7 +9527,14 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('-')
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-minus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
 						])),
 					A2(
 					_elm_lang$html$Html$button,
@@ -9496,7 +9546,14 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('+')
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-plus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
 						]))
 				]));
 	};
@@ -9564,7 +9621,7 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('Current')
+							_elm_lang$html$Html$text('Player')
 						])),
 					A2(
 					_elm_lang$html$Html$div,
@@ -9829,11 +9886,11 @@
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html_Attributes$class('center p2 h1 bold'),
+					_elm_lang$html$Html_Attributes$class('center p1 h1 bold'),
 					_elm_lang$html$Html_Attributes$style(
 					_elm_lang$core$Native_List.fromArray(
 						[
-							{ctor: '_Tuple2', _0: 'color', _1: '#3CA962'}
+							{ctor: '_Tuple2', _0: 'color', _1: 'firebrick'}
 						]))
 				]),
 			_elm_lang$core$Native_List.fromArray(
@@ -9842,20 +9899,38 @@
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$currentPlayerView = function (c) {
+		var icon = _elm_lang$core$Native_Utils.eq(
+			_elm_lang$core$Maybe$Just(c.cmName),
+			A2(
+				_elm_lang$core$Maybe$map,
+				function (_) {
+					return _.name;
+				},
+				A2(_elm_lang$core$Array$get, c.cmGame.turn, c.cmGame.players))) ? A2(
+			_elm_lang$html$Html$i,
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html_Attributes$class('fa fa-circle-o-notch fa-spin ml1 green')
+				]),
+			_elm_lang$core$Native_List.fromArray(
+				[])) : A2(
+			_elm_lang$html$Html$i,
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html_Attributes$class('fa fa-circle-o-notch ml1 green muted')
+				]),
+			_elm_lang$core$Native_List.fromArray(
+				[]));
 		return A2(
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html_Attributes$class('center mt2 h2'),
-					_elm_lang$html$Html_Attributes$style(
-					_elm_lang$core$Native_List.fromArray(
-						[
-							{ctor: '_Tuple2', _0: 'color', _1: '#3CA962'}
-						]))
+					_elm_lang$html$Html_Attributes$class('center p2 h1 bold')
 				]),
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html$text(c.cmName)
+					_elm_lang$html$Html$text(c.cmName),
+					icon
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$LiarsPoker_View$mainView = F2(
@@ -9993,6 +10068,7 @@
 								_elm_lang$html$Html$text(
 								_jeffreyrosenbluth$liarspoker$LiarsPoker_Model$showServerMsg(m.wsIncoming))
 							])),
+						_jeffreyrosenbluth$liarspoker$LiarsPoker_View$previousHandView(m),
 						_elm_lang$core$Native_Utils.eq(c.cmHand, '') ? A2(_jeffreyrosenbluth$liarspoker$LiarsPoker_View$waitingView, m, c) : A2(
 						_elm_lang$html$Html$div,
 						_elm_lang$core$Native_List.fromArray(

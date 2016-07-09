@@ -28,9 +28,10 @@ numOfPlayers g = V.length $ g ^. players
 
 -- | Total number of Card in the game.
 countCard :: Hands -> Card -> Int
-countCard hands card = sum $ getCount <$> hands
-  where
-    getCount h = fromMaybe 0 (M.lookup card h)
+countCard hands card = sum $ getCount card <$> hands
+
+getCount :: Card -> Hand -> Int
+getCount card h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game -> Int -> Text
@@ -51,7 +52,7 @@ displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
 
 getBidderName :: Game -> Text
 getBidderName g =
-  maybe "Error: getBidderName"
+  maybe "Nobody"
         (\i -> g ^. players . ix i . name)
         (g ^. bidder)
 

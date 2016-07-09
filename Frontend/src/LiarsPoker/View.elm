@@ -54,7 +54,7 @@ mainView m c =
         , rankEntryView m
         , playView m c
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
-        , previousHandView m
+        , previousHandView c
         , if c.cmHand == "" then
             waitingView m c
           else
@@ -270,9 +270,40 @@ waitingView model c =
         , div [ class "p1 h4 olive italic" ] [ text "Use this to invite other players" ]
         ]
 
-previousHandView : Model -> Html Msg
-previousHandView m =
-  div [class "m1 center italic blue"]
-      [ text "John lost with a bid 4 6s -- you had 1 -- there were 5 total."
 
-      ]
+previousHandView : ClientMsg -> Html Msg
+previousHandView c =
+    let
+        nm =
+            c.cmPrevGame.pgBidder
+
+        bd =
+            toString c.cmPrevGame.pgBid.bidQuant
+                ++ " "
+                ++ toString c.cmPrevGame.pgBid.bidCard
+                ++ "s"
+
+        you =
+            toString c.cmPrevGame.pgMe
+
+        total =
+            toString  c.cmPrevGame.pgCount
+
+        result =
+            if c.cmPrevGame.pgCount >= c.cmPrevGame.pgBid.bidQuant
+              then "won"
+              else "lost"
+    in
+        div [ class "m1 center italic blue" ]
+            [ text
+                <| nm
+                ++ " "
+                ++ result
+                ++ " with a bid of "
+                ++ bd
+                ++ " -- you had "
+                ++ you
+                ++ " -- there were "
+                ++ total
+                ++ " total"
+            ]

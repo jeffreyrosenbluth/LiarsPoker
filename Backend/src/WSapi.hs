@@ -44,7 +44,17 @@ clientMsgs g hs = map cm [0..(numOfPlayers g - 1)]
       , _cmError = ""
       , _cmButtons = BtnFlags False False False
       , _cmName = getPlayerName g p
+      , _cmPrevGame = mkPrevGame g hs p
       }
+
+mkPrevGame :: Game -> Hands -> Int -> PrevGame
+mkPrevGame g hs p = PrevGame bdr b cnt me
+  where
+    bdr  = getBidderName g
+    b    = g ^. bid
+    card = b ^. bidCard
+    cnt  = countCard hs card
+    me   = getCount card (hs V.! p)
 
 parseTextInt :: Text -> Maybe (Text, Int)
 parseTextInt t = case ns of

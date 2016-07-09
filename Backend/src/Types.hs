@@ -118,6 +118,18 @@ instance FromJSON BtnFlags
 
 makeLenses ''BtnFlags
 
+data PrevGame = PrevGame
+  { _pgBidder :: Text
+  , _pgBid    :: Bid
+  , _pgCount  :: Int
+  , _pgMe     :: Int
+  } deriving (Show, Generic)
+
+instance ToJSON PrevGame
+instance FromJSON PrevGame
+
+makeLenses ''PrevGame
+
 data ClientMsg = ClientMsg
   { _cmGame     :: Game
   , _cmHand     :: Text
@@ -125,6 +137,7 @@ data ClientMsg = ClientMsg
   , _cmMultiple :: Int
   , _cmButtons  :: BtnFlags
   , _cmName     :: Text
+  , _cmPrevGame :: PrevGame
   } deriving (Show, Generic)
 
 instance ToJSON ClientMsg
