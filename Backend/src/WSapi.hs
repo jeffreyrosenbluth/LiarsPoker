@@ -39,6 +39,11 @@ import qualified Network.WebSockets             as WS
 type ServerState = (GameState, PrevGame, Clients)
 type GameMap = IntMap (MVar ServerState)
 
+actionMsgs :: GameState -> PrevGame -> (GameState, [ClientMsg])
+actionMsgs gs prv = (gs, cm)
+  where
+    cm = clientMsgs (gs ^. stGame) prv (gs ^. stHands) ""
+
 clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
 clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
   where
@@ -164,8 +169,7 @@ joinGame gmRef conn nm gId = do
         g'  = addPlayer g pId nm
         cs' = cs ++ [conn]
     if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
-           let gs = deal (GameState g' V.empty r)
-               cm = dealClientMsgs gs prv
+           let (gs, cm) = actionMsgs (deal (GameState g' V.empty r)) prv
            putMVar gmState (gs, prv, cs')
            broadcast cs' (encodeCMs cm)
            handle conn gmState pId
@@ -175,36 +179,27 @@ joinGame gmRef conn nm gId = do
            handle conn gmState pId
        | otherwise -> putMVar gmState (GameState g hs r, prv, cs)
 
-dealClientMsgs :: GameState -> PrevGame -> [ClientMsg]
-dealClientMsgs gs prv =
-  clientMsgs (gs ^. stGame) prv (gs ^. stHands) ""
-     & singular (ix (gs ^. stGame . turn))
-     . cmButtons
-     . bfRaise
-     .~ True
+
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg           <- WS.receiveData conn
   (gs, prv, cs) <- readMVar gmState
   let action    = parseMessage msg
-      (gs0, cm) =
+      (newGS, cm) =
         if legal (gs ^. stGame) action pId then
           case action of
             Join n _  -> error $ "Cannot reset player name to: " ++ T.unpack n
             New _ _   -> error "Cannot start a new game"
-            Deal      -> let gs2 = deal gs
-                         in (gs2, dealClientMsgs gs2 prv)
-            Raise b   -> let gs2 = gs & stGame .~ mkBid (gs ^. stGame) b
-                         in (gs2, dealClientMsgs gs2 prv)
-            Challenge -> let gs2 = gs & stGame .~ nextPlayer (gs ^.stGame)
-                         in (gs2, dealClientMsgs gs2 prv)
+            Deal      -> actionMsgs (deal gs) prv
+            Raise b   -> actionMsgs (gs & stGame .~ mkBid (gs ^. stGame) b) prv
+            Challenge -> actionMsgs (gs & stGame .~ nextPlayer (gs ^.stGame)) prv
             Count     -> let (gs2, prv') = count gs
-                         in  (gs2, dealClientMsgs gs2 prv')
+                         in  actionMsgs gs2 prv'
             Say _     -> error "Not implemented yet"
             Invalid m -> error (T.unpack m)
         else (gs, clientMsgs (gs ^. stGame) prv (gs ^. stHands) (T.pack $ show action))
-  swapMVar gmState (gs0, prv, cs)
+  swapMVar gmState (newGS, prv, cs)
   broadcast cs (encodeCMs cm)
 
 deal :: GameState -> GameState

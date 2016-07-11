@@ -9976,7 +9976,7 @@
 						[
 							{ctor: '_Tuple2', _0: 'color', _1: 'darkgreen'},
 							{ctor: '_Tuple2', _0: 'background-image', _1: 'url(\"DollarBill.png\")'},
-							{ctor: '_Tuple2', _0: 'height', _1: '8em'}
+							{ctor: '_Tuple2', _0: 'max-height', _1: '100%'}
 						]))
 				]),
 			_elm_lang$core$Native_List.fromArray(
@@ -10024,7 +10024,7 @@
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
 				[
-					_elm_lang$html$Html_Attributes$class('center p2 h1 bold border border-box'),
+					_elm_lang$html$Html_Attributes$class('center p1 h1 bold border border-box'),
 					_elm_lang$html$Html_Attributes$style(
 					_elm_lang$core$Native_List.fromArray(
 						[
