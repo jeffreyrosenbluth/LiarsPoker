@@ -69,15 +69,6 @@ clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
          . cmButtons
          . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
-mkPrevGame :: Game -> Hands -> PrevGame
-mkPrevGame g hs = PrevGame bdr b cnt (V.fromList $ map me [0..(numOfPlayers g - 1)])
-  where
-    bdr  = getBidderName g
-    b    = g ^. bid
-    card = b ^. bidCard
-    cnt  = countCard hs card
-    me p = getCount card (hs V.! p)
-
 parseTextInt :: Text -> Maybe (Text, Int)
 parseTextInt t = case ns of
     []    -> Nothing
@@ -140,19 +131,19 @@ singIn gmRef conn = do
   msg <- WS.receiveData conn
   case parseMessage msg of
     New nm nPlyrs -> new gmRef conn nm nPlyrs
-    Join nm gId -> joinGame gmRef conn nm gId
+    Join nm gId   -> joinGame gmRef conn nm gId
     _ -> do
       sendText conn ":signin"
       singIn gmRef conn
 
 new :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
-  r <- getStdGen
+  r  <- getStdGen
   gm <- takeMVar gmRef
-  let key   = if null gm then 0 else 1 + (maximum . keys $ gm)
-      g     = addPlayer (newGame key nPlyrs) 0 nm
+  let key     = if null gm then 0 else 1 + (maximum . keys $ gm)
+      g       = addPlayer (newGame key nPlyrs) 0 nm
       gmState = GameState g V.empty r
-      prv  = PrevGame "" (Bid 0 0) 0 V.empty
+      prv     = PrevGame "" (Bid 0 0) 0 V.empty
   gs <- newMVar (gmState, prv, [conn])
   putMVar gmRef (insert key gs gm)
   broadcast [conn] (encodeCMs $ clientMsgs g prv V.empty "")
@@ -178,8 +169,6 @@ joinGame gmRef conn nm gId = do
            broadcast cs' (encodeCMs $ clientMsgs g' prv V.empty "")
            handle conn gmState pId
        | otherwise -> putMVar gmState (GameState g hs r, prv, cs)
-
-
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn gmState pId = forever $ do
@@ -213,8 +202,12 @@ deal (GameState g _ r) = GameState g' hs r''
 
 count :: GameState -> (GameState, PrevGame)
 count gs@(GameState g hs _) = (deal (gs & stGame .~ g'), prv)
-      where
-        cnt    = countCard hs (g ^. bid . bidCard)
-        result = g ^. bid . bidQuant <= cnt || cnt == 0
-        g'     = scoreGame (g & won .~ Just result & inProgress .~ False) hs
-        prv    = mkPrevGame g hs
+  where
+    cnt    = countCard hs card
+    result = g ^. bid . bidQuant <= cnt || cnt == 0
+    g'     = scoreGame (g & won .~ Just result & inProgress .~ False) hs
+    prv    = PrevGame bdr b cnt (V.fromList $ map me [0..(numOfPlayers g - 1)])
+    bdr    = getBidderName g
+    b      = g ^. bid
+    card   = b ^. bidCard
+    me p   = getCount card (hs V.! p)
