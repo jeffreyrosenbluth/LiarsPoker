@@ -11,15 +11,17 @@ Todo
 
 - [X] Use wss instead of ws.
 - [ ] Use https instead of http.
+- [ ] Make it responsive.
+- [ ] Add a quit game button.
 - [ ] Handle closing of tabs or browser.
 - [X] Highlight player with turn.
-- [ ] Show results of the previous hand.
+- [X] Show results of the previous hand.
 - [ ] Show number of hands played in the game.
 - [ ] Reset Quantity and Rank after a count.
 - [ ] Allow old game ids to be reused.
 - [ ] Add a sound and/or visual effect after each move.
 - [ ] Add Chat feature.
-- [ ] Stylize the frontend.
+- [X] Stylize the frontend.
 - [ ] Add deployment script.
 - [ ] Add build instructions for contributors.
 - [ ] Should we show a running history of the bidding?
