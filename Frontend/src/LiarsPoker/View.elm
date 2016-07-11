@@ -75,7 +75,7 @@ currentPlayerView c =
             else
                 i [ class "fa fa-circle-o-notch ml1 green muted" ] []
     in
-        div [ class "center p2 h1 bold border border-box"
+        div [ class "center p1 h1 bold border border-box"
             , style [("background-color", "white")]]
             [ text c.cmName
             , icon
@@ -89,7 +89,7 @@ handView c =
         , style
             [ ( "color", "darkgreen" )
             , ( "background-image", "url(\"DollarBill.png\")" )
-            , ( "height", "8em")
+            , ( "max-height", "100%")
             ]
         ]
         [div [class "mt4"] [text <| "L\x2004" ++ c.cmHand ++ "\x2004P"] ]

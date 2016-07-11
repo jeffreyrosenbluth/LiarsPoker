@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
@@ -18,13 +19,12 @@ import           Types
 
 import           Control.Concurrent.MVar
 import           Control.Lens
-import           Control.Monad                  (forever, replicateM, when,
-                                                 zipWithM_)
+import           Control.Monad
 import           Control.Monad.Random
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import           Data.IntMap                    (insert, keys, member, (!))
+import           Data.IntMap                    (IntMap, insert, keys, member, (!))
 import           Data.List.Split                (chunksOf)
 import           Data.Maybe
 import           Data.Text                      (Text)
@@ -34,6 +34,10 @@ import qualified Data.Vector                    as V
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
+
+
+type ServerState = (GameState, PrevGame, Clients)
+type GameMap = IntMap (MVar ServerState)
 
 clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
 clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
@@ -82,7 +86,7 @@ parseMessage :: Text -> Action
 parseMessage t
   | "join " `T.isPrefixOf` t =
       case parseTextInt (T.drop 5 t) of
-        Nothing -> Invalid "Client send an invalid join message"
+        Nothing -> Invalid "Client send an invalid joinGame message"
         Just (n, i) -> Join n i
   | "new " `T.isPrefixOf` t =
       case parseTextInt (T.drop 4 t) of
@@ -131,7 +135,7 @@ singIn gmRef conn = do
   msg <- WS.receiveData conn
   case parseMessage msg of
     New nm nPlyrs -> new gmRef conn nm nPlyrs
-    Join nm gId -> join gmRef conn nm gId
+    Join nm gId -> joinGame gmRef conn nm gId
     _ -> do
       sendText conn ":signin"
       singIn gmRef conn
@@ -142,89 +146,78 @@ new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
   let key   = if null gm then 0 else 1 + (maximum . keys $ gm)
       g     = addPlayer (newGame key nPlyrs) 0 nm
-      state = GameState g V.empty r
+      gmState = GameState g V.empty r
       prv  = PrevGame "" (Bid 0 0) 0 V.empty
-  gs <- newMVar (state, prv, [conn])
+  gs <- newMVar (gmState, prv, [conn])
   putMVar gmRef (insert key gs gm)
   broadcast [conn] (encodeCMs $ clientMsgs g prv V.empty "")
   handle conn gs 0
 
-join :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
-join gmRef conn nm gId = do
+joinGame :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
+joinGame gmRef conn nm gId = do
   gm <- readMVar gmRef
-  -- Only try to join if the 'gameId' is in the 'GameMap'
+  -- Only try to joinGame if the 'gameId' is in the 'GameMap'
   when (member gId gm) $ do
-    let state = gm ! gId
-    (GameState g hs r, prv, cs) <- takeMVar state
+    let gmState = gm ! gId
+    (GameState g hs r, prv, cs) <- takeMVar gmState
     let pId = numOfPlayers g
         g'  = addPlayer g pId nm
         cs' = cs ++ [conn]
     if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
-           let (gs, cms) = deal (GameState g' V.empty r) prv
-           putMVar state (gs, prv, cs')
-           broadcast cs' (encodeCMs cms)
-           handle conn state pId
+           let gs = deal (GameState g' V.empty r)
+               cm = dealClientMsgs gs prv
+           putMVar gmState (gs, prv, cs')
+           broadcast cs' (encodeCMs cm)
+           handle conn gmState pId
        | V.length (g ^. players) < g ^. numPlyrs -> do
-           putMVar state (GameState g' V.empty r, prv, cs')
+           putMVar gmState (GameState g' V.empty r, prv, cs')
            broadcast cs' (encodeCMs $ clientMsgs g' prv V.empty "")
-           handle conn state pId
-       | otherwise -> putMVar state (GameState g hs r, prv, cs)
+           handle conn gmState pId
+       | otherwise -> putMVar gmState (GameState g hs r, prv, cs)
+
+dealClientMsgs :: GameState -> PrevGame -> [ClientMsg]
+dealClientMsgs gs prv =
+  clientMsgs (gs ^. stGame) prv (gs ^. stHands) ""
+     & singular (ix (gs ^. stGame . turn))
+     . cmButtons
+     . bfRaise
+     .~ True
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
-handle conn state pId = forever $ do
-  msg      <- WS.receiveData conn
-  (gs, prv, cs) <- readMVar state
+handle conn gmState pId = forever $ do
+  msg           <- WS.receiveData conn
+  (gs, prv, cs) <- readMVar gmState
   let action    = parseMessage msg
-      (gs', cm) =
-        case action of
-          Join n _  -> error $ "Cannot reset player name to: " ++ T.unpack n
-          New _ _   -> error "Cannot start a new game"
-          Deal      -> deal gs prv
-          Raise b   -> raise gs prv pId b
-          Challenge -> challenge gs prv pId
-          Count     -> count gs pId
-          Say _     -> error "Not implemented yet"
-          Invalid m -> error (T.unpack m)
-  swapMVar state (gs', prv, cs)
+      (gs0, cm) =
+        if legal (gs ^. stGame) action pId then
+          case action of
+            Join n _  -> error $ "Cannot reset player name to: " ++ T.unpack n
+            New _ _   -> error "Cannot start a new game"
+            Deal      -> let gs2 = deal gs
+                         in (gs2, dealClientMsgs gs2 prv)
+            Raise b   -> let gs2 = gs & stGame .~ mkBid (gs ^. stGame) b
+                         in (gs2, dealClientMsgs gs2 prv)
+            Challenge -> let gs2 = gs & stGame .~ nextPlayer (gs ^.stGame)
+                         in (gs2, dealClientMsgs gs2 prv)
+            Count     -> let (gs2, prv') = count gs
+                         in  (gs2, dealClientMsgs gs2 prv')
+            Say _     -> error "Not implemented yet"
+            Invalid m -> error (T.unpack m)
+        else (gs, clientMsgs (gs ^. stGame) prv (gs ^. stHands) (T.pack $ show action))
+  swapMVar gmState (gs0, prv, cs)
   broadcast cs (encodeCMs cm)
 
-deal :: GameState -> PrevGame -> (GameState, [ClientMsg])
-deal gs@(GameState g _ r) prv
-  | legal g Deal = (GameState g' hs r'', cm)
-  | otherwise    = (gs, cm')
+deal :: GameState -> GameState
+deal (GameState g _ r) = GameState g' hs r''
     where
       (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                   $ getRandomR (0, 9)) r
       (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
       g'          = resetGame f g
       hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
-      cm          = clientMsgs g' prv hs ""
-                  & singular (ix (g' ^. turn)) . cmButtons . bfRaise .~ True
-      cm'         = clientMsgs g prv hs "Cannot deal a game in progress"
 
-raise :: GameState -> PrevGame -> Int -> Bid -> (GameState, [ClientMsg])
-raise gs@(GameState g hs _) prv pId b
-  | legal g (Raise b) && g ^. turn == pId = (gs', cm)
-  | otherwise = (gs, cm')
-    where
-      gs' = gs & stGame  .~ mkBid g b
-      g'  = gs' ^. stGame
-      cm  = clientMsgs g' prv hs ""
-      cm' = clientMsgs g prv hs
-              "Either your bid is too low or you are trying to raise a re-bid."
-
-challenge :: GameState -> PrevGame -> Int -> (GameState, [ClientMsg])
-challenge gs@(GameState g hs _) prv pId
-  | legal g Challenge && g ^. turn == pId = (gs & stGame .~ g', cm)
-  | otherwise = (gs, clientMsgs g prv hs "Illegal Challenge")
-      where
-        g' = nextPlayer g
-        cm = clientMsgs g' prv hs ""
-
-count :: GameState -> Int -> (GameState, [ClientMsg])
-count gs@(GameState g hs _) pId
-  | legal g Count && g ^. turn == pId = deal (gs & stGame .~ g') prv
-  | otherwise = (gs, clientMsgs g prv hs "Illegal Count")
+count :: GameState -> (GameState, PrevGame)
+count gs@(GameState g hs _) = (deal (gs & stGame .~ g'), prv)
       where
         cnt    = countCard hs (g ^. bid . bidCard)
         result = g ^. bid . bidQuant <= cnt || cnt == 0

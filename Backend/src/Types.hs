@@ -15,10 +15,8 @@
 
 module Types where
 
-import           Control.Concurrent.MVar
 import           Control.Lens            hiding ((.=))
 import           Data.Aeson
-import           Data.IntMap             (IntMap)
 import           Data.Map                (Map)
 import qualified Data.Map                as M
 import           Data.Text               (Text)
@@ -150,6 +148,3 @@ instance ToJSON ClientMsg
 instance FromJSON ClientMsg
 
 makeLenses ''ClientMsg
-
-type ServerState = (GameState, PrevGame, Clients)
-type GameMap = IntMap (MVar ServerState)

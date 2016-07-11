@@ -101,16 +101,18 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
     numPlayers = numOfPlayers game
 
 -- | Is this 'Action' legal to take from the current game state?
-legal :: Game -> Action -> Bool
-legal game action = case action of
+legal :: Game -> Action -> Int -> Bool
+legal game action pId = case action of
   Join _ _  -> not (game ^. inProgress)
   New _ _   -> not (game ^. inProgress)
   Deal      -> not (game ^. inProgress)
   -- You can't raise a rebid, if you are the bidder and rebid is True
   -- it is illegal to bid again.
-  Raise b   -> not (game ^. rebid && Just t == bd) && b > game ^. bid
-  Challenge -> maybe False (/= t) bd
-  Count     -> maybe False (== t) bd
+  Raise b   -> not (game ^. rebid && Just t == bd)
+                && b > game ^. bid
+                && pId ==  game ^. turn
+  Challenge -> maybe False (/= t) bd && pId == game ^. turn
+  Count     -> maybe False (== t) bd && pId == game ^. turn
   Say _     -> True
   Invalid _ -> False
   where
