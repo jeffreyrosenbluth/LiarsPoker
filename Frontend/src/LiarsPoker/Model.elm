@@ -12,8 +12,8 @@ import WebSocket
 
 wsURL : String
 wsURL =
-    "wss://liarspoker.herokuapp.com"
-    -- "ws://localhost:9160/"
+    -- "wss://liarspoker.herokuapp.com"
+    "ws://localhost:9160/"
 
 
 subscriptions : Model -> Sub Msg

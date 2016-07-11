@@ -26,6 +26,7 @@ import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
 import           Data.IntMap                    (insert, keys, member, (!))
 import           Data.List.Split                (chunksOf)
+import           Data.Maybe
 import           Data.Text                      (Text)
 import qualified Data.Text                      as T
 import           Data.Text.Read                 (decimal)
@@ -34,19 +35,30 @@ import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
-clientMsgs :: Game -> PrevGame -> Hands -> [ClientMsg]
-clientMsgs g prv hs = map cm [0..(numOfPlayers g - 1)]
+clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
+clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
   where
     cm p =  ClientMsg
       { _cmGame = g
       , _cmMultiple = bonus g
       , _cmHand = T.pack . displayHand $ getHand hs p
-      , _cmError = ""
+      , _cmError = err
       , _cmButtons = BtnFlags False False False
       , _cmName = getPlayerName g p
       , _cmPrevGame = prv
       , _cmPlyrId = p
       }
+    setButtonFlags :: [ClientMsg] -> [ClientMsg]
+    setButtonFlags cs  =
+      cs & singular (ix (g ^. turn))
+         . cmButtons
+         . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
+         & singular (ix (g ^. turn))
+         . cmButtons
+         . bfChallenge .~ ((Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder))
+         & singular (ix (g ^. turn))
+         . cmButtons
+         . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
 mkPrevGame :: Game -> Hands -> PrevGame
 mkPrevGame g hs = PrevGame bdr b cnt (V.fromList $ map me [0..(numOfPlayers g - 1)])
@@ -134,7 +146,7 @@ new gmRef conn nm nPlyrs = do
       prv  = PrevGame "" (Bid 0 0) 0 V.empty
   gs <- newMVar (state, prv, [conn])
   putMVar gmRef (insert key gs gm)
-  broadcast [conn] (encodeCMs $ clientMsgs g prv V.empty)
+  broadcast [conn] (encodeCMs $ clientMsgs g prv V.empty "")
   handle conn gs 0
 
 join :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
@@ -154,7 +166,7 @@ join gmRef conn nm gId = do
            handle conn state pId
        | V.length (g ^. players) < g ^. numPlyrs -> do
            putMVar state (GameState g' V.empty r, prv, cs')
-           broadcast cs' (encodeCMs $ clientMsgs g' prv V.empty)
+           broadcast cs' (encodeCMs $ clientMsgs g' prv V.empty "")
            handle conn state pId
        | otherwise -> putMVar state (GameState g hs r, prv, cs)
 
@@ -186,24 +198,9 @@ deal gs@(GameState g _ r) prv
       (f, r'')    = runRand (getRandomR (0, numOfPlayers g - 1)) r'
       g'          = resetGame f g
       hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
-      cm          = clientMsgs g' prv hs
-                  & traverse . cmError .~ ""
+      cm          = clientMsgs g' prv hs ""
                   & singular (ix (g' ^. turn)) . cmButtons . bfRaise .~ True
-      cm'         = clientMsgs g prv hs
-                  & traverse . cmError .~ "Cannot deal a game in progress"
-
-updateClientMsgs :: [ClientMsg] -> Game -> Text -> [ClientMsg]
-updateClientMsgs cs g err  =
-  cs & traverse . cmError .~ err
-     & singular (ix (g ^. turn))
-     . cmButtons
-     . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
-     & singular (ix (g ^. turn))
-     . cmButtons
-     . bfChallenge .~ ((Just $ g ^. turn) /= g ^. bidder)
-     & singular (ix (g ^. turn))
-     . cmButtons
-     . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
+      cm'         = clientMsgs g prv hs "Cannot deal a game in progress"
 
 raise :: GameState -> PrevGame -> Int -> Bid -> (GameState, [ClientMsg])
 raise gs@(GameState g hs _) prv pId b
@@ -212,22 +209,22 @@ raise gs@(GameState g hs _) prv pId b
     where
       gs' = gs & stGame  .~ mkBid g b
       g'  = gs' ^. stGame
-      cm  = updateClientMsgs (clientMsgs g' prv hs) g' ""
-      cm' = updateClientMsgs (clientMsgs g prv hs) g e
-      e   = "Either your bid is too low or you are trying to raise a re-bid."
+      cm  = clientMsgs g' prv hs ""
+      cm' = clientMsgs g prv hs
+              "Either your bid is too low or you are trying to raise a re-bid."
 
 challenge :: GameState -> PrevGame -> Int -> (GameState, [ClientMsg])
 challenge gs@(GameState g hs _) prv pId
   | legal g Challenge && g ^. turn == pId = (gs & stGame .~ g', cm)
-  | otherwise = (gs, updateClientMsgs (clientMsgs g prv hs) g "Illegal Challenge")
+  | otherwise = (gs, clientMsgs g prv hs "Illegal Challenge")
       where
         g' = nextPlayer g
-        cm = updateClientMsgs (clientMsgs g' prv hs) g' ""
+        cm = clientMsgs g' prv hs ""
 
 count :: GameState -> Int -> (GameState, [ClientMsg])
 count gs@(GameState g hs _) pId
   | legal g Count && g ^. turn == pId = deal (gs & stGame .~ g') prv
-  | otherwise = (gs, updateClientMsgs (clientMsgs g prv hs) g "Illegal Count")
+  | otherwise = (gs, clientMsgs g prv hs "Illegal Count")
       where
         cnt    = countCard hs (g ^. bid . bidCard)
         result = g ^. bid . bidQuant <= cnt || cnt == 0
