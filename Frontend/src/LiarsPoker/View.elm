@@ -37,9 +37,9 @@ mainView m c =
         , style [ ( "max-width", "40em" ) ]
         ]
         [ div [ class "flex-justify border border-box" ]
-              [ currentPlayerView c
-              , handView c
-              ]
+            [ currentPlayerView c
+            , handView c
+            ]
         , div [ class "flex bg-white" ]
             [ div [ style [ ( "width", "50%" ) ] ] [ bidderView c ]
             , div [ style [ ( "width", "50%" ) ] ] [ playerView c ]
@@ -50,7 +50,8 @@ mainView m c =
             ]
         , div [ class "bg-white" ] [ bidView c ]
         , div [ class "flex bg-white border-box border h2" ]
-            [ playerListView c
+            [ markerListView c
+            , playerListView c
             , scoreListView c
             , div [ style [ ( "width", "20%" ) ] ] []
             ]
@@ -75,8 +76,10 @@ currentPlayerView c =
             else
                 i [ class "fa fa-circle-o-notch ml1 green muted" ] []
     in
-        div [ class "center p1 h1 bold border border-box"
-            , style [("background-color", "white")]]
+        div
+            [ class "center p1 h1 bold border border-box"
+            , style [ ( "background-color", "white" ) ]
+            ]
             [ text c.cmName
             , icon
             ]
@@ -89,10 +92,10 @@ handView c =
         , style
             [ ( "color", "darkgreen" )
             , ( "background-image", "url(\"DollarBill.png\")" )
-            , ( "max-height", "100%")
+            , ( "max-height", "100%" )
             ]
         ]
-        [div [class "mt4"] [text <| "L\x2004" ++ c.cmHand ++ "\x2004P"] ]
+        [ div [ class "mt4" ] [ text <| "L\x2004" ++ c.cmHand ++ "\x2004P" ] ]
 
 
 bidder : ClientMsg -> String
@@ -175,7 +178,7 @@ playerListView c =
         ps =
             A.toList <| A.map (\x -> li (sty x) [ text x ]) (A.map .name c.cmGame.players)
     in
-        ul [ class "list-reset ml2 mt1", style [ ( "width", "50%" ) ] ] ps
+        ul [ class "list-reset ml2 mt1", style [ ( "width", "45%" ) ] ] ps
 
 
 scoreListView : ClientMsg -> Html Msg
@@ -187,6 +190,21 @@ scoreListView c =
                     (A.map (toString << .score) c.cmGame.players)
     in
         ul [ class "list-reset mt1", style [ ( "width", "30%" ) ] ] ss
+
+
+markerListView : ClientMsg -> Html Msg
+markerListView c =
+    let
+        mark x =
+            if x == turn c then
+                i [ class "fa fa-play" ] []
+            else
+                i [ class "fa"] []
+
+        ps =
+            A.toList <| A.map (\x -> li [] [ mark x ]) (A.map .name c.cmGame.players)
+    in
+        ul [ class "list-reset ml2 mt1", style [ ( "width", "5%" ) ] ] ps
 
 
 quantEntryView : Model -> Html Msg
@@ -245,7 +263,7 @@ playView m c =
         [ div [ class "flex-auto" ] []
         , button
             [ class "btn btn-primary m2"
-            , style [("background-color", "darkgreen")]
+            , style [ ( "background-color", "darkgreen" ) ]
             , onClick
                 <| WSoutgoing
                 <| "bid "
@@ -258,7 +276,7 @@ playView m c =
         , div [ class "flex-auto" ] []
         , button
             [ class "btn btn-primary m2"
-            , style [("background-color", "darkgreen")]
+            , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| WSoutgoing "challenge"
             , disabled <| not c.cmButtons.bfChallenge
             ]
@@ -266,7 +284,7 @@ playView m c =
         , div [ class "flex-auto" ] []
         , button
             [ class "btn btn-primary m2"
-            , style [("background-color", "darkgreen")]
+            , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| WSoutgoing "count"
             , disabled <| not c.cmButtons.bfCount
             ]
@@ -279,9 +297,9 @@ waitingView : Model -> ClientMsg -> Html Msg
 waitingView model c =
     div [ class "flex p2 m2 border" ]
         [ div [ class "p1 h3 red" ]
-              [ text <| "Waiting for players"
-              , i [ class "fa fa-spinner fa-spin fa-lg ml1 red" ] []
-              ]
+            [ text <| "Waiting for players"
+            , i [ class "fa fa-spinner fa-spin fa-lg ml1 red" ] []
+            ]
         , div [ class "flex-auto" ] []
         , div [ class "p1 h3" ] [ text <| "Game Id " ++ toString c.cmGame.gameId ]
         , div [ class "flex-auto" ] []
@@ -323,9 +341,9 @@ previousHandView c =
                         ++ result
                         ++ " with a bid of "
                         ++ bd
-                        ++ " -- you had "
+                        ++ ". ◆ You had "
                         ++ you
-                        ++ " -- there were "
+                        ++ ". ◆ There were "
                         ++ total
-                        ++ " total"
+                        ++ " total."
             ]

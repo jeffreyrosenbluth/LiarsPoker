@@ -39,11 +39,14 @@ import qualified Network.WebSockets             as WS
 type ServerState = (GameState, PrevGame, Clients)
 type GameMap = IntMap (MVar ServerState)
 
+-- | Set the clientMsgs after and legal action and return it along with the
+--   GameState.
 actionMsgs :: GameState -> PrevGame -> (GameState, [ClientMsg])
 actionMsgs gs prv = (gs, cm)
   where
     cm = clientMsgs (gs ^. stGame) prv (gs ^. stHands) ""
 
+-- | A utility function to set the clienMgss to for broadcasting to each client.
 clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
 clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
   where
@@ -69,6 +72,7 @@ clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
          . cmButtons
          . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
+-- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
 parseTextInt t = case ns of
     []    -> Nothing
@@ -78,6 +82,7 @@ parseTextInt t = case ns of
     gId' = T.drop 3 gId
     ns = reads $ T.unpack gId'
 
+-- | Convert plain text websocket messages to 'Action's.
 parseMessage :: Text -> Action
 parseMessage t
   | "join " `T.isPrefixOf` t =
@@ -117,7 +122,8 @@ encodeCMs :: [ClientMsg] -> [Text]
 encodeCMs = map $ T.pack . LB.unpack . encode
 
 staticApp :: Network.Wai.Application
-staticApp = Static.staticApp $ Static.embeddedSettings $(embedDir "../Frontend/dist")
+staticApp = Static.staticApp
+          $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
 application :: MVar GameMap -> WS.ServerApp
 application gm pending = do
