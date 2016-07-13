@@ -1,11 +1,24 @@
-module LiarsPoker.Player exposing (..)
+module LiarsPoker.Types exposing (..)
 
 import Json.Decode exposing (..)
 
-
 (<*>) : Decoder (a -> b) -> Decoder a -> Decoder b
 (<*>) =
-    object2 (<|)
+  object2 (<|)
+
+
+type alias Bid =
+    { bidCard : Int
+    , bidQuant : Int
+    }
+
+
+bidDecoder : Decoder Bid
+bidDecoder =
+    succeed Bid
+        <*> ("_bidCard" := int)
+        <*> ("_bidQuant" := int)
+
 
 type alias Player =
     { playerId : Int

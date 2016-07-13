@@ -2,6 +2,7 @@ module LiarsPoker.View exposing (..)
 
 import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
 import LiarsPoker.PlayerList as PlayerList
+import LiarsPoker.GameInfo as GameInfo
 import LiarsPoker.Views.SignIn exposing (..)
 import Array as A exposing (Array, get)
 import Maybe as M exposing (withDefault)
@@ -38,19 +39,7 @@ mainView m c =
         [ class "flex flex-column m2 border border-box"
         , style [ ( "max-width", "40rem" ) ]
         ]
-        [ div [ class "flex-justify border border-box" ]
-            [ currentPlayerView c
-            , handView c
-            ]
-        , div [ class "flex bg-white" ]
-            [ div [ style [ ( "width", "50%" ) ] ] [ bidderView c ]
-            , div [ style [ ( "width", "50%" ) ] ] [ playerView c ]
-            ]
-        , div [ class "flex bg-white" ]
-            [ div [ style [ ( "width", "50%" ) ] ] [ stakesView c ]
-            , div [ style [ ( "width", "50%" ) ] ] [ multipleView c ]
-            ]
-        , div [ class "bg-white" ] [ bidView c ]
+        [ App.map GameInfo (GameInfo.view m.gameInfo)
         , App.map PlayerList (PlayerList.view m.players)
         , quantEntryView m
         , rankEntryView m
@@ -63,146 +52,6 @@ mainView m c =
             div [] []
         , rulesView
         ]
-
-
-currentPlayerView : ClientMsg -> Html Msg
-currentPlayerView c =
-    let
-        icon =
-            if M.Just c.cmName == (M.map .name <| get (c.cmGame.turn) c.cmGame.players) then
-                i [ class "fa fa-circle-o-notch fa-spin ml1 olive" ] []
-            else
-                i [ class "fa fa-circle-o-notch ml1 olive muted" ] []
-    in
-        div
-            [ class "center p1 h1 bold border border-box"
-            , style [ ( "background-color", "white" ) ]
-            ]
-            [ text c.cmName
-            , icon
-            ]
-
-
-handView : ClientMsg -> Html Msg
-handView c =
-    div
-        [ class "center p1 h1"
-        , style
-            [ ( "color", "darkgreen" )
-            , ( "background-image", "url(\"DollarBill.png\")" )
-            , ( "max-height", "100%" )
-            ]
-        ]
-        [ div [ class "mt4" ] [ text <| "L\x2004" ++ c.cmHand ++ "\x2004P" ] ]
-
-
-bidder : ClientMsg -> String
-bidder c =
-    let
-        b =
-            c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
-    in
-        withDefault "None" (M.map .name b)
-
-
-bidderView : ClientMsg -> Html Msg
-bidderView c =
-    let
-        b =
-            bidder c
-    in
-        div [ class "flex bg-white" ]
-            [ div [ class "ml1 p1 h2 gray" ] [ text "Bidder" ]
-            , div [ class "p1 h2" ] [ text b ]
-            ]
-
-
-bidView : ClientMsg -> Html Msg
-bidView c =
-    div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
-        [ div [ class "flex-auto" ] []
-        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ] [ text "Bid" ]
-        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
-            [ text
-                <| toString c.cmGame.bid.bidQuant
-                ++ " "
-                ++ toString c.cmGame.bid.bidCard
-                ++ "s"
-            ]
-        , div [ class "flex-auto" ] []
-        ]
-
-
-stakesView : ClientMsg -> Html Msg
-stakesView c =
-    div [ class "flex bg-white" ]
-        [ div [ class "ml1 p1 h2 gray" ] [ text "Base Stake" ]
-        , div [ class "p1 h2" ] [ text <| toString c.cmGame.baseStake ]
-        ]
-
-
-multipleView : ClientMsg -> Html Msg
-multipleView c =
-    div [ class "flex bg-white" ]
-        [ div [ class "p1 h2 gray" ] [ text "Multiple" ]
-        , div [ class "p1 h2" ] [ text <| toString c.cmMultiple ]
-        ]
-
-
-turn : ClientMsg -> String
-turn c =
-    withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
-
-
-playerView : ClientMsg -> Html Msg
-playerView c =
-    div [ class "flex bg-white" ]
-        [ div [ class "p1 h2 gray" ] [ text "Player" ]
-        , div [ class "p1 h2" ] [ text <| turn c ]
-        ]
-
-
-playerListView : ClientMsg -> Html Msg
-playerListView c =
-    let
-        sty x =
-            if x == bidder c then
-                [ style [ ( "color", "firebrick" ) ] ]
-            else if x == turn c then
-                [ style [ ( "color", "darkblue" ) ] ]
-            else
-                [ style [ ( "color", "gray" ) ] ]
-
-        ps =
-            A.toList <| A.map (\x -> li (sty x) [ text x ]) (A.map .name c.cmGame.players)
-    in
-        ul [ class "list-reset ml2 mt1", style [ ( "width", "45%" ) ] ] ps
-
-
-scoreListView : ClientMsg -> Html Msg
-scoreListView c =
-    let
-        ss =
-            A.toList
-                <| A.map (\x -> li [ class "right-align" ] [ text x ])
-                    (A.map (toString << .score) c.cmGame.players)
-    in
-        ul [ class "list-reset mt1", style [ ( "width", "30%" ) ] ] ss
-
-
-markerListView : ClientMsg -> Html Msg
-markerListView c =
-    let
-        mark x =
-            if x == turn c then
-                i [ class "fa fa-play" ] []
-            else
-                i [ class "fa" ] []
-
-        ps =
-            A.toList <| A.map (\x -> li [] [ mark x ]) (A.map .name c.cmGame.players)
-    in
-        ul [ class "list-reset ml2 mt1", style [ ( "width", "5%" ) ] ] ps
 
 
 quantEntryView : Model -> Html Msg

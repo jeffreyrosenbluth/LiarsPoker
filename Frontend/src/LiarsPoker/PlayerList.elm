@@ -1,6 +1,6 @@
 module LiarsPoker.PlayerList exposing (..)
-import LiarsPoker.Player exposing (..)
 
+import LiarsPoker.Types exposing (..)
 import Array as A exposing (Array, get)
 import Html exposing (..)
 import Html.Attributes exposing (..)

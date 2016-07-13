@@ -1,7 +1,8 @@
 module LiarsPoker.Model exposing (..)
 
-import LiarsPoker.Player exposing (..)
+import LiarsPoker.Types exposing (..)
 import LiarsPoker.PlayerList as PlayerList
+import LiarsPoker.GameInfo as GameInfo
 import Array as A exposing (Array, get)
 import Json.Decode exposing (..)
 import WebSocket
@@ -37,6 +38,7 @@ type Msg
     | NumPlayers Int
     | WSincoming String
     | WSoutgoing String
+    | GameInfo ()
     | PlayerList ()
 
 
@@ -67,6 +69,7 @@ type alias Model =
     , card : Int
     , wsIncoming : ServerMsg
     , players : PlayerList.Model
+    , gameInfo : GameInfo.Model
     }
 
 
@@ -78,28 +81,19 @@ init =
       , quant = 0
       , card = 0
       , wsIncoming = RawMsg ""
-      , players = {players = A.empty, bidder = Nothing, turn = 0}
+      , gameInfo =
+            { name = ""
+            , turn = ""
+            , bidder = ""
+            , baseStake = 1
+            , multiple = 1
+            , bid = Bid 0 0
+            , hand = ""
+            }
+      , players = { players = A.empty, bidder = Nothing, turn = 0 }
       }
     , Cmd.none
     )
-
-
-type alias Bid =
-    { bidCard : Int
-    , bidQuant : Int
-    }
-
-
-(<*>) : Decoder (a -> b) -> Decoder a -> Decoder b
-(<*>) =
-    object2 (<|)
-
-
-bidDecoder : Decoder Bid
-bidDecoder =
-    succeed Bid
-        <*> ("_bidCard" := int)
-        <*> ("_bidQuant" := int)
 
 
 playerDecoder : Decoder Player
