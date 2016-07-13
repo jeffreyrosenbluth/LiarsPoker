@@ -1,5 +1,7 @@
 module LiarsPoker.Model exposing (..)
 
+import LiarsPoker.Player exposing (..)
+import LiarsPoker.PlayerList as PlayerList
 import Array as A exposing (Array, get)
 import Json.Decode exposing (..)
 import WebSocket
@@ -35,6 +37,7 @@ type Msg
     | NumPlayers Int
     | WSincoming String
     | WSoutgoing String
+    | PlayerList ()
 
 
 type ServerMsg
@@ -63,6 +66,7 @@ type alias Model =
     , quant : Int
     , card : Int
     , wsIncoming : ServerMsg
+    , players : PlayerList.Model
     }
 
 
@@ -74,6 +78,7 @@ init =
       , quant = 0
       , card = 0
       , wsIncoming = RawMsg ""
+      , players = {players = A.empty, bidder = Nothing, turn = 0}
       }
     , Cmd.none
     )
@@ -95,13 +100,6 @@ bidDecoder =
     succeed Bid
         <*> ("_bidCard" := int)
         <*> ("_bidQuant" := int)
-
-
-type alias Player =
-    { playerId : Int
-    , name : String
-    , score : Int
-    }
 
 
 playerDecoder : Decoder Player
@@ -153,20 +151,23 @@ btnFlagsDecoder =
         <*> ("_bfChallenge" := bool)
         <*> ("_bfCount" := bool)
 
+
 type alias PrevGame =
-  { pgBidder : String
-  , pgBid : Bid
-  , pgCount : Int
-  , pgMe : Array Int
-  }
+    { pgBidder : String
+    , pgBid : Bid
+    , pgCount : Int
+    , pgMe : Array Int
+    }
+
 
 prevGameDecoder : Decoder PrevGame
 prevGameDecoder =
-  succeed PrevGame
-    <*> ("_pgBidder" := string)
-    <*> ("_pgBid" := bidDecoder)
-    <*> ("_pgCount" := int)
-    <*> ("_pgMe" := array int)
+    succeed PrevGame
+        <*> ("_pgBidder" := string)
+        <*> ("_pgBid" := bidDecoder)
+        <*> ("_pgCount" := int)
+        <*> ("_pgMe" := array int)
+
 
 type alias ClientMsg =
     { cmGame : Game

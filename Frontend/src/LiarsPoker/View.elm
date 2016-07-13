@@ -1,10 +1,12 @@
 module LiarsPoker.View exposing (..)
 
 import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
+import LiarsPoker.PlayerList as PlayerList
 import LiarsPoker.Views.SignIn exposing (..)
 import Array as A exposing (Array, get)
 import Maybe as M exposing (withDefault)
 import Html exposing (..)
+import Html.App as App
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 
@@ -49,12 +51,7 @@ mainView m c =
             , div [ style [ ( "width", "50%" ) ] ] [ multipleView c ]
             ]
         , div [ class "bg-white" ] [ bidView c ]
-        , div [ class "flex bg-white border-box border h2" ]
-            [ markerListView c
-            , playerListView c
-            , scoreListView c
-            , div [ style [ ( "width", "20%" ) ] ] []
-            ]
+        , App.map PlayerList (PlayerList.view m.players)
         , quantEntryView m
         , rankEntryView m
         , playView m c

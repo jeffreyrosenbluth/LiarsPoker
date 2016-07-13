@@ -29,19 +29,27 @@ update msg model =
             ( { model | numPlayers = n }, Cmd.none )
 
         WSincoming s ->
-            let
-                m =
-                    if s == ":signin" then
-                        RawMsg ":signin"
-                    else
-                        case decodeString clientMsgDecoder s of
-                            Ok pm ->
-                                JsonMsg pm
+            if s == ":signin" then
+                ( { model | wsIncoming = RawMsg ":signin" }, Cmd.none )
+            else
+                case decodeString clientMsgDecoder s of
+                    Ok pm ->
+                        ( { model
+                            | wsIncoming = JsonMsg pm
+                            , players =
+                                { players = pm.cmGame.players
+                                , bidder = pm.cmGame.bidder
+                                , turn = pm.cmGame.turn
+                                }
+                          }
+                        , Cmd.none
+                        )
 
-                            Err e ->
-                                ErrorMsg e
-            in
-                ( { model | wsIncoming = m }, Cmd.none )
+                    Err e ->
+                        ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
         WSoutgoing s ->
             ( model, WebSocket.send wsURL s )
+
+        PlayerList _ ->
+            ( model, Cmd.none )
