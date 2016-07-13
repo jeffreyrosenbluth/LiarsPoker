@@ -189,8 +189,7 @@ handle conn gmState pId = forever $ do
             Deal      -> actionMsgs (deal gs) prv
             Raise b   -> actionMsgs (gs & stGame .~ mkBid (gs ^. stGame) b) prv
             Challenge -> actionMsgs (gs & stGame .~ nextPlayer (gs ^.stGame)) prv
-            Count     -> let (gs2, prv') = count gs
-                         in  actionMsgs gs2 prv'
+            Count     -> uncurry actionMsgs $ count gs
             Say _     -> error "Not implemented yet"
             Invalid m -> error (T.unpack m)
         else (gs, clientMsgs (gs ^. stGame) prv (gs ^. stHands) (T.pack $ show action))

@@ -34,7 +34,7 @@ mainView : Model -> ClientMsg -> Html Msg
 mainView m c =
     div
         [ class "flex flex-column m2 border border-box"
-        , style [ ( "max-width", "40em" ) ]
+        , style [ ( "max-width", "40rem" ) ]
         ]
         [ div [ class "flex-justify border border-box" ]
             [ currentPlayerView c
@@ -64,6 +64,7 @@ mainView m c =
             waitingView m c
           else
             div [] []
+        , rulesView
         ]
 
 
@@ -72,9 +73,9 @@ currentPlayerView c =
     let
         icon =
             if M.Just c.cmName == (M.map .name <| get (c.cmGame.turn) c.cmGame.players) then
-                i [ class "fa fa-circle-o-notch fa-spin ml1 green" ] []
+                i [ class "fa fa-circle-o-notch fa-spin ml1 olive" ] []
             else
-                i [ class "fa fa-circle-o-notch ml1 green muted" ] []
+                i [ class "fa fa-circle-o-notch ml1 olive muted" ] []
     in
         div
             [ class "center p1 h1 bold border border-box"
@@ -199,7 +200,7 @@ markerListView c =
             if x == turn c then
                 i [ class "fa fa-play" ] []
             else
-                i [ class "fa"] []
+                i [ class "fa" ] []
 
         ps =
             A.toList <| A.map (\x -> li [] [ mark x ]) (A.map .name c.cmGame.players)
@@ -347,3 +348,11 @@ previousHandView c =
                         ++ total
                         ++ " total."
             ]
+
+
+rulesView : Html Msg
+rulesView =
+    div [ class "m1 center blue" ]
+        [ a [ class "underline", target "_blank", href "http://www.liars-poker.com" ]
+            [ text "Rules" ]
+        ]
