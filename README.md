@@ -26,4 +26,4 @@ Todo
 - [ ] Add build instructions for contributors.
 - [ ] Should we show a running history of the bidding?
 - [ ] Add a way to show instructions.
-- [ ] Add a way to view the rules.
+- [X] Add a way to view the rules.

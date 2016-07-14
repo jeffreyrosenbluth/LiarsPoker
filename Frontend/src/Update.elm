@@ -61,10 +61,7 @@ update msg model =
                     Err e ->
                         ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
-        PlayerList _ ->
-            ( model, Cmd.none )
-
-        GameInfo _ ->
+        None _ ->
             ( model, Cmd.none )
 
 

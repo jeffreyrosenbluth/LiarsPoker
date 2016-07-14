@@ -28,10 +28,9 @@ subscriptions model =
 
 type Msg
     = WSincoming String
-    | GameInfo ()
-    | PlayerList ()
     | GamePlay GamePlay.Msg
     | SignIn SignIn.Msg
+    | None ()
 
 
 type ServerMsg

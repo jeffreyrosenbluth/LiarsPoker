@@ -39,8 +39,8 @@ mainView m c =
         [ class "flex flex-column m2 border border-box"
         , style [ ( "max-width", "40rem" ) ]
         ]
-        [ App.map GameInfo (GameInfo.view m.gameInfo)
-        , App.map PlayerList (PlayerList.view m.players)
+        [ App.map None (GameInfo.view m.gameInfo)
+        , App.map None (PlayerList.view m.players)
         , App.map GamePlay (GamePlay.view m.gamePlay)
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
         , previousHandView c
