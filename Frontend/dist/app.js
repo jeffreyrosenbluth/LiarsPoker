@@ -8664,14 +8664,14 @@
 	var _jeffreyrosenbluth$liarspoker$Types$wsURL = 'ws://localhost:9160/';
 	var _jeffreyrosenbluth$liarspoker$Types$Bid = F2(
 		function (a, b) {
-			return {bidCard: a, bidQuant: b};
+			return {bidRank: a, bidQuant: b};
 		});
 	var _jeffreyrosenbluth$liarspoker$Types$bidDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 		A2(
 			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 			_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$Bid),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_bidCard', _elm_lang$core$Json_Decode$int)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_bidRank', _elm_lang$core$Json_Decode$int)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_bidQuant', _elm_lang$core$Json_Decode$int));
 	var _jeffreyrosenbluth$liarspoker$Types$Player = F3(
 		function (a, b, c) {
@@ -8856,7 +8856,7 @@
 									' ',
 									A2(
 										_elm_lang$core$Basics_ops['++'],
-										_elm_lang$core$Basics$toString(model.bid.bidCard),
+										_elm_lang$core$Basics$toString(model.bid.bidRank),
 										's'))))
 						])),
 					A2(
@@ -9085,9 +9085,9 @@
 
 	var _jeffreyrosenbluth$liarspoker$GamePlay$higher = function (model) {
 		var cQuant = model.bid.bidQuant;
-		var cCard = _elm_lang$core$Native_Utils.eq(model.bid.bidCard, 0) ? 10 : model.bid.bidCard;
-		var mCard = _elm_lang$core$Native_Utils.eq(model.rank, 0) ? 10 : model.rank;
-		return (_elm_lang$core$Native_Utils.cmp(model.quant, cQuant) > 0) || (_elm_lang$core$Native_Utils.eq(model.quant, cQuant) && (_elm_lang$core$Native_Utils.cmp(mCard, cCard) > 0));
+		var cRank = _elm_lang$core$Native_Utils.eq(model.bid.bidRank, 0) ? 10 : model.bid.bidRank;
+		var mRank = _elm_lang$core$Native_Utils.eq(model.rank, 0) ? 10 : model.rank;
+		return (_elm_lang$core$Native_Utils.cmp(model.quant, cQuant) > 0) || (_elm_lang$core$Native_Utils.eq(model.quant, cQuant) && (_elm_lang$core$Native_Utils.cmp(mRank, cRank) > 0));
 	};
 	var _jeffreyrosenbluth$liarspoker$GamePlay$constrainRank = function (n) {
 		return _elm_lang$core$Native_Utils.eq(n, 10) ? 0 : ((_elm_lang$core$Native_Utils.cmp(n, 0) < 0) ? 9 : n);
@@ -9999,9 +9999,9 @@
 	var _jeffreyrosenbluth$liarspoker$Model$higher = F2(
 		function (m, c) {
 			var cQuant = c.cmGame.bid.bidQuant;
-			var cCard = _elm_lang$core$Native_Utils.eq(c.cmGame.bid.bidCard, 0) ? 10 : c.cmGame.bid.bidCard;
-			var mCard = _elm_lang$core$Native_Utils.eq(m.gamePlay.rank, 0) ? 10 : m.gamePlay.rank;
-			return (_elm_lang$core$Native_Utils.cmp(m.gamePlay.quant, cQuant) > 0) || (_elm_lang$core$Native_Utils.eq(m.gamePlay.quant, cQuant) && (_elm_lang$core$Native_Utils.cmp(mCard, cCard) > 0));
+			var cRank = _elm_lang$core$Native_Utils.eq(c.cmGame.bid.bidRank, 0) ? 10 : c.cmGame.bid.bidRank;
+			var mRank = _elm_lang$core$Native_Utils.eq(m.gamePlay.rank, 0) ? 10 : m.gamePlay.rank;
+			return (_elm_lang$core$Native_Utils.cmp(m.gamePlay.quant, cQuant) > 0) || (_elm_lang$core$Native_Utils.eq(m.gamePlay.quant, cQuant) && (_elm_lang$core$Native_Utils.cmp(mRank, cRank) > 0));
 		});
 	var _jeffreyrosenbluth$liarspoker$Model$showServerMsg = function (sm) {
 		var _p0 = sm;
@@ -10290,7 +10290,7 @@
 				' ',
 				A2(
 					_elm_lang$core$Basics_ops['++'],
-					_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidCard),
+					_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidRank),
 					's')));
 		var nm = c.cmPrevGame.pgBidder;
 		return A2(

@@ -15,7 +15,7 @@ wsURL =
 
 
 type alias Bid =
-    { bidCard : Int
+    { bidRank : Int
     , bidQuant : Int
     }
 
@@ -23,7 +23,7 @@ type alias Bid =
 bidDecoder : Decoder Bid
 bidDecoder =
     succeed Bid
-        <*> ("_bidCard" := int)
+        <*> ("_bidRank" := int)
         <*> ("_bidQuant" := int)
 
 

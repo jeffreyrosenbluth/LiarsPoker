@@ -29,8 +29,8 @@ import           System.Random           (StdGen)
 -- For game logic.
 --------------------------------------------------------------------------------
 
-type Card  = Int
-type Hand  = Map Card Int
+type Rank  = Int
+type Hand  = Map Rank Int
 type Hands = Vector Hand
 
 instance ToJSON Hand where
@@ -40,7 +40,7 @@ instance FromJSON Hand where
   parseJSON = fmap M.fromList . parseJSON
 
 data Bid = Bid
-  { _bidCard  :: !Card
+  { _bidRank  :: !Rank
   , _bidQuant :: !Int
   } deriving (Eq, Generic, Show)
 

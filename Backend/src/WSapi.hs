@@ -208,11 +208,11 @@ deal (GameState g _ r) = GameState g' hs r''
 count :: GameState -> (GameState, PrevGame)
 count gs@(GameState g hs _) = (deal (gs & stGame .~ g'), prv)
   where
-    cnt    = countCard hs card
+    cnt    = countRank hs card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
     g'     = scoreGame (g & won .~ Just result & inProgress .~ False) hs
     prv    = PrevGame bdr b cnt (V.fromList $ map me [0..(numOfPlayers g - 1)])
     bdr    = getBidderName g
     b      = g ^. bid
-    card   = b ^. bidCard
+    card   = b ^. bidRank
     me p   = getCount card (hs V.! p)

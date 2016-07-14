@@ -26,11 +26,11 @@ cardsPerHand = 8
 numOfPlayers :: Game -> Int
 numOfPlayers g = V.length $ g ^. players
 
--- | Total number of Card in the game.
-countCard :: Hands -> Card -> Int
-countCard hands card = sum $ getCount card <$> hands
+-- | Total number of Rank in the game.
+countRank :: Hands -> Rank -> Int
+countRank hands card = sum $ getCount card <$> hands
 
-getCount :: Card -> Hand -> Int
+getCount :: Rank -> Hand -> Int
 getCount card h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
@@ -82,7 +82,7 @@ addPlayer game pId nm = game & players %~ flip V.snoc player
 dealHands :: [[Int]] -> Hands
 dealHands cs = V.fromList (toHand <$> cs)
 
--- | Change bid to (Bid Card Int) and update the turn to the next player.
+-- | Change bid to (Bid Rank Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
 mkBid game b = nextPlayer
              $ game & bidder .~ p
@@ -131,11 +131,11 @@ bonus game = sixes * mult
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game -> Hands -> Int
-hero game hands = if q == 0 && countCard hands bc > 0 then 1 else 0
+hero game hands = if q == 0 && countRank hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
     q = fromMaybe 0 $ M.lookup bc =<< hands !? bdr
-    bc = game ^. bid ^. bidCard
+    bc = game ^. bid ^. bidRank
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
@@ -152,7 +152,7 @@ scoreGame game hands = game & players %~ V.imap reScore
     (a, x)    = maybe (0, 0)
                       (\w -> if w then (-winStake, winB) else (lossStake, -lossB))
                       (game ^. won)
-    cnt       = countCard hands (game ^. bid . bidCard)
+    cnt       = countRank hands (game ^. bid . bidRank)
     -- The n+3 rule.
     bns       = bonus game
     -- The skunk rule.

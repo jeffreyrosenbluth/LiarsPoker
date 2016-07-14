@@ -75,7 +75,7 @@ previousHandView c =
         bd =
             toString c.cmPrevGame.pgBid.bidQuant
                 ++ " "
-                ++ toString c.cmPrevGame.pgBid.bidCard
+                ++ toString c.cmPrevGame.pgBid.bidRank
                 ++ "s"
 
         you =

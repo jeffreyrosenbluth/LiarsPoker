@@ -20,6 +20,7 @@ subscriptions model =
     WebSocket.listen wsURL WSincoming
 
 
+
 --------------------------------------------------------------------------------
 -- Model
 --------------------------------------------------------------------------------
@@ -145,19 +146,19 @@ clientMsgDecoder =
 higher : Model -> ClientMsg -> Bool
 higher m c =
     let
-        mCard =
+        mRank =
             if m.gamePlay.rank == 0 then
                 10
             else
                 m.gamePlay.rank
 
-        cCard =
-            if c.cmGame.bid.bidCard == 0 then
+        cRank =
+            if c.cmGame.bid.bidRank == 0 then
                 10
             else
-                c.cmGame.bid.bidCard
+                c.cmGame.bid.bidRank
 
         cQuant =
             c.cmGame.bid.bidQuant
     in
-        m.gamePlay.quant > cQuant || (m.gamePlay.quant == cQuant && mCard > cCard)
+        m.gamePlay.quant > cQuant || (m.gamePlay.quant == cQuant && mRank > cRank)

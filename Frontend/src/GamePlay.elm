@@ -145,19 +145,19 @@ playView model =
 higher : Model -> Bool
 higher model =
     let
-        mCard =
+        mRank =
             if model.rank == 0 then
                 10
             else
                 model.rank
 
-        cCard =
-            if model.bid.bidCard == 0 then
+        cRank =
+            if model.bid.bidRank == 0 then
                 10
             else
-                model.bid.bidCard
+                model.bid.bidRank
 
         cQuant =
             model.bid.bidQuant
     in
-        model.quant > cQuant || (model.quant == cQuant && mCard > cCard)
+        model.quant > cQuant || (model.quant == cQuant && mRank > cRank)

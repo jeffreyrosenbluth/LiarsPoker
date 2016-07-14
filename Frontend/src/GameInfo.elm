@@ -95,7 +95,7 @@ bidView model =
             [ text
                 <| toString model.bid.bidQuant
                 ++ " "
-                ++ toString model.bid.bidCard
+                ++ toString model.bid.bidRank
                 ++ "s"
             ]
         , div [ class "flex-auto" ] []
