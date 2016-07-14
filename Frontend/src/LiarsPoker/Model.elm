@@ -3,6 +3,8 @@ module LiarsPoker.Model exposing (..)
 import LiarsPoker.Types exposing (..)
 import LiarsPoker.PlayerList as PlayerList
 import LiarsPoker.GameInfo as GameInfo
+import LiarsPoker.GamePlay as GamePlay
+import LiarsPoker.Views.SignIn as SignIn
 import Array as A exposing (Array, get)
 import Json.Decode exposing (..)
 import WebSocket
@@ -12,17 +14,9 @@ import WebSocket
 -- Subscriptions
 --------------------------------------------------------------------------------
 
-
-wsURL : String
-wsURL =
-    -- "wss://liarspoker.herokuapp.com"
-    "ws://localhost:9160/"
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     WebSocket.listen wsURL WSincoming
-
 
 
 --------------------------------------------------------------------------------
@@ -31,15 +25,11 @@ subscriptions model =
 
 
 type Msg
-    = RaiseRank Int
-    | RaiseQuant Int
-    | Name String
-    | GameId String
-    | NumPlayers Int
-    | WSincoming String
-    | WSoutgoing String
+    = WSincoming String
     | GameInfo ()
     | PlayerList ()
+    | GamePlay GamePlay.Msg
+    | SignIn SignIn.Msg
 
 
 type ServerMsg
@@ -62,46 +52,24 @@ showServerMsg sm =
 
 
 type alias Model =
-    { name : String
-    , gameId : String
-    , numPlayers : Int
-    , quant : Int
-    , card : Int
-    , wsIncoming : ServerMsg
+    { wsIncoming : ServerMsg
     , players : PlayerList.Model
     , gameInfo : GameInfo.Model
+    , gamePlay : GamePlay.Model
+    , signIn : SignIn.Model
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { name = ""
-      , gameId = "0"
-      , numPlayers = 0
-      , quant = 0
-      , card = 0
-      , wsIncoming = RawMsg ""
-      , gameInfo =
-            { name = ""
-            , turn = ""
-            , bidder = ""
-            , baseStake = 1
-            , multiple = 1
-            , bid = Bid 0 0
-            , hand = ""
-            }
-      , players = { players = A.empty, bidder = Nothing, turn = 0 }
+    ( { wsIncoming = RawMsg ""
+      , players = PlayerList.init
+      , gameInfo = GameInfo.init
+      , gamePlay = GamePlay.init
+      , signIn = SignIn.init
       }
-    , Cmd.none
+      , Cmd.none
     )
-
-
-playerDecoder : Decoder Player
-playerDecoder =
-    succeed Player
-        <*> ("_playerId" := int)
-        <*> ("_name" := string)
-        <*> ("_score" := int)
 
 
 type alias Game =
@@ -130,20 +98,6 @@ gameDecoder =
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
 
-
-type alias BtnFlags =
-    { bfRaise : Bool
-    , bfChallenge : Bool
-    , bfCount : Bool
-    }
-
-
-btnFlagsDecoder : Decoder BtnFlags
-btnFlagsDecoder =
-    succeed BtnFlags
-        <*> ("_bfRaise" := bool)
-        <*> ("_bfChallenge" := bool)
-        <*> ("_bfCount" := bool)
 
 
 type alias PrevGame =
@@ -192,10 +146,10 @@ higher : Model -> ClientMsg -> Bool
 higher m c =
     let
         mCard =
-            if m.card == 0 then
+            if m.gamePlay.rank == 0 then
                 10
             else
-                m.card
+                m.gamePlay.rank
 
         cCard =
             if c.cmGame.bid.bidCard == 0 then
@@ -206,4 +160,4 @@ higher m c =
         cQuant =
             c.cmGame.bid.bidQuant
     in
-        m.quant > cQuant || (m.quant == cQuant && mCard > cCard)
+        m.gamePlay.quant > cQuant || (m.gamePlay.quant == cQuant && mCard > cCard)

@@ -15,23 +15,37 @@ type alias Model =
     , hand : String
     }
 
+
+init : Model
+init =
+    { name = ""
+    , turn = ""
+    , bidder = ""
+    , baseStake = 1
+    , multiple = 1
+    , bid = Bid 0 0
+    , hand = ""
+    }
+
+
 view : Model -> Html ()
 view model =
-  div []
-      [ div [ class "flex-justify border border-box" ]
+    div []
+        [ div [ class "flex-justify border border-box" ]
             [ currentPlayerView model
             , handView model
             ]
-      , div [ class "flex bg-white" ]
-          [ div [ style [ ( "width", "50%" ) ] ] [ bidderView model ]
-          , div [ style [ ( "width", "50%" ) ] ] [ playerView model ]
-          ]
-      , div [ class "flex bg-white" ]
-          [ div [ style [ ( "width", "50%" ) ] ] [ stakesView model ]
-          , div [ style [ ( "width", "50%" ) ] ] [ multipleView model ]
-          ]
-      , div [ class "bg-white" ] [ bidView model ]
-    ]
+        , div [ class "flex bg-white" ]
+            [ div [ style [ ( "width", "50%" ) ] ] [ bidderView model ]
+            , div [ style [ ( "width", "50%" ) ] ] [ playerView model ]
+            ]
+        , div [ class "flex bg-white" ]
+            [ div [ style [ ( "width", "50%" ) ] ] [ stakesView model ]
+            , div [ style [ ( "width", "50%" ) ] ] [ multipleView model ]
+            ]
+        , div [ class "bg-white" ] [ bidView model ]
+        ]
+
 
 currentPlayerView : Model -> Html ()
 currentPlayerView model =

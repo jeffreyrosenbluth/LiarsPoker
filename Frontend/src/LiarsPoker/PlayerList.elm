@@ -13,6 +13,9 @@ type alias Model =
     , turn : Int
     }
 
+init : Model
+init = { players = A.empty, bidder = Nothing, turn = 0 }
+
 
 view : Model -> Html ()
 view model =

@@ -2,6 +2,11 @@ module LiarsPoker.Types exposing (..)
 
 import Json.Decode exposing (..)
 
+wsURL : String
+wsURL =
+    -- "wss://liarspoker.herokuapp.com"
+    "ws://localhost:9160/"
+
 (<*>) : Decoder (a -> b) -> Decoder a -> Decoder b
 (<*>) =
   object2 (<|)
@@ -32,3 +37,19 @@ playerDecoder =
         <*> ("_playerId" := int)
         <*> ("_name" := string)
         <*> ("_score" := int)
+
+
+
+type alias BtnFlags =
+    { bfRaise : Bool
+    , bfChallenge : Bool
+    , bfCount : Bool
+    }
+
+
+btnFlagsDecoder : Decoder BtnFlags
+btnFlagsDecoder =
+    succeed BtnFlags
+        <*> ("_bfRaise" := bool)
+        <*> ("_bfChallenge" := bool)
+        <*> ("_bfCount" := bool)

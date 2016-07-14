@@ -3,13 +3,13 @@ module LiarsPoker.View exposing (..)
 import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
 import LiarsPoker.PlayerList as PlayerList
 import LiarsPoker.GameInfo as GameInfo
-import LiarsPoker.Views.SignIn exposing (..)
+import LiarsPoker.GamePlay as GamePlay
+import LiarsPoker.Views.SignIn as SignIn
 import Array as A exposing (Array, get)
 import Maybe as M exposing (withDefault)
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
 
 
 --------------------------------------------------------------------------------
@@ -21,10 +21,10 @@ view : Model -> Html Msg
 view model =
     case model.wsIncoming of
         RawMsg ":signin" ->
-            signInView model
+            App.map SignIn (SignIn.view model.signIn)
 
-        RawMsg _ ->
-            div [ class "h2 p2 m2 red" ] [ text "Illegal Raw Message." ]
+        RawMsg s ->
+            div [ class "h2 p2 m2 red" ] [ text <| "Illegal Raw Message: " ++ s ]
 
         JsonMsg cm ->
             mainView model cm
@@ -41,107 +41,19 @@ mainView m c =
         ]
         [ App.map GameInfo (GameInfo.view m.gameInfo)
         , App.map PlayerList (PlayerList.view m.players)
-        , quantEntryView m
-        , rankEntryView m
-        , playView m c
+        , App.map GamePlay (GamePlay.view m.gamePlay)
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
         , previousHandView c
         , if c.cmHand == "" then
-            waitingView m c
+            waitingView c
           else
             div [] []
         , rulesView
         ]
 
 
-quantEntryView : Model -> Html Msg
-quantEntryView m =
-    div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray" ] [ text "Quantity" ]
-        , div [ class "flex-auto" ] []
-        , div [ class "h2 p1" ] [ text <| toString m.quant ]
-        , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-outline m1 h6"
-            , onClick (RaiseQuant <| Basics.max 0 (m.quant - 1))
-            ]
-            [ i [ class "fa fa-minus" ] [] ]
-        , button
-            [ class "btn btn-outline mt1 mb1 mr4 h6"
-            , onClick (RaiseQuant <| m.quant + 1)
-            ]
-            [ i [ class "fa fa-plus" ] [] ]
-        ]
-
-
-constrainRank : Int -> Int
-constrainRank n =
-    if n == 10 then
-        0
-    else if n < 0 then
-        9
-    else
-        n
-
-
-rankEntryView : Model -> Html Msg
-rankEntryView m =
-    div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray" ] [ text "Rank" ]
-        , div [ class "flex-auto" ] []
-        , div [ class "h2 p1 ml3" ] [ text <| toString m.card ]
-        , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-outline m1 h6"
-            , onClick <| RaiseRank <| constrainRank <| m.card - 1
-            ]
-            [ i [ class "fa fa-minus" ] [] ]
-        , button
-            [ class "btn btn-outline mt1 mb1 mr4 h6"
-            , onClick <| RaiseRank <| constrainRank <| m.card + 1
-            ]
-            [ i [ class "fa fa-plus" ] [] ]
-        ]
-
-
-playView : Model -> ClientMsg -> Html Msg
-playView m c =
-    div [ class "flex bg-white" ]
-        [ div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-primary m2"
-            , style [ ( "background-color", "darkgreen" ) ]
-            , onClick
-                <| WSoutgoing
-                <| "bid "
-                ++ toString m.quant
-                ++ " "
-                ++ toString m.card
-            , disabled <| not c.cmButtons.bfRaise || not (higher m c)
-            ]
-            [ text "Raise" ]
-        , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-primary m2"
-            , style [ ( "background-color", "darkgreen" ) ]
-            , onClick <| WSoutgoing "challenge"
-            , disabled <| not c.cmButtons.bfChallenge
-            ]
-            [ text "Challenge" ]
-        , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-primary m2"
-            , style [ ( "background-color", "darkgreen" ) ]
-            , onClick <| WSoutgoing "count"
-            , disabled <| not c.cmButtons.bfCount
-            ]
-            [ text "Count" ]
-        , div [ class "flex-auto" ] []
-        ]
-
-
-waitingView : Model -> ClientMsg -> Html Msg
-waitingView model c =
+waitingView : ClientMsg -> Html Msg
+waitingView c =
     div [ class "flex p2 m2 border" ]
         [ div [ class "p1 h3 red" ]
             [ text <| "Waiting for players"

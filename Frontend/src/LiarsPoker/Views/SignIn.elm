@@ -1,13 +1,37 @@
 module LiarsPoker.Views.SignIn exposing (..)
 
-import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg)
+import LiarsPoker.Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
+import WebSocket
 
 
-signInView : Model -> Html Msg
-signInView m =
+type alias Model =
+    { name : String
+    , gameId : String
+    , numPlayers : Int
+    }
+
+type Msg
+    = Name String
+    | GameId String
+    | Outgoing String
+    | NumPlayers Int
+
+init : Model
+init = {name = "", gameId = "", numPlayers = 0}
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+    case msg of
+      Name s -> ( { model | name = s }, Cmd.none )
+      GameId i -> ( { model | gameId = i }, Cmd.none )
+      NumPlayers n -> ( { model | numPlayers = n }, Cmd.none )
+      Outgoing s -> ( model, WebSocket.send wsURL s)
+
+view : Model -> Html Msg
+view m =
     div
         [ class "flex flex-column m2 border border-box"
         , style [ ( "max-width", "30em" ) ]
@@ -51,7 +75,7 @@ joinView m =
             [ button
                 [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
                 , style [ ( "width", "200px" ) ]
-                , onClick <| WSoutgoing ("join " ++ m.name ++ ":-:" ++ m.gameId)
+                , onClick <| Outgoing ("join " ++ m.name ++ ":-:" ++ m.gameId)
                 , disabled <| m.name == ""
                 ]
                 [ text "Join" ]
@@ -81,7 +105,7 @@ startView m =
             , button
                 [ class "btn btn-primary mr4  ml4 mt2 mb2 h4 bg-olive"
                 , style [ ( "width", "200px" ) ]
-                , onClick <| WSoutgoing ("new " ++ m.name ++ ":-:" ++ toString m.numPlayers)
+                , onClick <| Outgoing ("new " ++ m.name ++ ":-:" ++ toString m.numPlayers)
                 , disabled <| m.name == "" || m.numPlayers == 0
                 ]
                 [ text "Start" ]

@@ -1,19 +1,22 @@
 module LiarsPoker.Update exposing (..)
 
-import LiarsPoker.Model exposing (Model, ServerMsg(..), Msg(..), clientMsgDecoder, wsURL, ClientMsg)
+import LiarsPoker.Model exposing (..)
+import LiarsPoker.GamePlay as GamePlay
+import LiarsPoker.Views.SignIn as SignIn
 import Array exposing (get)
-import Json.Decode exposing (..)
 import Maybe as M exposing (withDefault)
-import WebSocket
+import Json.Decode exposing (..)
 
 
 --------------------------------------------------------------------------------
 -- Update
 --------------------------------------------------------------------------------
 
+
 turn : ClientMsg -> String
 turn c =
     withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
+
 
 bidder : ClientMsg -> String
 bidder c =
@@ -23,23 +26,27 @@ bidder c =
     in
         withDefault "None" (M.map .name b)
 
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        RaiseRank c ->
-            ( { model | card = c }, Cmd.none )
+        GamePlay m ->
+            let
+                ( gp, cmd ) =
+                    GamePlay.update m model.gamePlay
+            in
+                ( Model model.wsIncoming model.players model.gameInfo gp model.signIn
+                , Cmd.map GamePlay cmd
+                )
 
-        RaiseQuant q ->
-            ( { model | quant = q }, Cmd.none )
-
-        Name n ->
-            ( { model | name = n }, Cmd.none )
-
-        GameId g ->
-            ( { model | gameId = g }, Cmd.none )
-
-        NumPlayers n ->
-            ( { model | numPlayers = n }, Cmd.none )
+        SignIn m ->
+            let
+                ( si, cmd ) =
+                    SignIn.update m model.signIn
+            in
+                ( Model model.wsIncoming model.players model.gameInfo model.gamePlay si
+                , Cmd.map SignIn cmd
+                )
 
         WSincoming s ->
             if s == ":signin" then
@@ -47,33 +54,46 @@ update msg model =
             else
                 case decodeString clientMsgDecoder s of
                     Ok pm ->
-                        ( { model
-                            | wsIncoming = JsonMsg pm
-                            , gameInfo =
-                                { name = pm.cmName
-                                , turn = turn pm
-                                , bidder = bidder pm
-                                , baseStake = pm.cmGame.baseStake
-                                , multiple = pm.cmMultiple
-                                , bid = pm.cmGame.bid
-                                , hand = pm.cmHand
-                                }
-                            , players =
-                                { players = pm.cmGame.players
-                                , bidder = pm.cmGame.bidder
-                                , turn = pm.cmGame.turn
-                                }
-                          }
+                        ( updateModel model pm
                         , Cmd.none
                         )
 
                     Err e ->
                         ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
-        WSoutgoing s ->
-            ( model, WebSocket.send wsURL s )
-
         PlayerList _ ->
             ( model, Cmd.none )
+
         GameInfo _ ->
             ( model, Cmd.none )
+
+
+updateModel : Model -> ClientMsg -> Model
+updateModel model pm =
+    let
+      q = model.gamePlay.quant
+      r = model.gamePlay.rank
+    in
+        { model
+            | wsIncoming = JsonMsg pm
+            , gameInfo =
+                { name = pm.cmName
+                , turn = turn pm
+                , bidder = bidder pm
+                , baseStake = pm.cmGame.baseStake
+                , multiple = pm.cmMultiple
+                , bid = pm.cmGame.bid
+                , hand = pm.cmHand
+                }
+            , players =
+                { players = pm.cmGame.players
+                , bidder = pm.cmGame.bidder
+                , turn = pm.cmGame.turn
+                }
+            , gamePlay =
+                { quant = q
+                , rank = r
+                , buttons = pm.cmButtons
+                , bid = pm.cmGame.bid
+                }
+        }
