@@ -1,8 +1,8 @@
-module LiarsPoker.Update exposing (..)
+module Update exposing (..)
 
-import LiarsPoker.Model exposing (..)
-import LiarsPoker.GamePlay as GamePlay
-import LiarsPoker.Views.SignIn as SignIn
+import Model exposing (..)
+import GamePlay as GamePlay
+import SignIn as SignIn
 import Array exposing (get)
 import Maybe as M exposing (withDefault)
 import Json.Decode exposing (..)
@@ -71,8 +71,11 @@ update msg model =
 updateModel : Model -> ClientMsg -> Model
 updateModel model pm =
     let
-      q = model.gamePlay.quant
-      r = model.gamePlay.rank
+        q =
+            model.gamePlay.quant
+
+        r =
+            model.gamePlay.rank
     in
         { model
             | wsIncoming = JsonMsg pm

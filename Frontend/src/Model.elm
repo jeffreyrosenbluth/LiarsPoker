@@ -1,10 +1,10 @@
-module LiarsPoker.Model exposing (..)
+module Model exposing (..)
 
-import LiarsPoker.Types exposing (..)
-import LiarsPoker.PlayerList as PlayerList
-import LiarsPoker.GameInfo as GameInfo
-import LiarsPoker.GamePlay as GamePlay
-import LiarsPoker.Views.SignIn as SignIn
+import Types exposing (..)
+import PlayerList as PlayerList
+import GameInfo as GameInfo
+import GamePlay as GamePlay
+import SignIn as SignIn
 import Array as A exposing (Array, get)
 import Json.Decode exposing (..)
 import WebSocket
@@ -13,6 +13,7 @@ import WebSocket
 --------------------------------------------------------------------------------
 -- Subscriptions
 --------------------------------------------------------------------------------
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
@@ -68,7 +69,7 @@ init =
       , gamePlay = GamePlay.init
       , signIn = SignIn.init
       }
-      , Cmd.none
+    , Cmd.none
     )
 
 
@@ -97,7 +98,6 @@ gameDecoder =
         <*> ("_inProgress" := bool)
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
-
 
 
 type alias PrevGame =

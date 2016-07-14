@@ -1,6 +1,6 @@
-module LiarsPoker.GameInfo exposing (..)
+module GameInfo exposing (..)
 
-import LiarsPoker.Types exposing (..)
+import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 

@@ -1,10 +1,10 @@
-module LiarsPoker.View exposing (..)
+module View exposing (..)
 
-import LiarsPoker.Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
-import LiarsPoker.PlayerList as PlayerList
-import LiarsPoker.GameInfo as GameInfo
-import LiarsPoker.GamePlay as GamePlay
-import LiarsPoker.Views.SignIn as SignIn
+import Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
+import PlayerList as PlayerList
+import GameInfo as GameInfo
+import GamePlay as GamePlay
+import SignIn as SignIn
 import Array as A exposing (Array, get)
 import Maybe as M exposing (withDefault)
 import Html exposing (..)

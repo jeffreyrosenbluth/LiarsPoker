@@ -1,8 +1,8 @@
 module Main exposing (..)
 
-import LiarsPoker.Model exposing (..)
-import LiarsPoker.Update exposing (..)
-import LiarsPoker.View exposing (..)
+import Model exposing (..)
+import Update exposing (..)
+import View exposing (..)
 import Html.App as Html
 
 

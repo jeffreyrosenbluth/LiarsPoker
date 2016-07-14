@@ -1,6 +1,6 @@
-module LiarsPoker.PlayerList exposing (..)
+module PlayerList exposing (..)
 
-import LiarsPoker.Types exposing (..)
+import Types exposing (..)
 import Array as A exposing (Array, get)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -13,8 +13,10 @@ type alias Model =
     , turn : Int
     }
 
+
 init : Model
-init = { players = A.empty, bidder = Nothing, turn = 0 }
+init =
+    { players = A.empty, bidder = Nothing, turn = 0 }
 
 
 view : Model -> Html ()

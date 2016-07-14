@@ -1,10 +1,11 @@
-module LiarsPoker.GamePlay exposing (..)
+module GamePlay exposing (..)
 
-import LiarsPoker.Types exposing (..)
+import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
 import WebSocket
+
 
 type alias Model =
     { quant : Int
@@ -33,12 +34,18 @@ init =
     }
 
 
-update : Msg  -> Model -> (Model, Cmd Msg)
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    RaiseQuant q -> ( { model | quant = q }, Cmd.none )
-    RaiseRank r -> ( { model | rank = r }, Cmd.none )
-    Outgoing s -> ( model, WebSocket.send wsURL s)
+    case msg of
+        RaiseQuant q ->
+            ( { model | quant = q }, Cmd.none )
+
+        RaiseRank r ->
+            ( { model | rank = r }, Cmd.none )
+
+        Outgoing s ->
+            ( model, WebSocket.send wsURL s )
+
 
 view : Model -> Html Msg
 view model =

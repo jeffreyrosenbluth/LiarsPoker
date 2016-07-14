@@ -1,6 +1,6 @@
-module LiarsPoker.Views.SignIn exposing (..)
+module SignIn exposing (..)
 
-import LiarsPoker.Types exposing (..)
+import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
@@ -13,22 +13,34 @@ type alias Model =
     , numPlayers : Int
     }
 
+
 type Msg
     = Name String
     | GameId String
     | Outgoing String
     | NumPlayers Int
 
-init : Model
-init = {name = "", gameId = "", numPlayers = 0}
 
-update : Msg -> Model -> (Model, Cmd Msg)
+init : Model
+init =
+    { name = "", gameId = "", numPlayers = 0 }
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-      Name s -> ( { model | name = s }, Cmd.none )
-      GameId i -> ( { model | gameId = i }, Cmd.none )
-      NumPlayers n -> ( { model | numPlayers = n }, Cmd.none )
-      Outgoing s -> ( model, WebSocket.send wsURL s)
+        Name s ->
+            ( { model | name = s }, Cmd.none )
+
+        GameId i ->
+            ( { model | gameId = i }, Cmd.none )
+
+        NumPlayers n ->
+            ( { model | numPlayers = n }, Cmd.none )
+
+        Outgoing s ->
+            ( model, WebSocket.send wsURL s )
+
 
 view : Model -> Html Msg
 view m =
