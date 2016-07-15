@@ -8661,7 +8661,7 @@
 			function (x, y) {
 				return x(y);
 			}));
-	var _jeffreyrosenbluth$liarspoker$Types$wsURL = 'ws://localhost:9160/';
+	var _jeffreyrosenbluth$liarspoker$Types$wsURL = 'wss://liarspoker.herokuapp.com';
 	var _jeffreyrosenbluth$liarspoker$Types$Bid = F2(
 		function (a, b) {
 			return {bidRank: a, bidQuant: b};
@@ -10104,17 +10104,14 @@
 				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
 			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$Model$prevGameDecoder)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPlyrId', _elm_lang$core$Json_Decode$int));
+	var _jeffreyrosenbluth$liarspoker$Model$None = function (a) {
+		return {ctor: 'None', _0: a};
+	};
 	var _jeffreyrosenbluth$liarspoker$Model$SignIn = function (a) {
 		return {ctor: 'SignIn', _0: a};
 	};
 	var _jeffreyrosenbluth$liarspoker$Model$GamePlay = function (a) {
 		return {ctor: 'GamePlay', _0: a};
-	};
-	var _jeffreyrosenbluth$liarspoker$Model$PlayerList = function (a) {
-		return {ctor: 'PlayerList', _0: a};
-	};
-	var _jeffreyrosenbluth$liarspoker$Model$GameInfo = function (a) {
-		return {ctor: 'GameInfo', _0: a};
 	};
 	var _jeffreyrosenbluth$liarspoker$Model$WSincoming = function (a) {
 		return {ctor: 'WSincoming', _0: a};
@@ -10246,8 +10243,6 @@
 							};
 						}
 					}
-				case 'PlayerList':
-					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				default:
 					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			}
@@ -10415,11 +10410,11 @@
 					[
 						A2(
 						_elm_lang$html$Html_App$map,
-						_jeffreyrosenbluth$liarspoker$Model$GameInfo,
+						_jeffreyrosenbluth$liarspoker$Model$None,
 						_jeffreyrosenbluth$liarspoker$GameInfo$view(m.gameInfo)),
 						A2(
 						_elm_lang$html$Html_App$map,
-						_jeffreyrosenbluth$liarspoker$Model$PlayerList,
+						_jeffreyrosenbluth$liarspoker$Model$None,
 						_jeffreyrosenbluth$liarspoker$PlayerList$view(m.players)),
 						A2(
 						_elm_lang$html$Html_App$map,
