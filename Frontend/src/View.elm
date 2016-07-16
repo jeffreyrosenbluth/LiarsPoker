@@ -1,5 +1,8 @@
 module View exposing (..)
 
+{-| The top level view
+-}
+
 import Model exposing (Model, Msg(..), ServerMsg(..), showServerMsg, ClientMsg, higher)
 import PlayerList as PlayerList
 import GameInfo as GameInfo
@@ -10,11 +13,6 @@ import Maybe as M exposing (withDefault)
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
-
-
---------------------------------------------------------------------------------
--- View
---------------------------------------------------------------------------------
 
 
 view : Model -> Html Msg

@@ -1,5 +1,9 @@
 module Model exposing (..)
 
+{-| Top level model and decoders for communicating with the LiarsPoker
+    Websockets sever
+-}
+
 import Types exposing (..)
 import PlayerList as PlayerList
 import GameInfo as GameInfo
@@ -10,22 +14,15 @@ import Json.Decode exposing (..)
 import WebSocket
 
 
---------------------------------------------------------------------------------
--- Subscriptions
---------------------------------------------------------------------------------
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     WebSocket.listen wsURL WSincoming
 
 
-
---------------------------------------------------------------------------------
--- Model
---------------------------------------------------------------------------------
-
-
+{-| There are only 3 non-trivial message types. WSincoming for websocket strings
+    coming from the server. GamePlay for internal messages needed to update the
+    game play page UI and SignIn messages to update the sign in page UI.
+-}
 type Msg
     = WSincoming String
     | GamePlay GamePlay.Msg
@@ -33,12 +30,31 @@ type Msg
     | None ()
 
 
+{-| wsIncoming tracks input from the server, players is the component with
+    player names and scores (no user interaction and hence no associated messages),
+    gameInfo is a component that displays the rest of the static game data.
+    gamePlay is the component that handles player actions and signIn for strarting
+    or joining a game.
+-}
+type alias Model =
+    { wsIncoming : ServerMsg
+    , players : PlayerList.Model
+    , gameInfo : GameInfo.Model
+    , gamePlay : GamePlay.Model
+    , signIn : SignIn.Model
+    }
+
+
+{-| Messages from the game server can be raw strings, json, or errors.
+-}
 type ServerMsg
     = RawMsg String
     | JsonMsg ClientMsg
     | ErrorMsg String
 
 
+{-| Show either the raw server message string or an error string.
+-}
 showServerMsg : ServerMsg -> String
 showServerMsg sm =
     case sm of
@@ -50,15 +66,6 @@ showServerMsg sm =
 
         ErrorMsg e ->
             e
-
-
-type alias Model =
-    { wsIncoming : ServerMsg
-    , players : PlayerList.Model
-    , gameInfo : GameInfo.Model
-    , gamePlay : GamePlay.Model
-    , signIn : SignIn.Model
-    }
 
 
 init : ( Model, Cmd Msg )
@@ -73,6 +80,9 @@ init =
     )
 
 
+{-| Matches the Game data type from the server so that serialized messages
+    can be "reconstituted to the same type."
+-}
 type alias Game =
     { players : Array Player
     , bidder : Maybe Int
@@ -83,6 +93,7 @@ type alias Game =
     , inProgress : Bool
     , baseStake : Int
     , gameId : Int
+    , numPlyrs : Int
     }
 
 
@@ -98,8 +109,11 @@ gameDecoder =
         <*> ("_inProgress" := bool)
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
+        <*> ("_numPlyrs" := int)
 
 
+{-| Matches the PrevGame data type from the server to show results after a count.
+-}
 type alias PrevGame =
     { pgBidder : String
     , pgBid : Bid
@@ -117,6 +131,8 @@ prevGameDecoder =
         <*> ("_pgMe" := array int)
 
 
+{-| We parse a serialized JSON string from the server into a ClientMsg.
+-}
 type alias ClientMsg =
     { cmGame : Game
     , cmHand : String
@@ -142,6 +158,8 @@ clientMsgDecoder =
         <*> ("_cmPlyrId" := int)
 
 
+{-| Since 0s are interpreted as 10s we need a function to compare ranks.
+-}
 higher : Model -> ClientMsg -> Bool
 higher m c =
     let
