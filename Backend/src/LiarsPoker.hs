@@ -56,11 +56,6 @@ getBidderName g =
         (\i -> g ^. players . ix i . name)
         (g ^. bidder)
 
-getTurnName :: Game -> Text
-getTurnName g = ps ^. ix b . name
-  where
-    b = g ^. turn
-    ps = g ^. players
 
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game
@@ -79,8 +74,6 @@ addPlayer game pId nm = game & players %~ flip V.snoc player
   where
     player = Player pId nm 0
 
-dealHands :: [[Int]] -> Hands
-dealHands cs = V.fromList (toHand <$> cs)
 
 -- | Change bid to (Bid Rank Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
