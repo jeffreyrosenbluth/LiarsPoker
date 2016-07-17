@@ -48,29 +48,32 @@ actionMsgs gs prv = (gs, cm)
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
 clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
-clientMsgs g prv hs err = setButtonFlags $ map cm [0..(numOfPlayers g - 1)]
+clientMsgs g prv hs err = setButtonFlags g $ map cm [0..(numOfPlayers g - 1)]
   where
-    cm p =  ClientMsg
-      { _cmGame = g
-      , _cmMultiple = bonus g
-      , _cmHand = T.pack . displayHand $ getHand hs p
-      , _cmError = err
-      , _cmButtons = BtnFlags False False False
-      , _cmName = getPlayerName g p
-      , _cmPrevGame = prv
-      , _cmPlyrId = p
-      }
-    setButtonFlags :: [ClientMsg] -> [ClientMsg]
-    setButtonFlags cs  =
-      cs & singular (ix (g ^. turn))
-         . cmButtons
-         . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
-         & singular (ix (g ^. turn))
-         . cmButtons
-         . bfChallenge .~ ((Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder))
-         & singular (ix (g ^. turn))
-         . cmButtons
-         . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
+    cm p =
+      let Just nm = getPlayerName g p
+      in  ClientMsg
+            { _cmGame = g
+            , _cmMultiple = bonus g
+            , _cmHand = T.pack . displayHand $ getHand hs p
+            , _cmError = err
+            , _cmButtons = BtnFlags False False False
+            , _cmName = nm
+            , _cmPrevGame = prv
+            , _cmPlyrId = p
+            }
+
+setButtonFlags :: Game -> [ClientMsg] -> [ClientMsg]
+setButtonFlags g cs  =
+  cs & singular (ix (g ^. turn))
+     . cmButtons
+     . bfRaise .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
+     & singular (ix (g ^. turn))
+     . cmButtons
+     . bfChallenge .~ ((Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder))
+     & singular (ix (g ^. turn))
+     . cmButtons
+     . bfCount .~ ((Just $ g ^. turn) == g ^. bidder)
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)

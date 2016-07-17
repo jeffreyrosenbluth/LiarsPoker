@@ -1,7 +1,5 @@
 {-# LANGUAGE OverloadedStrings    #-}
 
-{-# OPTIONS_GHC -funbox-strict-fields #-}
-
 ----------------------------------------------------------
 -- |
 -- Game logic for LiarsPoker multiplayer game.
@@ -34,10 +32,8 @@ getCount :: Rank -> Hand -> Int
 getCount card h = fromMaybe 0 (M.lookup card h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
-getPlayerName :: Game -> Int -> Text
-getPlayerName game pId = x
-  where
-    Just x = game ^? players . ix pId . name
+getPlayerName :: Game -> Int -> Maybe Text
+getPlayerName game pId = game ^? players . ix pId . name
 
 -- | Return the players hand if the playerId exists.
 getHand :: Hands -> Int -> Hand
