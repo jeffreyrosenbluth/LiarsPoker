@@ -66,9 +66,9 @@ instance FromJSON Player
 
 data Game = Game
   { _players    :: !(Vector Player)
-  , _bidder     :: !(Maybe Int)  -- ^ playerId
+  , _bidder     :: !(Maybe Int) -- ^ playerId
   , _bid        :: !Bid
-  , _turn       :: !Int        -- ^ playerId
+  , _turn       :: !Int         -- ^ playerId
   , _won        :: !(Maybe Bool)
   , _rebid      :: !Bool
   , _inProgress :: !Bool

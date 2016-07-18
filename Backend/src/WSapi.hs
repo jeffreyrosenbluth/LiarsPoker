@@ -150,7 +150,7 @@ new gmRef conn nm nPlyrs = do
   r  <- getStdGen
   gm <- takeMVar gmRef
   let key     = if null gm then 0 else 1 + (maximum . keys $ gm)
-      g       = addPlayer (newGame key nPlyrs) 0 nm
+      g       = addPlayer (newGame key nPlyrs) nm
       gmState = GameState g V.empty r
       prv     = PrevGame "" (Bid 0 0) 0 V.empty
   gs <- newMVar (gmState, prv, [conn])
@@ -166,7 +166,7 @@ joinGame gmRef conn nm gId = do
     let gmState = gm ! gId
     (GameState g hs r, prv, cs) <- takeMVar gmState
     let pId = numOfPlayers g
-        g'  = addPlayer g pId nm
+        g'  = addPlayer g nm
         cs' = cs ++ [conn]
     if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
            let (gs, cm) = actionMsgs (deal (GameState g' V.empty r)) prv

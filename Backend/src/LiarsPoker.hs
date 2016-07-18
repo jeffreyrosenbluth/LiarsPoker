@@ -66,11 +66,11 @@ resetGame n g = g & bidder .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
 
-addPlayer :: Game -> Int -> Text -> Game
-addPlayer game pId nm = game & players %~ flip V.snoc player
+addPlayer :: Game -> Text -> Game
+addPlayer game nm = game & players %~ flip V.snoc player
   where
+    pId    = numOfPlayers game
     player = Player pId nm 0
-
 
 -- | Change bid to (Bid Rank Int) and update the turn to the next player.
 mkBid :: Game -> Bid -> Game
