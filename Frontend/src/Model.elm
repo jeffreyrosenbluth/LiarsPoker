@@ -27,7 +27,7 @@ type Msg
     = WSincoming String
     | GamePlay GamePlay.Msg
     | SignIn SignIn.Msg
-    | None ()
+    | None
 
 
 {-| wsIncoming tracks input from the server, players is the component with

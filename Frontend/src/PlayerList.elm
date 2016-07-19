@@ -19,7 +19,7 @@ init =
     { players = A.empty, bidder = Nothing, turn = 0 }
 
 
-view : Model -> Html ()
+view : Model -> Html msg
 view model =
     div [ class "flex bg-white border-box border h2" ]
         [ markerListView model
@@ -43,7 +43,7 @@ bidder model =
         withDefault "None" (M.map .name b)
 
 
-playerListView : Model -> Html ()
+playerListView : Model -> Html msg
 playerListView model =
     let
         sty x =
@@ -60,7 +60,7 @@ playerListView model =
         ul [ class "list-reset ml2 mt1", style [ ( "width", "45%" ) ] ] ps
 
 
-scoreListView : Model -> Html ()
+scoreListView : Model -> Html msg
 scoreListView model =
     let
         ss =
@@ -71,7 +71,7 @@ scoreListView model =
         ul [ class "list-reset mt1", style [ ( "width", "30%" ) ] ] ss
 
 
-markerListView : Model -> Html ()
+markerListView : Model -> Html msg
 markerListView model =
     let
         mark x =

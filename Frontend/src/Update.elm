@@ -69,7 +69,7 @@ update msg model =
                     Err e ->
                         ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
-        None _ ->
+        None ->
             ( model, Cmd.none )
 
 

@@ -28,7 +28,7 @@ init =
     }
 
 
-view : Model -> Html ()
+view : Model -> Html msg
 view model =
     div []
         [ div [ class "flex-justify border border-box" ]
@@ -47,7 +47,7 @@ view model =
         ]
 
 
-currentPlayerView : Model -> Html ()
+currentPlayerView : Model -> Html msg
 currentPlayerView model =
     let
         icon =
@@ -65,7 +65,7 @@ currentPlayerView model =
             ]
 
 
-handView : Model -> Html ()
+handView : Model -> Html msg
 handView model =
     div
         [ class "center p1 h1"
@@ -78,7 +78,7 @@ handView model =
         [ div [ class "mt4" ] [ text <| "L\x2004" ++ model.hand ++ "\x2004P" ] ]
 
 
-bidderView : Model -> Html ()
+bidderView : Model -> Html msg
 bidderView model =
     div [ class "flex bg-white" ]
         [ div [ class "ml1 p1 h2 gray" ] [ text "Bidder" ]
@@ -86,7 +86,7 @@ bidderView model =
         ]
 
 
-bidView : Model -> Html ()
+bidView : Model -> Html msg
 bidView model =
     div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
         [ div [ class "flex-auto" ] []
@@ -102,7 +102,7 @@ bidView model =
         ]
 
 
-stakesView : Model -> Html ()
+stakesView : Model -> Html msg
 stakesView model =
     div [ class "flex bg-white" ]
         [ div [ class "ml1 p1 h2 gray" ] [ text "Base Stake" ]
@@ -110,7 +110,7 @@ stakesView model =
         ]
 
 
-multipleView : Model -> Html ()
+multipleView : Model -> Html msg
 multipleView model =
     div [ class "flex bg-white" ]
         [ div [ class "p1 h2 gray" ] [ text "Multiple" ]
@@ -118,7 +118,7 @@ multipleView model =
         ]
 
 
-playerView : Model -> Html ()
+playerView : Model -> Html msg
 playerView model =
     div [ class "flex bg-white" ]
         [ div [ class "p1 h2 gray" ] [ text "Player" ]
