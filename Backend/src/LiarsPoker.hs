@@ -35,17 +35,19 @@ getCount card h = fromMaybe 0 (M.lookup card h)
 getPlayerName :: Game -> Int -> Maybe Text
 getPlayerName game pId = game ^? players . ix pId . name
 
--- | Return the players hand if the playerId exists.
-getHand :: Hands -> Int -> Hand
-getHand hands pId = fromMaybe M.empty (hands !? pId)
-
 toHand :: [Int] -> Hand
 toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
+
+firstDigit :: Int -> Char
+firstDigit n =
+  case show n of
+    (x:xs) -> x
+    ""     -> error "The impossible happend, show int == []"
 
 displayHand :: Hand -> String
 displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
   where
-    f k a b = replicate a (head $ show k) ++ b
+    f k a b = replicate a (firstDigit k) ++ b
 
 getBidderName :: Game -> Text
 getBidderName g =

@@ -52,10 +52,11 @@ clientMsgs g prv hs err = setButtonFlags g $ map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
       let Just nm = getPlayerName g p
+          h  = hs V.!? p
       in  ClientMsg
             { _cmGame = g
             , _cmMultiple = bonus g
-            , _cmHand = T.pack . displayHand $ getHand hs p
+            , _cmHand = T.pack . displayHand $ fromMaybe mempty h
             , _cmError = err
             , _cmButtons = BtnFlags False False False
             , _cmName = nm
