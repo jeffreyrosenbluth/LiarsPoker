@@ -10,42 +10,42 @@ module LiarsPoker where
 
 import           Types
 
-import           Control.Lens hiding ((.=))
+import           Control.Lens ((^?), (^.), (&), (%~), (.~), ix, over)
 import           Data.List    (intersperse)
-import qualified Data.Map     as M
+import           Data.Map     (insertWith, foldrWithKey, lookup)
 import           Data.Maybe
 import           Data.Text    (Text)
-import           Data.Vector  ((!?))
-import qualified Data.Vector  as V
+import           Data.Vector  ((!?), snoc, imap, length)
+import           Prelude      hiding (length, lookup)
 
 cardsPerHand :: Int
 cardsPerHand = 8
 
 numOfPlayers :: Game -> Int
-numOfPlayers g = V.length $ g ^. players
+numOfPlayers g = length $ g ^. players
 
 -- | Total number of Rank in the game.
 countRank :: Hands -> Rank -> Int
 countRank hands card = sum $ getCount card <$> hands
 
 getCount :: Rank -> Hand -> Int
-getCount card h = fromMaybe 0 (M.lookup card h)
+getCount card h = fromMaybe 0 (lookup card h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game -> Int -> Maybe Text
 getPlayerName game pId = game ^? players . ix pId . name
 
 toHand :: [Int] -> Hand
-toHand = foldr (\n -> M.insertWith (+) n 1) M.empty
+toHand = foldr (\n -> insertWith (+) n 1) mempty
 
 firstDigit :: Int -> Char
 firstDigit n =
   case show n of
-    (x:xs) -> x
-    ""     -> error "The impossible happend, show int == []"
+    (x:_) -> x
+    ""    -> error "The impossible happend, show int == []"
 
 displayHand :: Hand -> String
-displayHand h = intersperse ' ' $ M.foldrWithKey f "" h
+displayHand h = intersperse ' ' $ foldrWithKey f "" h
   where
     f k a b = replicate a (firstDigit k) ++ b
 
@@ -55,10 +55,9 @@ getBidderName g =
         (\i -> g ^. players . ix i . name)
         (g ^. bidder)
 
-
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game
-newGame = Game V.empty Nothing (Bid 0 0) 0 Nothing False False 1
+newGame = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1
 
 resetGame :: Int -> Game -> Game
 resetGame n g = g & bidder .~ Nothing
@@ -69,7 +68,7 @@ resetGame n g = g & bidder .~ Nothing
                 & inProgress .~ True
 
 addPlayer :: Game -> Text -> Game
-addPlayer game nm = game & players %~ flip V.snoc player
+addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
     player = Player pId nm 0
@@ -126,14 +125,14 @@ hero :: Game -> Hands -> Int
 hero game hands = if q == 0 && countRank hands bc > 0 then 1 else 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ M.lookup bc =<< hands !? bdr
+    q = fromMaybe 0 $ lookup bc =<< hands !? bdr
     bc = game ^. bid ^. bidRank
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
-scoreGame game hands = game & players %~ V.imap reScore
+scoreGame game hands = game & players %~ imap reScore
                             & baseStake .~ (if h == 1 then 2 else bns)
   where
     reScore :: Int -> Player -> Player
