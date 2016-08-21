@@ -3,6 +3,7 @@
 ----------------------------------------------------------
 -- |
 -- Game logic for LiarsPoker multiplayer game.
+-- According to the rules: http://www.liars-poker.com
 -- (c) 2016 Jeffrey Rosenbluth
 --------------------------------------------------------
 
@@ -18,6 +19,11 @@ import           Data.Text    (Text)
 import           Data.Vector  ((!?), snoc, imap, length)
 import           Prelude      hiding (length, lookup)
 
+-- | if-then-else sugar.
+iF :: Bool -> a -> a -> a
+iF True t _  = t
+iF False _ f = f
+
 cardsPerHand :: Int
 cardsPerHand = 8
 
@@ -26,10 +32,10 @@ numOfPlayers g = length $ g ^. players
 
 -- | Total number of Rank in the game.
 countRank :: Hands -> Rank -> Int
-countRank hands card = sum $ getCount card <$> hands
+countRank hands rank = sum $ getCount rank <$> hands
 
 getCount :: Rank -> Hand -> Int
-getCount card h = fromMaybe 0 (lookup card h)
+getCount rank h = fromMaybe 0 (lookup rank h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game -> Int -> Maybe Text
@@ -73,7 +79,8 @@ addPlayer game nm = game & players %~ flip snoc player
     pId    = numOfPlayers game
     player = Player pId nm 0
 
--- | Change bid to (Bid Rank Int) and update the turn to the next player.
+-- | Change bid to (Bid Rank Int), update the turn to the next player, and
+--   set the rebid flag.
 mkBid :: Game -> Bid -> Game
 mkBid game b = nextPlayer
              $ game & bidder .~ p
@@ -95,7 +102,7 @@ nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
 legal :: Game -> Action -> Int -> Bool
 legal game action pId = case action of
   Join _ _  -> not (game ^. inProgress)
-  New _ _   -> not (game ^. inProgress)
+  New  _ _  -> not (game ^. inProgress)
   Deal      -> not (game ^. inProgress)
   -- You can't raise a rebid, if you are the bidder and rebid is True
   -- it is illegal to bid again.
@@ -115,14 +122,14 @@ legal game action pId = case action of
 bonus :: Game -> Int
 bonus game = sixes * mult
   where
-    Bid c n    = game ^. bid
-    mult       = if n < numPlayers + 3 then 1 else 2 + (n - numPlayers - 3) `div` 2
-    sixes      = if c == 6 then 2 else 1
+    Bid r q    = game ^. bid
+    mult       = iF (q < numPlayers + 3) 1 (2 + (q - numPlayers - 3) `div` 2)
+    sixes      = iF (r == 6) 2 1
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game -> Hands -> Int
-hero game hands = if q == 0 && countRank hands bc > 0 then 1 else 0
+hero game hands = iF (q == 0 && countRank hands bc > 0) 1 0
   where
     Just bdr = game ^. bidder
     q = fromMaybe 0 $ lookup bc =<< hands !? bdr
@@ -132,27 +139,32 @@ hero game hands = if q == 0 && countRank hands bc > 0 then 1 else 0
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
 scoreGame :: Game -> Hands -> Game
-scoreGame game hands = game & players %~ imap reScore
-                            & baseStake .~ (if h == 1 then 2 else bns)
+scoreGame game hands =
+  game & players   %~ imap (\i p -> over score (+ (iF (bdr == Just i) b a)) p)
+       & baseStake .~ iF (h == 1) 2 bns
   where
-    reScore :: Int -> Player -> Player
-    reScore idx p
-      | game ^. bidder == Just idx = over score (+ x) p
-      | otherwise                  = over score (+ a) p
+    bdr    = game ^. bidder
+    (a, b) =
+      maybe (0, 0)
+            (\w -> iF w (-winStake, winB) (lossStake, -lossB))
+            (game ^. won)
 
-    (a, x)    = maybe (0, 0)
-                      (\w -> if w then (-winStake, winB) else (lossStake, -lossB))
-                      (game ^. won)
-    cnt       = countRank hands (game ^. bid . bidRank)
-    -- The n+3 rule.
-    bns       = bonus game
-    -- The skunk rule.
-    mult      = if cnt == 0 then max 1 (2 * numOfPlayers game - 6) else bns
-    -- The hero bump.
-    h         = hero game hands
-    -- The score for non bidders.
+    -- The n+3 and sixes rules
+    bns = bonus game
+
+    -- The skunk rule
+    mult =
+      iF (countRank hands (game ^. bid . bidRank) == 0)
+         (max 1 (2 * numOfPlayers game - 6))
+         bns
+
+    -- The hero bump
+    h = hero game hands
+
+    -- The score for non bidders
     winStake  = (mult + h) * game ^. baseStake
     lossStake = game ^. baseStake
+
     -- The score for the bidder
-    winB      = winStake * (numOfPlayers game - 1)
-    lossB     = lossStake * (numOfPlayers game - 1)
+    winB  = winStake  * (numOfPlayers game - 1)
+    lossB = lossStake * (numOfPlayers game - 1)

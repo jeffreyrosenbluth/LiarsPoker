@@ -10018,10 +10018,27 @@
 		function (a, b, c, d, e) {
 			return {wsIncoming: a, players: b, gameInfo: c, gamePlay: d, signIn: e};
 		});
-	var _jeffreyrosenbluth$liarspoker$Model$Game = F9(
-		function (a, b, c, d, e, f, g, h, i) {
-			return {players: a, bidder: b, bid: c, turn: d, won: e, rebid: f, inProgress: g, baseStake: h, gameId: i};
-		});
+	var _jeffreyrosenbluth$liarspoker$Model$Game = function (a) {
+		return function (b) {
+			return function (c) {
+				return function (d) {
+					return function (e) {
+						return function (f) {
+							return function (g) {
+								return function (h) {
+									return function (i) {
+										return function (j) {
+											return {players: a, bidder: b, bid: c, turn: d, won: e, rebid: f, inProgress: g, baseStake: h, gameId: i, numPlyrs: j};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
 	var _jeffreyrosenbluth$liarspoker$Model$gameDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 		A2(
@@ -10040,21 +10057,24 @@
 									_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 									A2(
 										_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-										_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$Game),
 										A2(
-											_elm_lang$core$Json_Decode_ops[':='],
-											'_players',
-											_elm_lang$core$Json_Decode$array(_jeffreyrosenbluth$liarspoker$Types$playerDecoder))),
-									_elm_lang$core$Json_Decode$maybe(
-										A2(_elm_lang$core$Json_Decode_ops[':='], '_bidder', _elm_lang$core$Json_Decode$int))),
-								A2(_elm_lang$core$Json_Decode_ops[':='], '_bid', _jeffreyrosenbluth$liarspoker$Types$bidDecoder)),
-							A2(_elm_lang$core$Json_Decode_ops[':='], '_turn', _elm_lang$core$Json_Decode$int)),
-						_elm_lang$core$Json_Decode$maybe(
-							A2(_elm_lang$core$Json_Decode_ops[':='], '_won', _elm_lang$core$Json_Decode$bool))),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_rebid', _elm_lang$core$Json_Decode$bool)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_inProgress', _elm_lang$core$Json_Decode$bool)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_baseStake', _elm_lang$core$Json_Decode$int)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_gameId', _elm_lang$core$Json_Decode$int));
+											_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+											_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$Game),
+											A2(
+												_elm_lang$core$Json_Decode_ops[':='],
+												'_players',
+												_elm_lang$core$Json_Decode$array(_jeffreyrosenbluth$liarspoker$Types$playerDecoder))),
+										_elm_lang$core$Json_Decode$maybe(
+											A2(_elm_lang$core$Json_Decode_ops[':='], '_bidder', _elm_lang$core$Json_Decode$int))),
+									A2(_elm_lang$core$Json_Decode_ops[':='], '_bid', _jeffreyrosenbluth$liarspoker$Types$bidDecoder)),
+								A2(_elm_lang$core$Json_Decode_ops[':='], '_turn', _elm_lang$core$Json_Decode$int)),
+							_elm_lang$core$Json_Decode$maybe(
+								A2(_elm_lang$core$Json_Decode_ops[':='], '_won', _elm_lang$core$Json_Decode$bool))),
+						A2(_elm_lang$core$Json_Decode_ops[':='], '_rebid', _elm_lang$core$Json_Decode$bool)),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_inProgress', _elm_lang$core$Json_Decode$bool)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_baseStake', _elm_lang$core$Json_Decode$int)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_gameId', _elm_lang$core$Json_Decode$int)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_numPlyrs', _elm_lang$core$Json_Decode$int));
 	var _jeffreyrosenbluth$liarspoker$Model$PrevGame = F4(
 		function (a, b, c, d) {
 			return {pgBidder: a, pgBid: b, pgCount: c, pgMe: d};
@@ -10104,9 +10124,7 @@
 				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
 			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$Model$prevGameDecoder)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPlyrId', _elm_lang$core$Json_Decode$int));
-	var _jeffreyrosenbluth$liarspoker$Model$None = function (a) {
-		return {ctor: 'None', _0: a};
-	};
+	var _jeffreyrosenbluth$liarspoker$Model$None = {ctor: 'None'};
 	var _jeffreyrosenbluth$liarspoker$Model$SignIn = function (a) {
 		return {ctor: 'SignIn', _0: a};
 	};
@@ -10168,25 +10186,25 @@
 				},
 				A2(_elm_lang$core$Array$get, c.cmGame.turn, c.cmGame.players)));
 	};
-	var _jeffreyrosenbluth$liarspoker$Update$updateModel = F2(
-		function (model, pm) {
+	var _jeffreyrosenbluth$liarspoker$Update$updateCM = F2(
+		function (cMsg, model) {
 			var r = model.gamePlay.rank;
 			var q = model.gamePlay.quant;
 			return _elm_lang$core$Native_Utils.update(
 				model,
 				{
-					wsIncoming: _jeffreyrosenbluth$liarspoker$Model$JsonMsg(pm),
+					wsIncoming: _jeffreyrosenbluth$liarspoker$Model$JsonMsg(cMsg),
 					gameInfo: {
-						name: pm.cmName,
-						turn: _jeffreyrosenbluth$liarspoker$Update$turn(pm),
-						bidder: _jeffreyrosenbluth$liarspoker$Update$bidder(pm),
-						baseStake: pm.cmGame.baseStake,
-						multiple: pm.cmMultiple,
-						bid: pm.cmGame.bid,
-						hand: pm.cmHand
+						name: cMsg.cmName,
+						turn: _jeffreyrosenbluth$liarspoker$Update$turn(cMsg),
+						bidder: _jeffreyrosenbluth$liarspoker$Update$bidder(cMsg),
+						baseStake: cMsg.cmGame.baseStake,
+						multiple: cMsg.cmMultiple,
+						bid: cMsg.cmGame.bid,
+						hand: cMsg.cmHand
 					},
-					players: {players: pm.cmGame.players, bidder: pm.cmGame.bidder, turn: pm.cmGame.turn},
-					gamePlay: {quant: q, rank: r, buttons: pm.cmButtons, bid: pm.cmGame.bid}
+					players: {players: cMsg.cmGame.players, bidder: cMsg.cmGame.bidder, turn: cMsg.cmGame.turn},
+					gamePlay: {quant: q, rank: r, buttons: cMsg.cmButtons, bid: cMsg.cmGame.bid}
 				});
 		});
 	var _jeffreyrosenbluth$liarspoker$Update$update = F2(
@@ -10228,7 +10246,7 @@
 						if (_p3.ctor === 'Ok') {
 							return {
 								ctor: '_Tuple2',
-								_0: A2(_jeffreyrosenbluth$liarspoker$Update$updateModel, model, _p3._0),
+								_0: A2(_jeffreyrosenbluth$liarspoker$Update$updateCM, _p3._0, model),
 								_1: _elm_lang$core$Platform_Cmd$none
 							};
 						} else {
