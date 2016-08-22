@@ -13,6 +13,7 @@ import Maybe as M exposing (withDefault)
 import Html exposing (..)
 import Html.App as App
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 
 
 view : Model -> Html Msg
@@ -37,11 +38,11 @@ mainView m c =
         [ class "flex flex-column m2 border border-box"
         , style [ ( "max-width", "40rem" ) ]
         ]
-        [ App.map None (GameInfo.view m.gameInfo)
-        , App.map None (PlayerList.view m.players)
+        [ GameInfo.view m.gameInfo
+        , PlayerList.view m.players
         , App.map GamePlay (GamePlay.view m.gamePlay)
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
-        , previousHandView c
+        , previousHandView m c
         , if c.cmHand == "" then
             waitingView c
           else
@@ -64,8 +65,8 @@ waitingView c =
         ]
 
 
-previousHandView : ClientMsg -> Html Msg
-previousHandView c =
+previousHandView : Model -> ClientMsg -> Html Msg
+previousHandView m c =
     let
         nm =
             c.cmPrevGame.pgBidder
@@ -87,22 +88,33 @@ previousHandView c =
                 "won"
             else
                 "lost"
+
+        visible =
+            if m.gamePlay.preResult then
+                "inherit"
+            else
+                "none"
     in
-        div [ class "m1 center italic blue" ]
-            [ text
-                <| if nm == "" then
-                    ""
-                   else
-                    nm
-                        ++ " "
-                        ++ result
-                        ++ " with a bid of "
-                        ++ bd
-                        ++ ". ◆ You had "
-                        ++ you
-                        ++ ". ◆ There were "
-                        ++ total
-                        ++ " total."
+        div [ class "flex flex-column white bg-blue"
+            , style [ ("z-index", "1")
+                    , ("position", "fixed")
+                    , ("top", "15%")
+                    , ("display", visible)
+                    , ("height", "30%")
+                    , ("width", "40rem")
+                    ]
+            ]
+            [ p [class "m2 h3"]
+                [ text <| nm ++ " " ++ result ++ " with a bid of " ++ bd ]
+            , p [class "ml2 h3"]
+                [ text <| "You had " ++ you ]
+            , p [class "ml2 h3"]
+                [ text <| "There were " ++ total ++ " total" ]
+            , button
+                [ class "btn btn-outline bg-red h6 right m1"
+                , onClick <| GamePlay <| GamePlay.PreResult False
+                ]
+                [ text "X"]
             ]
 
 

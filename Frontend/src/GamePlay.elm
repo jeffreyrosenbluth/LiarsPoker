@@ -13,6 +13,7 @@ type alias Model =
     , rank : Int
     , buttons : BtnFlags
     , bid : Bid
+    , preResult : Bool
     }
 
 
@@ -20,6 +21,7 @@ type Msg
     = RaiseQuant Int
     | RaiseRank Int
     | Outgoing String
+    | PreResult Bool
 
 
 init : Model
@@ -32,6 +34,7 @@ init =
         , bfCount = False
         }
     , bid = Bid 0 0
+    , preResult = False
     }
 
 
@@ -45,7 +48,10 @@ update msg model =
             ( { model | rank = r }, Cmd.none )
 
         Outgoing s ->
-            ( model, WebSocket.send wsURL s )
+            ( { model | preResult = s == "count" }, WebSocket.send wsURL s)
+
+        PreResult b ->
+            ( { model | preResult = b }, Cmd.none)
 
 
 view : Model -> Html Msg
