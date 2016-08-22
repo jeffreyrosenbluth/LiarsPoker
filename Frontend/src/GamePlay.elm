@@ -143,9 +143,9 @@ playView model =
             , onClick
                 <| Outgoing
                 <| "bid "
-                ++ toString model.quant
-                ++ " "
-                ++ toString model.rank
+                        ++ toString model.quant
+                        ++ " "
+                        ++ toString model.rank
             , disabled <| not model.buttons.bfRaise || not (higher model)
             ]
             [ text "Raise" ]

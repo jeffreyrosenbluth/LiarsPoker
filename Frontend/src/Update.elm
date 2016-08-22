@@ -52,7 +52,7 @@ update msg model =
                 ( si, cmd ) =
                     SignIn.update m model.signIn
             in
-                ( Model model.wsIncoming model.players model.gameInfo model.gamePlay  si
+                ( Model model.wsIncoming model.players model.gameInfo model.gamePlay si
                 , Cmd.map SignIn cmd
                 )
 
