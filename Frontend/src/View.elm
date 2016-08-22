@@ -111,7 +111,7 @@ previousHandView m c =
             , p [class "ml2 h3"]
                 [ text <| "There were " ++ total ++ " total" ]
             , button
-                [ class "btn btn-outline bg-red h6 right m1"
+                [ class "btn btn-outline black h6 right m1 ml4 mr4"
                 , onClick <| GamePlay <| GamePlay.PreResult False
                 ]
                 [ text "X"]
