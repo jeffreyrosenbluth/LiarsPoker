@@ -4,6 +4,7 @@ import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput, onClick)
+import String exposing (toInt)
 import WebSocket
 
 
@@ -59,9 +60,19 @@ view model =
 quantEntryView : Model -> Html Msg
 quantEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray" ] [ text "Quantity" ]
+        [ div [ class "h2 ml4 p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Quantity" ]
         , div [ class "flex-auto" ] []
-        , div [ class "h2 p1" ] [ text <| toString model.quant ]
+        , input
+            [ Html.Attributes.value (toString model.quant)
+            , onInput
+                <| toInt
+                >> Result.toMaybe
+                >> Maybe.withDefault 0
+                >> Basics.max 0
+                >> RaiseQuant
+            , class "h2 m1 center border-none field"
+            ]
+            []
         , div [ class "flex-auto" ] []
         , button
             [ class "btn btn-outline m1 h6"
@@ -78,7 +89,7 @@ quantEntryView model =
 
 constrainRank : Int -> Int
 constrainRank n =
-    if n == 10 then
+    if n >= 10 then
         0
     else if n < 0 then
         9
@@ -89,9 +100,19 @@ constrainRank n =
 rankEntryView : Model -> Html Msg
 rankEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray" ] [ text "Rank" ]
+        [ div [ class "h2 ml4 p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Rank" ]
         , div [ class "flex-auto" ] []
-        , div [ class "h2 p1 ml3" ] [ text <| toString model.rank ]
+        , input
+            [ Html.Attributes.value (toString model.rank)
+            , onInput
+                <| toInt
+                >> Result.toMaybe
+                >> Maybe.withDefault 0
+                >> constrainRank
+                >> RaiseRank
+            , class "h2 m1 center border-none field"
+            ]
+            []
         , div [ class "flex-auto" ] []
         , button
             [ class "btn btn-outline m1 h6"

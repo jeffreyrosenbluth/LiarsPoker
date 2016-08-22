@@ -8661,7 +8661,7 @@
 			function (x, y) {
 				return x(y);
 			}));
-	var _jeffreyrosenbluth$liarspoker$Types$wsURL = 'wss://liarspoker.herokuapp.com';
+	var _jeffreyrosenbluth$liarspoker$Types$wsURL = 'ws://localhost:9160/';
 	var _jeffreyrosenbluth$liarspoker$Types$Bid = F2(
 		function (a, b) {
 			return {bidRank: a, bidQuant: b};
@@ -9285,6 +9285,26 @@
 							_elm_lang$html$Html$text(
 							_elm_lang$core$Basics$toString(model.rank))
 						])),
+					A2(
+					_elm_lang$html$Html$input,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$value(
+							_elm_lang$core$Basics$toString(model.rank)),
+							_elm_lang$html$Html_Events$onInput(
+							function (_p1) {
+								return _jeffreyrosenbluth$liarspoker$GamePlay$RaiseRank(
+									_jeffreyrosenbluth$liarspoker$GamePlay$constrainRank(
+										A2(
+											_elm_lang$core$Maybe$withDefault,
+											0,
+											_elm_lang$core$Result$toMaybe(
+												_elm_lang$core$String$toInt(_p1)))));
+							}),
+							_elm_lang$html$Html_Attributes$class('h2 p1 center')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[])),
 					A2(
 					_elm_lang$html$Html$div,
 					_elm_lang$core$Native_List.fromArray(

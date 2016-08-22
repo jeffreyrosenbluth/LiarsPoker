@@ -11,7 +11,7 @@ Todo
 
 - [X] Use wss instead of ws.
 - [ ] Use https instead of http.
-- [ ] Make it responsive.
+- [X] Make it responsive.
 - [ ] Add a quit game button.
 - [ ] Handle closing of tabs or browser.
 - [X] Highlight player with turn.
