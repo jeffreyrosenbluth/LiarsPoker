@@ -95,26 +95,28 @@ previousHandView m c =
             else
                 "none"
     in
-        div [ class "flex flex-column white bg-blue"
-            , style [ ("z-index", "1")
-                    , ("position", "fixed")
-                    , ("top", "15%")
-                    , ("display", visible)
-                    , ("height", "30%")
-                    , ("width", "40rem")
-                    ]
+        div
+            [ class "flex flex-column white bg-black"
+            , style
+                [ ( "z-index", "1" )
+                , ( "position", "fixed" )
+                , ( "top", "15%" )
+                , ( "display", visible )
+                , ( "height", "20rem" )
+                , ( "width", "40rem" )
+                ]
             ]
-            [ p [class "m2 h3"]
+            [ p [ class "m2 h3" ]
                 [ text <| nm ++ " " ++ result ++ " with a bid of " ++ bd ]
-            , p [class "ml2 h3"]
+            , p [ class "ml2 h3" ]
                 [ text <| "You had " ++ you ]
-            , p [class "ml2 h3"]
+            , p [ class "ml2 h3" ]
                 [ text <| "There were " ++ total ++ " total" ]
             , button
-                [ class "btn btn-outline black h6 right m1 ml4 mr4"
+                [ class "btn btn-outline white h6 right m1 ml4 mr4"
                 , onClick <| GamePlay <| GamePlay.PreResult False
                 ]
-                [ text "X"]
+                [ text "X" ]
             ]
 
 
