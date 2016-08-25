@@ -48,10 +48,10 @@ update msg model =
             ( { model | rank = r }, Cmd.none )
 
         Outgoing s ->
-            ( { model | preResult = s == "count" }, WebSocket.send wsURL s)
+            ( { model | preResult = s == "count" }, WebSocket.send wsURL s )
 
         PreResult b ->
-            ( { model | preResult = b }, Cmd.none)
+            ( { model | preResult = b }, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -66,7 +66,7 @@ view model =
 quantEntryView : Model -> Html Msg
 quantEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Quantity" ]
+        [ div [ class "h2 flex-auto p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Quantity" ]
         , div [ class "flex-auto" ] []
         , input
             [ Html.Attributes.value (toString model.quant)
@@ -76,20 +76,12 @@ quantEntryView model =
                 >> Maybe.withDefault 0
                 >> Basics.max 0
                 >> RaiseQuant
-            , class "h2 m1 center border-none field"
+            , class "m1 center field"
+            , type' "number"
+            , style [ ( "font-size", "120%" ) ]
             ]
             []
         , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-outline m1 h6"
-            , onClick (RaiseQuant <| Basics.max 0 (model.quant - 1))
-            ]
-            [ i [ class "fa fa-minus" ] [] ]
-        , button
-            [ class "btn btn-outline mt1 mb1 mr4 h6"
-            , onClick (RaiseQuant <| model.quant + 1)
-            ]
-            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
@@ -106,7 +98,7 @@ constrainRank n =
 rankEntryView : Model -> Html Msg
 rankEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 ml4 p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Rank" ]
+        [ div [ class "h2 flex-auto p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Rank" ]
         , div [ class "flex-auto" ] []
         , input
             [ Html.Attributes.value (toString model.rank)
@@ -116,20 +108,12 @@ rankEntryView model =
                 >> Maybe.withDefault 0
                 >> constrainRank
                 >> RaiseRank
-            , class "h2 m1 center border-none field"
+            , class "h2 m1 center field"
+            , type' "number"
+            , style [ ( "font-size", "120%" ) ]
             ]
             []
         , div [ class "flex-auto" ] []
-        , button
-            [ class "btn btn-outline m1 h6"
-            , onClick <| RaiseRank <| constrainRank <| model.rank - 1
-            ]
-            [ i [ class "fa fa-minus" ] [] ]
-        , button
-            [ class "btn btn-outline mt1 mb1 mr4 h6"
-            , onClick <| RaiseRank <| constrainRank <| model.rank + 1
-            ]
-            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
@@ -143,9 +127,9 @@ playView model =
             , onClick
                 <| Outgoing
                 <| "bid "
-                        ++ toString model.quant
-                        ++ " "
-                        ++ toString model.rank
+                ++ toString model.quant
+                ++ " "
+                ++ toString model.rank
             , disabled <| not model.buttons.bfRaise || not (higher model)
             ]
             [ text "Raise" ]

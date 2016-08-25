@@ -5,8 +5,11 @@ import Json.Decode exposing (..)
 
 wsURL : String
 wsURL =
-    -- "wss://liarspoker.herokuapp.com"
-    "ws://localhost:9160/"
+    "wss://liarspoker.herokuapp.com"
+
+
+
+-- "ws://localhost:9160/"
 
 
 (<*>) : Decoder (a -> b) -> Decoder a -> Decoder b

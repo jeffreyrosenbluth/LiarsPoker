@@ -91,19 +91,19 @@ previousHandView m c =
 
         visible =
             if m.gamePlay.preResult then
-                "inherit"
+                "inline-block"
             else
                 "none"
     in
         div
-            [ class "flex flex-column white bg-black"
+            [ class "white bg-gray m2"
             , style
                 [ ( "z-index", "1" )
                 , ( "position", "fixed" )
-                , ( "top", "15%" )
+                , ( "top", "10rem" )
                 , ( "display", visible )
                 , ( "height", "20rem" )
-                , ( "width", "40rem" )
+                , ( "max-width", "38em" )
                 ]
             ]
             [ p [ class "m2 h3" ]
