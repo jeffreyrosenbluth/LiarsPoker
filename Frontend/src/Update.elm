@@ -105,6 +105,7 @@ updateCM cMsg model =
                 , rank = r
                 , buttons = cMsg.cmButtons
                 , bid = cMsg.cmGame.bid
-                , preResult = model.gamePlay.preResult
+                , preResult =
+                    (cMsg.cmGame.bidder == Nothing) && cMsg.cmGame.inProgress
                 }
         }
