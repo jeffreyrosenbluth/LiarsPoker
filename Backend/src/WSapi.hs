@@ -44,15 +44,15 @@ type GameMap = IntMap (MVar ServerState)
 actionMsgs :: GameState -> PrevGame -> (GameState, [ClientMsg])
 actionMsgs gs prv = (gs, cm)
   where
-    cm = clientMsgs (gs ^. stGame) prv (gs ^. stHands) ""
+    cm = clientMsgs (gs ^. stGame) prv ""
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
-clientMsgs :: Game -> PrevGame -> Hands -> Text -> [ClientMsg]
-clientMsgs g prv hs err = setButtonFlags g $ map cm [0..(numOfPlayers g - 1)]
+clientMsgs :: Game V.Vector -> PrevGame -> Text -> [ClientMsg]
+clientMsgs g prv err = setButtonFlags g $ map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
       let Just nm = getPlayerName g p
-          h  = hs V.!? p
+          h  = (g ^. hands) V.!? p
       in  ClientMsg
             { _cmGame = g
             , _cmMultiple = bonus g
@@ -64,7 +64,7 @@ clientMsgs g prv hs err = setButtonFlags g $ map cm [0..(numOfPlayers g - 1)]
             , _cmPlyrId = p
             }
 
-setButtonFlags :: Game -> [ClientMsg] -> [ClientMsg]
+setButtonFlags :: Game f -> [ClientMsg] -> [ClientMsg]
 setButtonFlags g cs  =
   cs & singular (ix (g ^. turn))
      . cmButtons
@@ -152,11 +152,11 @@ new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
   let key     = if null gm then 0 else 1 + (maximum . keys $ gm)
       g       = addPlayer (newGame key nPlyrs) nm
-      gmState = GameState g V.empty r
+      gmState = GameState g r
       prv     = PrevGame "" (Bid 0 0) 0 V.empty
   gs <- newMVar (gmState, prv, [conn])
   putMVar gmRef (insert key gs gm)
-  broadcast [conn] (encodeCMs $ clientMsgs g prv V.empty "")
+  broadcast [conn] (encodeCMs $ clientMsgs g prv "")
   handle conn gs 0
 
 joinGame :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
@@ -165,20 +165,20 @@ joinGame gmRef conn nm gId = do
   -- Only try to joinGame if the 'gameId' is in the 'GameMap'
   when (member gId gm) $ do
     let gmState = gm ! gId
-    (GameState g hs r, prv, cs) <- takeMVar gmState
+    (GameState g r, prv, cs) <- takeMVar gmState
     let pId = numOfPlayers g
         g'  = addPlayer g nm
         cs' = cs ++ [conn]
     if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
-           let (gs, cm) = actionMsgs (deal (GameState g' V.empty r)) prv
+           let (gs, cm) = actionMsgs (deal (GameState g' r)) prv
            putMVar gmState (gs, prv, cs')
            broadcast cs' (encodeCMs cm)
            handle conn gmState pId
        | V.length (g ^. players) < g ^. numPlyrs -> do
-           putMVar gmState (GameState g' V.empty r, prv, cs')
-           broadcast cs' (encodeCMs $ clientMsgs g' prv V.empty "")
+           putMVar gmState (GameState g' r, prv, cs')
+           broadcast cs' (encodeCMs $ clientMsgs g' prv "")
            handle conn gmState pId
-       | otherwise -> putMVar gmState (GameState g hs r, prv, cs)
+       | otherwise -> putMVar gmState (GameState g r, prv, cs)
 
 handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
 handle conn gmState pId = forever $ do
@@ -196,12 +196,12 @@ handle conn gmState pId = forever $ do
             Count     -> uncurry actionMsgs $ count gs
             Say _     -> error "Not implemented yet"
             Invalid m -> error (T.unpack m)
-        else (gs, clientMsgs (gs ^. stGame) prv (gs ^. stHands) (T.pack $ show action))
+        else (gs, clientMsgs (gs ^. stGame) prv (T.pack $ show action))
   swapMVar gmState (newGS, prv, cs)
   broadcast cs (encodeCMs cm)
 
 deal :: GameState -> GameState
-deal (GameState g _ r) = GameState g' hs r''
+deal (GameState g r) = GameState (g' & hands .~ hs) r''
     where
       (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                   $ getRandomR (0, 9)) r
@@ -210,13 +210,13 @@ deal (GameState g _ r) = GameState g' hs r''
       hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
 
 count :: GameState -> (GameState, PrevGame)
-count gs@(GameState g hs _) = (deal (gs & stGame .~ g'), prv)
+count gs@(GameState g _) = (deal (gs & stGame .~ g'), prv)
   where
-    cnt    = countRank hs card
+    cnt    = countRank (g ^. hands) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
-    g'     = scoreGame (g & won .~ Just result & inProgress .~ False) hs
+    g'     = scoreGame (g & won .~ Just result & inProgress .~ False)
     prv    = PrevGame bdr b cnt (V.fromList $ map me [0..(numOfPlayers g - 1)])
     bdr    = getBidderName g
     b      = g ^. bid
     card   = b ^. bidRank
-    me p   = getCount card (hs V.! p)
+    me p   = getCount card ((g ^. hands) V.! p)

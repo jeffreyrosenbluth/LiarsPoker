@@ -32,7 +32,7 @@ numOfPlayers g = length $ g ^. players
 
 -- | Total number of Rank in the game.
 countRank :: Hands -> Rank -> Int
-countRank hands rank = sum $ getCount rank <$> hands
+countRank hs rank = sum $ getCount rank <$> hs
 
 getCount :: Rank -> Hand -> Int
 getCount rank h = fromMaybe 0 (lookup rank h)
@@ -63,7 +63,7 @@ getBidderName g =
 
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game Vector
-newGame = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1 mempty
+newGame i n = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1 i n mempty
 
 resetGame :: Int -> Game f -> Game f
 resetGame n g = g & bidder .~ Nothing
@@ -72,7 +72,6 @@ resetGame n g = g & bidder .~ Nothing
                 & won .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
-                & mempty
 
 addPlayer :: Game f -> Text -> Game f
 addPlayer game nm = game & players %~ flip snoc player
@@ -129,8 +128,8 @@ bonus game = sixes * mult
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
-hero :: Game f -> Int
-hero game hands = iF (q == 0 && countRank hands bc > 0) 1 0
+hero :: Game Vector -> Int
+hero game = iF (q == 0 && countRank (game ^. hands) bc > 0) 1 0
   where
     Just bdr = game ^. bidder
     q = fromMaybe 0 $ lookup bc =<< (game ^. hands) !? bdr
