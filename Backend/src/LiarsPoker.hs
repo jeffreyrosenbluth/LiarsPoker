@@ -16,7 +16,7 @@ import           Data.List    (intersperse)
 import           Data.Map     (insertWith, foldrWithKey, lookup)
 import           Data.Maybe
 import           Data.Text    (Text)
-import           Data.Vector  ((!?), snoc, imap, length)
+import           Data.Vector  (Vector, (!?), snoc, imap, length)
 import           Prelude      hiding (length, lookup)
 
 -- | if-then-else sugar.
@@ -27,7 +27,7 @@ iF False _ f = f
 cardsPerHand :: Int
 cardsPerHand = 8
 
-numOfPlayers :: Game -> Int
+numOfPlayers :: Game f -> Int
 numOfPlayers g = length $ g ^. players
 
 -- | Total number of Rank in the game.
@@ -38,7 +38,7 @@ getCount :: Rank -> Hand -> Int
 getCount rank h = fromMaybe 0 (lookup rank h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
-getPlayerName :: Game -> Int -> Maybe Text
+getPlayerName :: Game f -> Int -> Maybe Text
 getPlayerName game pId = game ^? players . ix pId . name
 
 toHand :: [Int] -> Hand
@@ -55,25 +55,26 @@ displayHand h = intersperse ' ' $ foldrWithKey f "" h
   where
     f k a b = replicate a (firstDigit k) ++ b
 
-getBidderName :: Game -> Text
+getBidderName :: Game f -> Text
 getBidderName g =
   maybe "Nobody"
         (\i -> g ^. players . ix i . name)
         (g ^. bidder)
 
 -- | Create a new game from a gameId and a number of invited players.
-newGame :: Int -> Int -> Game
-newGame = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1
+newGame :: Int -> Int -> Game Vector
+newGame = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1 mempty
 
-resetGame :: Int -> Game -> Game
+resetGame :: Int -> Game f -> Game f
 resetGame n g = g & bidder .~ Nothing
                 & bid .~ Bid 0 0
                 & turn .~ fromMaybe (n `mod` numOfPlayers g) (g ^. bidder)
                 & won .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
+                & mempty
 
-addPlayer :: Game -> Text -> Game
+addPlayer :: Game f -> Text -> Game f
 addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
@@ -81,7 +82,7 @@ addPlayer game nm = game & players %~ flip snoc player
 
 -- | Change bid to (Bid Rank Int), update the turn to the next player, and
 --   set the rebid flag.
-mkBid :: Game -> Bid -> Game
+mkBid :: Game f -> Bid -> Game f
 mkBid game b = nextPlayer
              $ game & bidder .~ p
                     & bid    .~ b
@@ -93,13 +94,13 @@ mkBid game b = nextPlayer
     r = game ^. bidder == Just (game ^. turn)
 
 -- | Move the turn to the next player.
-nextPlayer :: Game -> Game
+nextPlayer :: Game f -> Game f
 nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
     numPlayers = numOfPlayers game
 
 -- | Is this 'Action' legal to take from the current game state?
-legal :: Game -> Action -> Int -> Bool
+legal :: Game f -> Action -> Int -> Bool
 legal game action pId = case action of
   Join _ _  -> not (game ^. inProgress)
   New  _ _  -> not (game ^. inProgress)
@@ -119,7 +120,7 @@ legal game action pId = case action of
 
 -- | If the game is over (.i.e. game ^. won = Just _) then return
 --   the bonus multiplier. Both the n+3 rule and the Sixes rule.
-bonus :: Game -> Int
+bonus :: Game f -> Int
 bonus game = sixes * mult
   where
     Bid r q    = game ^. bid
@@ -128,18 +129,18 @@ bonus game = sixes * mult
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
-hero :: Game -> Hands -> Int
+hero :: Game f -> Int
 hero game hands = iF (q == 0 && countRank hands bc > 0) 1 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ lookup bc =<< hands !? bdr
+    q = fromMaybe 0 $ lookup bc =<< (game ^. hands) !? bdr
     bc = game ^. bid ^. bidRank
 
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
-scoreGame :: Game -> Hands -> Game
-scoreGame game hands =
+scoreGame :: Game Vector -> Game Vector
+scoreGame game =
   game & players   %~ imap (\i p -> over score (+ (iF (bdr == Just i) b a)) p)
        & baseStake .~ iF (h == 1) 2 bns
   where
@@ -154,12 +155,12 @@ scoreGame game hands =
 
     -- The skunk rule
     mult =
-      iF (countRank hands (game ^. bid . bidRank) == 0)
+      iF (countRank (game ^. hands) (game ^. bid . bidRank) == 0)
          (max 1 (2 * numOfPlayers game - 6))
          bns
 
     -- The hero bump
-    h = hero game hands
+    h = hero game
 
     -- The score for non bidders
     winStake  = (mult + h) * game ^. baseStake
