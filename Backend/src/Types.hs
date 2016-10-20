@@ -43,6 +43,7 @@ data Bid = Bid
   { _bidRank  :: !Rank
   , _bidQuant :: !Int
   } deriving (Eq, Generic, Show)
+makeLenses ''Bid
 
 instance ToJSON Bid
 instance FromJSON Bid
@@ -52,12 +53,21 @@ instance Ord Bid where
     where
       f j = if j == 0 then 10 else j
 
-makeLenses ''Bid
+data Flags = Flags
+  { _raiseFlag :: !Bool
+  , _chalFlag  :: !Bool
+  , _countFlag :: !Bool
+  } deriving (Show, Generic, Eq)
+makeLenses ''Flags
+
+instance ToJSON Flags
+instance FromJSON Flags
 
 data Player = Player
   { _playerId :: !Int
   , _name     :: !Text
   , _score    :: !Int
+  , _flags    :: !Flags
   } deriving (Show, Eq, Generic)
 makeLenses ''Player
 
@@ -76,6 +86,7 @@ data Game f = Game
   , _gameId     :: !Int
   , _numPlyrs   :: !Int
   , _hands      :: f Hand
+  , _multiple   :: !Int
   } deriving (Generic)
 makeLenses ''Game
 
@@ -84,7 +95,6 @@ instance FromJSON (Game Identity)
 
 instance ToJSON (Game Vector)
 instance FromJSON (Game Vector)
-
 
 data Action
   = Join !Text !Int
@@ -114,37 +124,8 @@ data GameState = GameState
 
 makeLenses ''GameState
 
-data BtnFlags = BtnFlags
-  { _bfRaise     :: !Bool
-  , _bfChallenge :: !Bool
-  , _bfCount     :: !Bool
-  } deriving (Show, Generic)
-
-instance ToJSON BtnFlags
-instance FromJSON BtnFlags
-
-makeLenses ''BtnFlags
-
-data PrevGame = PrevGame
-  { _pgBidder :: !Text
-  , _pgBid    :: !Bid
-  , _pgCount  :: !Int
-  , _pgMe     :: !(Vector Int)
-  } deriving (Show, Generic)
-
-instance ToJSON PrevGame
-instance FromJSON PrevGame
-
-makeLenses ''PrevGame
-
 data ClientMsg = ClientMsg
-  { _cmGame     :: Game Vector
-  , _cmHand     :: !Text
-  , _cmError    :: !Text
-  , _cmMultiple :: !Int
-  , _cmButtons  :: !BtnFlags
-  , _cmName     :: !Text
-  , _cmPrevGame :: !PrevGame
+  { _cmGame     :: Game Identity
   , _cmPlyrId   :: !Int
   } deriving (Generic)
 

@@ -63,7 +63,18 @@ getBidderName g =
 
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game Vector
-newGame i n = Game mempty Nothing (Bid 0 0) 0 Nothing False False 1 i n mempty
+newGame i n = Game mempty
+                   Nothing
+                   (Bid 0 0)
+                   0
+                   Nothing
+                   False
+                   False
+                   1
+                   i
+                   n
+                   mempty
+                   1
 
 resetGame :: Int -> Game f -> Game f
 resetGame n g = g & bidder .~ Nothing
@@ -77,7 +88,7 @@ addPlayer :: Game f -> Text -> Game f
 addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
-    player = Player pId nm 0
+    player = Player pId nm 0 (Flags False False False)
 
 -- | Change bid to (Bid Rank Int), update the turn to the next player, and
 --   set the rebid flag.
