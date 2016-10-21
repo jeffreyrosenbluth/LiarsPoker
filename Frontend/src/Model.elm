@@ -94,6 +94,8 @@ type alias Game =
     , baseStake : Int
     , gameId : Int
     , numPlyrs : Int
+    , hands : String
+    , multiple : Int
     }
 
 
@@ -110,37 +112,14 @@ gameDecoder =
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
         <*> ("_numPlyrs" := int)
-
-
-{-| Matches the PrevGame data type from the server to show results after a count.
--}
-type alias PrevGame =
-    { pgBidder : String
-    , pgBid : Bid
-    , pgCount : Int
-    , pgMe : Array Int
-    }
-
-
-prevGameDecoder : Decoder PrevGame
-prevGameDecoder =
-    succeed PrevGame
-        <*> ("_pgBidder" := string)
-        <*> ("_pgBid" := bidDecoder)
-        <*> ("_pgCount" := int)
-        <*> ("_pgMe" := array int)
+        <*> ("_hands" := string)
+        <*> ("_multiple" := int)
 
 
 {-| We parse a serialized JSON string from the server into a ClientMsg.
 -}
 type alias ClientMsg =
     { cmGame : Game
-    , cmHand : String
-    , cmError : String
-    , cmMultiple : Int
-    , cmButtons : BtnFlags
-    , cmName : String
-    , cmPrevGame : PrevGame
     , cmPlyrId : Int
     }
 
@@ -149,12 +128,6 @@ clientMsgDecoder : Decoder ClientMsg
 clientMsgDecoder =
     succeed ClientMsg
         <*> ("_cmGame" := gameDecoder)
-        <*> ("_cmHand" := string)
-        <*> ("_cmError" := string)
-        <*> ("_cmMultiple" := int)
-        <*> ("_cmButtons" := btnFlagsDecoder)
-        <*> ("_cmName" := string)
-        <*> ("_cmPrevGame" := prevGameDecoder)
         <*> ("_cmPlyrId" := int)
 
 

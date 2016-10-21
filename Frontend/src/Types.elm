@@ -27,10 +27,26 @@ bidDecoder =
         <*> ("_bidQuant" := int)
 
 
+type alias Flags =
+    { raiseFlag : Bool
+    , chalFlag : Bool
+    , countFlag : Bool
+    }
+
+
+flagsDecoder : Decoder Flags
+flagsDecoder =
+    succeed Flags
+        <*> ("_raiseFlag" := bool)
+        <*> ("_chalFlag" := bool)
+        <*> ("_countFlag" := bool)
+
+
 type alias Player =
     { playerId : Int
     , name : String
     , score : Int
+    , flags : Flags
     }
 
 
@@ -40,18 +56,4 @@ playerDecoder =
         <*> ("_playerId" := int)
         <*> ("_name" := string)
         <*> ("_score" := int)
-
-
-type alias BtnFlags =
-    { bfRaise : Bool
-    , bfChallenge : Bool
-    , bfCount : Bool
-    }
-
-
-btnFlagsDecoder : Decoder BtnFlags
-btnFlagsDecoder =
-    succeed BtnFlags
-        <*> ("_bfRaise" := bool)
-        <*> ("_bfChallenge" := bool)
-        <*> ("_bfCount" := bool)
+        <*> ("_flags" := flagsDecoder)
