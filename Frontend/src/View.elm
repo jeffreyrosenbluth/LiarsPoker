@@ -96,7 +96,7 @@ previousHandView m c =
                 "none"
     in
         div
-            [ class "white bg-gray m2"
+            [ class "gray bg-white m2"
             , style
                 [ ( "z-index", "1" )
                 , ( "position", "fixed" )
@@ -104,6 +104,7 @@ previousHandView m c =
                 , ( "display", visible )
                 , ( "height", "20rem" )
                 , ( "max-width", "38em" )
+                , ( "color", "darkgreen" )
                 ]
             ]
             [ p [ class "m2 h3" ]
@@ -113,7 +114,7 @@ previousHandView m c =
             , p [ class "ml2 h3" ]
                 [ text <| "There were " ++ total ++ " total" ]
             , button
-                [ class "btn btn-outline white h6 right m1 ml4 mr4"
+                [ class "btn btn-primary bg-olive h6 right m1 ml4 mr4"
                 , onClick <| GamePlay <| GamePlay.PreResult False
                 ]
                 [ text "X" ]

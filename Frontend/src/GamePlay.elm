@@ -66,7 +66,8 @@ view model =
 quantEntryView : Model -> Html Msg
 quantEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 flex-auto p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Quantity" ]
+        [ div [ class "flex-auto" ] []
+        , div [ class "h2 flex-auto p1 gray" ] [ text "Quantity" ]
         , div [ class "flex-auto" ] []
         , input
             [ Html.Attributes.value (toString model.quant)
@@ -78,10 +79,20 @@ quantEntryView model =
                 >> RaiseQuant
             , class "m1 center field"
             , type' "number"
-            , style [ ( "font-size", "120%" ) ]
+            , style [ ( "font-size", "120%" ), ( "width", "4rem" ) ]
             ]
             []
         , div [ class "flex-auto" ] []
+        , button
+            [ class "btn btn-outline m1 h6"
+            , onClick (RaiseQuant <| Basics.max 0 (model.quant - 1))
+            ]
+            [ i [ class "fa fa-minus" ] [] ]
+        , button
+            [ class "btn btn-outline mt1 mb1 mr4 h6"
+            , onClick (RaiseQuant <| model.quant + 1)
+            ]
+            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
@@ -98,7 +109,8 @@ constrainRank n =
 rankEntryView : Model -> Html Msg
 rankEntryView model =
     div [ class "flex bg-white" ]
-        [ div [ class "h2 flex-auto p1 gray", style [ ( "width", "5rem" ) ] ] [ text "Rank" ]
+        [ div [ class "flex-auto" ] []
+        , div [ class "h2 flex-auto p1 gray" ] [ text "Rank" ]
         , div [ class "flex-auto" ] []
         , input
             [ Html.Attributes.value (toString model.rank)
@@ -108,12 +120,22 @@ rankEntryView model =
                 >> Maybe.withDefault 0
                 >> constrainRank
                 >> RaiseRank
-            , class "h2 m1 center field"
+            , class "m1 center field"
             , type' "number"
-            , style [ ( "font-size", "120%" ) ]
+            , style [ ( "font-size", "120%" ), ( "width", "4rem" ) ]
             ]
             []
         , div [ class "flex-auto" ] []
+        , button
+            [ class "btn btn-outline m1 h6"
+            , onClick <| RaiseRank <| constrainRank <| model.rank - 1
+            ]
+            [ i [ class "fa fa-minus" ] [] ]
+        , button
+            [ class "btn btn-outline mt1 mb1 mr4 h6"
+            , onClick <| RaiseRank <| constrainRank <| model.rank + 1
+            ]
+            [ i [ class "fa fa-plus" ] [] ]
         ]
 
 
