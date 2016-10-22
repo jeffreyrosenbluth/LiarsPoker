@@ -13,19 +13,19 @@ import Json.Decode exposing (..)
 
 {-| A utility function for extracting the name of the player whose turn it is.
 -}
-turn : ClientMsg -> String
-turn c =
-    withDefault "Error" <| M.map .name <| get c.cmGame.turn c.cmGame.players
+turn : Game -> String
+turn g =
+    withDefault "Error" <| M.map .name <| get g.turn g.players
 
 
 {-| A utility function for extracting the name of the player whose is the current
     bidder. Returns "None" if a bid has not been made yet.
 -}
-bidder : ClientMsg -> String
-bidder c =
+bidder : Game -> String
+bidder g =
     let
         b =
-            c.cmGame.bidder `M.andThen` \n -> get n c.cmGame.players
+            g.bidder `M.andThen` \n -> get n g.players
     in
         withDefault "None" (M.map .name b)
 
@@ -60,11 +60,15 @@ update msg model =
             if s == ":signin" then
                 ( { model | wsIncoming = RawMsg ":signin" }, Cmd.none )
             else
-                case decodeString clientMsgDecoder s of
+                case decodeString resultGameDecoder s of
                     Ok pm ->
-                        ( updateCM pm model
-                        , Cmd.none
-                        )
+                        case pm of
+                            Ok p ->
+                                ( updateCM p model
+                                , Cmd.none
+                                )
+                            Err e ->
+                                ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
                     Err e ->
                         ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
@@ -75,8 +79,8 @@ update msg model =
 
 {-| Helper method to update the model when the Msg is an wsIncoming.
 -}
-updateCM : ClientMsg -> Model -> Model
-updateCM cMsg model =
+updateCM : Game -> Model -> Model
+updateCM g model =
     let
         q =
             model.gamePlay.quant
@@ -85,27 +89,26 @@ updateCM cMsg model =
             model.gamePlay.rank
     in
         { model
-            | wsIncoming = JsonMsg cMsg
+            | wsIncoming = JsonMsg (Ok g)
             , gameInfo =
-                { name = cMsg.cmName
-                , turn = turn cMsg
-                , bidder = bidder cMsg
-                , baseStake = cMsg.cmGame.baseStake
-                , multiple = cMsg.cmMultiple
-                , bid = cMsg.cmGame.bid
-                , hand = cMsg.cmHand
+                { name = "FIX ME"
+                , turn = turn g
+                , bidder = bidder g
+                , baseStake = g.baseStake
+                , multiple = g.multiple
+                , bid = g.bid
+                , hand = g.hands
                 }
             , players =
-                { players = cMsg.cmGame.players
-                , bidder = cMsg.cmGame.bidder
-                , turn = cMsg.cmGame.turn
+                { players = g.players
+                , bidder = g.bidder
+                , turn = g.turn
                 }
             , gamePlay =
                 { quant = q
                 , rank = r
-                , buttons = cMsg.cmButtons
-                , bid = cMsg.cmGame.bid
+                , bid = g.bid
                 , preResult =
-                    (cMsg.cmGame.bidder == Nothing) && cMsg.cmGame.inProgress
+                    (g.bidder == Nothing) && g.inProgress
                 }
         }

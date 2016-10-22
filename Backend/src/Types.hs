@@ -74,7 +74,7 @@ makeLenses ''Player
 instance ToJSON Player
 instance FromJSON Player
 
-data Game f = Game
+data Game f h = Game
   { _players    :: !(Vector Player)
   , _bidder     :: !(Maybe Int) -- ^ playerId
   , _bid        :: !Bid
@@ -85,16 +85,16 @@ data Game f = Game
   , _baseStake  :: !Int
   , _gameId     :: !Int
   , _numPlyrs   :: !Int
-  , _hands      :: f Hand
+  , _hands      :: f h
   , _multiple   :: !Int
   } deriving (Generic)
 makeLenses ''Game
 
-instance ToJSON (Game Identity)
-instance FromJSON (Game Identity)
+instance ToJSON (Game Identity Text)
+instance FromJSON (Game Identity Text)
 
-instance ToJSON (Game Vector)
-instance FromJSON (Game Vector)
+instance ToJSON (Game Vector Hand)
+instance FromJSON (Game Vector Hand)
 
 data Action
   = Join !Text !Int
@@ -118,7 +118,7 @@ instance FromJSON Action
 type Clients     = [WS.Connection]
 
 data GameState = GameState
-  { _stGame   :: Game Vector
+  { _stGame   :: Game Vector Hand
   , _stStdGen :: StdGen
   }
 

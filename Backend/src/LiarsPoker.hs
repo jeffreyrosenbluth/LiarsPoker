@@ -27,7 +27,7 @@ iF False _ f = f
 cardsPerHand :: Int
 cardsPerHand = 8
 
-numOfPlayers :: Game f -> Int
+numOfPlayers :: Game f h -> Int
 numOfPlayers g = length $ g ^. players
 
 -- | Total number of Rank in the game.
@@ -38,7 +38,7 @@ getCount :: Rank -> Hand -> Int
 getCount rank h = fromMaybe 0 (lookup rank h)
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
-getPlayerName :: Game f -> Int -> Maybe Text
+getPlayerName :: Game f h -> Int -> Maybe Text
 getPlayerName game pId = game ^? players . ix pId . name
 
 toHand :: [Int] -> Hand
@@ -55,14 +55,14 @@ displayHand h = intersperse ' ' $ foldrWithKey f "" h
   where
     f k a b = replicate a (firstDigit k) ++ b
 
-getBidderName :: Game f -> Text
+getBidderName :: Game f h -> Text
 getBidderName g =
   maybe "Nobody"
         (\i -> g ^. players . ix i . name)
         (g ^. bidder)
 
 -- | Create a new game from a gameId and a number of invited players.
-newGame :: Int -> Int -> Game Vector
+newGame :: Int -> Int -> Game Vector Hand
 newGame i n = Game mempty
                    Nothing
                    (Bid 0 0)
@@ -76,7 +76,7 @@ newGame i n = Game mempty
                    mempty
                    1
 
-resetGame :: Int -> Game f -> Game f
+resetGame :: Int -> Game f h -> Game f h
 resetGame n g = g & bidder .~ Nothing
                 & bid .~ Bid 0 0
                 & turn .~ fromMaybe (n `mod` numOfPlayers g) (g ^. bidder)
@@ -84,7 +84,7 @@ resetGame n g = g & bidder .~ Nothing
                 & rebid .~ False
                 & inProgress .~ True
 
-addPlayer :: Game f -> Text -> Game f
+addPlayer :: Game f h -> Text -> Game f h
 addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
@@ -92,7 +92,7 @@ addPlayer game nm = game & players %~ flip snoc player
 
 -- | Change bid to (Bid Rank Int), update the turn to the next player, and
 --   set the rebid flag.
-mkBid :: Game f -> Bid -> Game f
+mkBid :: Game f h -> Bid -> Game f h
 mkBid game b = nextPlayer
              $ game & bidder .~ p
                     & bid    .~ b
@@ -104,13 +104,13 @@ mkBid game b = nextPlayer
     r = game ^. bidder == Just (game ^. turn)
 
 -- | Move the turn to the next player.
-nextPlayer :: Game f -> Game f
+nextPlayer :: Game f h -> Game f h
 nextPlayer game = game & turn %~ (\x -> (x + 1) `mod` numPlayers)
   where
     numPlayers = numOfPlayers game
 
 -- | Is this 'Action' legal to take from the current game state?
-legal :: Game f -> Action -> Int -> Bool
+legal :: Game f h -> Action -> Int -> Bool
 legal game action pId = case action of
   Join _ _  -> not (game ^. inProgress)
   New  _ _  -> not (game ^. inProgress)
@@ -130,7 +130,7 @@ legal game action pId = case action of
 
 -- | If the game is over (.i.e. game ^. won = Just _) then return
 --   the bonus multiplier. Both the n+3 rule and the Sixes rule.
-bonus :: Game f -> Int
+bonus :: Game f h -> Int
 bonus game = sixes * mult
   where
     Bid r q    = game ^. bid
@@ -139,7 +139,7 @@ bonus game = sixes * mult
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
-hero :: Game Vector -> Int
+hero :: Game Vector Hand -> Int
 hero game = iF (q == 0 && countRank (game ^. hands) bc > 0) 1 0
   where
     Just bdr = game ^. bidder
@@ -149,7 +149,7 @@ hero game = iF (q == 0 && countRank (game ^. hands) bc > 0) 1 0
 
 -- | Score the game and set the new 'baseStake' in accordance with Progressive
 --   Stakes.
-scoreGame :: Game Vector -> Game Vector
+scoreGame :: Game Vector Hand -> Game Vector Hand
 scoreGame game =
   game & players   %~ imap (\i p -> over score (+ (iF (bdr == Just i) b a)) p)
        & baseStake .~ iF (h == 1) 2 bns

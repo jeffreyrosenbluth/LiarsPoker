@@ -37,7 +37,7 @@ import qualified Network.WebSockets             as WS
 
 type ServerState = (GameState, Clients)
 type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text (Game Identity)
+type Message     = Either Text (Game Identity Text)
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -50,18 +50,18 @@ errorMsgs :: GameState -> Text -> (GameState, [Message])
 errorMsgs gs t = (gs, replicate (gs ^. stGame ^. numPlyrs) (Left t))
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
-clientMsgs :: Game Vector -> [Message]
+clientMsgs :: Game Vector Hand -> [Message]
 clientMsgs g = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
-      let Just h = (g ^. hands) V.!? p
+      let h = T.pack . displayHand $ fromMaybe mempty ((g ^. hands) V.!? p)
       in  Right $ (setButtonFlags g) & multiple .~ bonus g
                                      & hands .~ Identity h
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to
 --   enable / disable UI elements that allow only certain moves.
-setButtonFlags :: Game f -> Game f
+setButtonFlags :: Game f h -> Game f h
 setButtonFlags g  = g & players .~ p
   where
     p = (g ^. players)
@@ -154,6 +154,7 @@ new gmRef conn nm nPlyrs = do
       gmState = GameState g r
   gs <- newMVar (gmState, [conn])
   putMVar gmRef (insert key gs gm)
+  print (encodeCMs $ clientMsgs g)
   broadcast [conn] (encodeCMs $ clientMsgs g)
   handle conn gs 0
 
