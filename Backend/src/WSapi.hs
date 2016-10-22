@@ -37,7 +37,7 @@ import qualified Network.WebSockets             as WS
 
 type ServerState = (GameState, Clients)
 type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text (Game Identity Text)
+type Message     = Either Text (Game (Identity Text))
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -50,7 +50,7 @@ errorMsgs :: GameState -> Text -> (GameState, [Message])
 errorMsgs gs t = (gs, replicate (gs ^. stGame ^. numPlyrs) (Left t))
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
-clientMsgs :: Game Vector Hand -> [Message]
+clientMsgs :: Game (Vector Hand) -> [Message]
 clientMsgs g = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
@@ -61,7 +61,7 @@ clientMsgs g = map cm [0..(numOfPlayers g - 1)]
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to
 --   enable / disable UI elements that allow only certain moves.
-setButtonFlags :: Game f h -> Game f h
+setButtonFlags :: Game a -> Game a
 setButtonFlags g  = g & players .~ p
   where
     p = (g ^. players)
