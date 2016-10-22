@@ -74,6 +74,9 @@ setButtonFlags g  = g & players .~ p
       & singular (ix (g ^. turn))
       . flags
       . countFlag .~ ((Just $ g ^. turn) == g ^. bidder)
+      & singular (ix 0)
+      . flags
+      . dealFlag .~ not (g ^. inProgress)
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
@@ -208,7 +211,7 @@ deal (GameState g r) = GameState (g' & special .~ hs) r''
       hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
 
 count :: GameState -> GameState
-count gs@(GameState g _) = deal $ gs & stGame .~ g'
+count gs@(GameState g _) = gs & stGame .~ g'
   where
     cnt    = countRank (g ^. special) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0

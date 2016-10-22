@@ -88,7 +88,7 @@ addPlayer :: Game a -> Text -> Game a
 addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
-    player = Player pId nm 0 (Flags False False False)
+    player = Player pId nm 0 (Flags False False False False)
 
 -- | Change bid to (Bid Rank Int), update the turn to the next player, and
 --   set the rebid flag.

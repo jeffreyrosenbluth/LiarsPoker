@@ -13,7 +13,6 @@ type alias Model =
     , multiple : Int
     , bid : Bid
     , hand : String
-    , prevHand : String
     }
 
 
@@ -26,7 +25,6 @@ init =
     , multiple = 1
     , bid = Bid 0 0
     , hand = ""
-    , prevHand = ""
     }
 
 
@@ -37,8 +35,6 @@ view model =
             [ currentPlayerView model
             , handView model
             ]
-        , div [ class "flex bg-white" ]
-            [ prevHandView model ]
         , div [ class "flex bg-white" ]
             [ div [ style [ ( "width", "50%" ) ] ] [ stakesView model ]
             , div [ style [ ( "width", "50%" ) ] ] [ multipleView model ]
@@ -76,14 +72,6 @@ handView model =
             ]
         ]
         [ div [ class "mt4" ] [ text <| "L\x2004" ++ model.hand ++ "\x2004P" ] ]
-
-
-prevHandView : Model -> Html msg
-prevHandView model =
-    div [ class "flex bg-white" ]
-        [ div [ class "ml1 p1 h2 gray" ] [ text "Previous Hand " ]
-        , div [ class "p1 h2" ] [ text model.prevHand ]
-        ]
 
 
 bidderView : Model -> Html msg

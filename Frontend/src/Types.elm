@@ -31,6 +31,7 @@ type alias Flags =
     { raiseFlag : Bool
     , chalFlag : Bool
     , countFlag : Bool
+    , dealFlag : Bool
     }
 
 
@@ -40,6 +41,7 @@ flagsDecoder =
         <*> ("_raiseFlag" := bool)
         <*> ("_chalFlag" := bool)
         <*> ("_countFlag" := bool)
+        <*> ("_dealFlag" := bool)
 
 
 type alias Player =

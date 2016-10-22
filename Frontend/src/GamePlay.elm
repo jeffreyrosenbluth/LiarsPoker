@@ -13,7 +13,6 @@ type alias Model =
     , rank : Int
     , bid : Bid
     , buttons : Flags
-    , preResult : Bool
     }
 
 
@@ -21,7 +20,6 @@ type Msg
     = RaiseQuant Int
     | RaiseRank Int
     | Outgoing String
-    | PreResult Bool
 
 
 init : Model
@@ -29,8 +27,7 @@ init =
     { quant = 0
     , rank = 0
     , bid = Bid 0 0
-    , buttons = Flags False False False
-    , preResult = False
+    , buttons = Flags False False False False
     }
 
 
@@ -44,10 +41,7 @@ update msg model =
             ( { model | rank = r }, Cmd.none )
 
         Outgoing s ->
-            ( { model | preResult = s == "count" }, WebSocket.send wsURL s )
-
-        PreResult b ->
-            ( { model | preResult = b }, Cmd.none )
+            ( model, WebSocket.send wsURL s )
 
 
 view : Model -> Html Msg
@@ -56,6 +50,9 @@ view model =
         [ quantEntryView model
         , rankEntryView model
         , playView model
+        , if model.buttons.dealFlag then
+            dealView model
+          else div [] []
         ]
 
 
@@ -170,6 +167,22 @@ playView model =
         , div [ class "flex-auto" ] []
         ]
 
+
+dealView : Model -> Html Msg
+dealView model =
+    div [ class "flex bg-white" ]
+        [ div [ class "flex-auto" ] []
+        , button
+            [ class "btn btn-primary m2"
+            , style [ ( "background-color", "red" ) ]
+            , onClick
+                <| Outgoing
+                <| "deal"
+            , disabled <| False
+            ]
+            [ text "Deal" ]
+        , div [ class "flex-auto" ] []
+        ]
 
 higher : Model -> Bool
 higher model =

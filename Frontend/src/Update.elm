@@ -87,7 +87,6 @@ updateCM g model =
 
         r =
             model.gamePlay.rank
-        h = model.gameInfo.hand
     in
         { model
             | wsIncoming = JsonMsg (Ok g)
@@ -99,7 +98,6 @@ updateCM g model =
                 , multiple = g.multiple
                 , bid = g.bid
                 , hand = snd g.special
-                , prevHand = h
                 }
             , players =
                 { players = g.players
@@ -113,9 +111,8 @@ updateCM g model =
                 , buttons = withDefault { raiseFlag = False
                                         , chalFlag = False
                                         , countFlag = False
+                                        , dealFlag = False
                                         }
                   <| M.map .flags (get (fst g.special) g.players)
-                , preResult =
-                    (g.bidder == Nothing) && g.inProgress
                 }
         }

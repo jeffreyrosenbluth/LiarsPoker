@@ -57,6 +57,7 @@ data Flags = Flags
   { _raiseFlag :: !Bool
   , _chalFlag  :: !Bool
   , _countFlag :: !Bool
+  , _dealFlag  :: !Bool
   } deriving (Show, Generic, Eq)
 makeLenses ''Flags
 
