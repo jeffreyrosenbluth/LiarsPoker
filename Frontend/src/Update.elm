@@ -27,7 +27,7 @@ bidder g =
         b =
             g.bidder `M.andThen` \n -> get n g.players
     in
-        withDefault "None" (M.map .name b)
+        withDefault "" (M.map .name b)
 
 
 {-| Most of the interesting action happens in the WSincoming case where a
@@ -87,6 +87,7 @@ updateCM g model =
 
         r =
             model.gamePlay.rank
+        h = model.gameInfo.hand
     in
         { model
             | wsIncoming = JsonMsg (Ok g)
@@ -98,6 +99,7 @@ updateCM g model =
                 , multiple = g.multiple
                 , bid = g.bid
                 , hand = snd g.special
+                , prevHand = h
                 }
             , players =
                 { players = g.players

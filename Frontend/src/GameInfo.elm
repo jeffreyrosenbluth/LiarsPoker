@@ -13,6 +13,7 @@ type alias Model =
     , multiple : Int
     , bid : Bid
     , hand : String
+    , prevHand : String
     }
 
 
@@ -25,6 +26,7 @@ init =
     , multiple = 1
     , bid = Bid 0 0
     , hand = ""
+    , prevHand = ""
     }
 
 
@@ -36,9 +38,7 @@ view model =
             , handView model
             ]
         , div [ class "flex bg-white" ]
-            [ div [ style [ ( "width", "50%" ) ] ] [ bidderView model ]
-            , div [ style [ ( "width", "50%" ) ] ] [ playerView model ]
-            ]
+            [ prevHandView model ]
         , div [ class "flex bg-white" ]
             [ div [ style [ ( "width", "50%" ) ] ] [ stakesView model ]
             , div [ style [ ( "width", "50%" ) ] ] [ multipleView model ]
@@ -78,6 +78,14 @@ handView model =
         [ div [ class "mt4" ] [ text <| "L\x2004" ++ model.hand ++ "\x2004P" ] ]
 
 
+prevHandView : Model -> Html msg
+prevHandView model =
+    div [ class "flex bg-white" ]
+        [ div [ class "ml1 p1 h2 gray" ] [ text "Previous Hand " ]
+        , div [ class "p1 h2" ] [ text model.prevHand ]
+        ]
+
+
 bidderView : Model -> Html msg
 bidderView model =
     div [ class "flex bg-white" ]
@@ -90,13 +98,15 @@ bidView : Model -> Html msg
 bidView model =
     div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
         [ div [ class "flex-auto" ] []
-        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ] [ text "Bid" ]
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
-            [ text
-                <| toString model.bid.bidQuant
-                ++ " "
-                ++ toString model.bid.bidRank
-                ++ "s"
+              [ text model.bidder ]
+        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
+            [ text <|
+                if   model.bidder == "" then ""
+                else toString model.bid.bidQuant
+                     ++ " "
+                     ++ toString model.bid.bidRank
+                     ++ "s"
             ]
         , div [ class "flex-auto" ] []
         ]
