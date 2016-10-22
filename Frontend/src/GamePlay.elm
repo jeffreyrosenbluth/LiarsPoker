@@ -12,6 +12,7 @@ type alias Model =
     { quant : Int
     , rank : Int
     , bid : Bid
+    , buttons : Flags
     , preResult : Bool
     }
 
@@ -28,6 +29,7 @@ init =
     { quant = 0
     , rank = 0
     , bid = Bid 0 0
+    , buttons = Flags False False False
     , preResult = False
     }
 
@@ -146,7 +148,7 @@ playView model =
                 ++ toString model.quant
                 ++ " "
                 ++ toString model.rank
-            , disabled <| False -- not model.buttons.raiseFlag || not (higher model)
+            , disabled <| not model.buttons.raiseFlag || not (higher model)
             ]
             [ text "Raise" ]
         , div [ class "flex-auto" ] []
@@ -154,7 +156,7 @@ playView model =
             [ class "btn btn-primary m2"
             , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| Outgoing "challenge"
-            , disabled <| False -- not model.buttons.chalFlag
+            , disabled <| not model.buttons.chalFlag
             ]
             [ text "Challenge" ]
         , div [ class "flex-auto" ] []
@@ -162,7 +164,7 @@ playView model =
             [ class "btn btn-primary m2"
             , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| Outgoing "count"
-            , disabled <| False -- not model.buttons.countFlag
+            , disabled <| not model.buttons.countFlag
             ]
             [ text "Count" ]
         , div [ class "flex-auto" ] []

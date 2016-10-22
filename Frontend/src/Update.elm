@@ -91,13 +91,13 @@ updateCM g model =
         { model
             | wsIncoming = JsonMsg (Ok g)
             , gameInfo =
-                { name = "FIX ME"
+                { name = withDefault "" <| M.map .name (get (fst g.special) g.players)
                 , turn = turn g
                 , bidder = bidder g
                 , baseStake = g.baseStake
                 , multiple = g.multiple
                 , bid = g.bid
-                , hand = g.hands
+                , hand = snd g.special
                 }
             , players =
                 { players = g.players
@@ -108,6 +108,11 @@ updateCM g model =
                 { quant = q
                 , rank = r
                 , bid = g.bid
+                , buttons = withDefault { raiseFlag = False
+                                        , chalFlag = False
+                                        , countFlag = False
+                                        }
+                  <| M.map .flags (get (fst g.special) g.players)
                 , preResult =
                     (g.bidder == Nothing) && g.inProgress
                 }

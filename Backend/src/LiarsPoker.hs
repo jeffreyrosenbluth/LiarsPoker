@@ -140,10 +140,10 @@ bonus game = sixes * mult
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game (Vector Hand) -> Int
-hero game = iF (q == 0 && countRank (game ^. hands) bc > 0) 1 0
+hero game = iF (q == 0 && countRank (game ^. special) bc > 0) 1 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ lookup bc =<< (game ^. hands) !? bdr
+    q = fromMaybe 0 $ lookup bc =<< (game ^. special) !? bdr
     bc = game ^. bid ^. bidRank
 
 
@@ -165,7 +165,7 @@ scoreGame game =
 
     -- The skunk rule
     mult =
-      iF (countRank (game ^. hands) (game ^. bid . bidRank) == 0)
+      iF (countRank (game ^. special) (game ^. bid . bidRank) == 0)
          (max 1 (2 * numOfPlayers game - 6))
          bns
 

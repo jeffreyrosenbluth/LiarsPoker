@@ -46,7 +46,7 @@ mainView m g =
         , PlayerList.view m.players
         , App.map GamePlay (GamePlay.view m.gamePlay)
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
-        , if g.hands == "" then
+        , if snd g.special == "" then
             waitingView g
           else
             div [] []

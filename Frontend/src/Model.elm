@@ -103,7 +103,7 @@ type alias Game =
     , baseStake : Int
     , gameId : Int
     , numPlyrs : Int
-    , hands : String
+    , special : (Int, String)
     , multiple : Int
     }
 
@@ -121,7 +121,7 @@ gameDecoder =
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
         <*> ("_numPlyrs" := int)
-        <*> ("_hands" := string)
+        <*> ("_special" := tuple2 (,) int string)
         <*> ("_multiple" := int)
 
 

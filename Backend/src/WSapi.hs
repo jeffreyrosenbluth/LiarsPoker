@@ -37,7 +37,7 @@ import qualified Network.WebSockets             as WS
 
 type ServerState = (GameState, Clients)
 type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text (Game Text)
+type Message     = Either Text (Game (Int, Text))
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -54,9 +54,9 @@ clientMsgs :: Game (Vector Hand) -> [Message]
 clientMsgs g = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
-      let h = T.pack . displayHand $ fromMaybe mempty ((g ^. hands) V.!? p)
+      let h = T.pack . displayHand $ fromMaybe mempty ((g ^. special) V.!? p)
       in  Right $ (setButtonFlags g) & multiple .~ bonus g
-                                     & hands .~ h
+                                     & special .~ (p, h)
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to
@@ -73,7 +73,7 @@ setButtonFlags g  = g & players .~ p
       . chalFlag .~ ((Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder))
       & singular (ix (g ^. turn))
       . flags
-      . chalFlag .~ ((Just $ g ^. turn) == g ^. bidder)
+      . countFlag .~ ((Just $ g ^. turn) == g ^. bidder)
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
@@ -199,7 +199,7 @@ handle conn gmState pId = forever $ do
   broadcast cs (encodeCMs cm)
 
 deal :: GameState -> GameState
-deal (GameState g r) = GameState (g' & hands .~ hs) r''
+deal (GameState g r) = GameState (g' & special .~ hs) r''
     where
       (cards, r') = runRand (replicateM (numOfPlayers g * cardsPerHand)
                   $ getRandomR (0, 9)) r
@@ -210,7 +210,7 @@ deal (GameState g r) = GameState (g' & hands .~ hs) r''
 count :: GameState -> GameState
 count gs@(GameState g _) = deal $ gs & stGame .~ g'
   where
-    cnt    = countRank (g ^. hands) card
+    cnt    = countRank (g ^. special) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
     g'     = scoreGame (g & won .~ Just result & inProgress .~ False)
     b      = g ^. bid

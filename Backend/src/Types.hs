@@ -85,13 +85,13 @@ data Game a = Game
   , _baseStake  :: !Int
   , _gameId     :: !Int
   , _numPlyrs   :: !Int
-  , _hands      :: a
+  , _special    :: a
   , _multiple   :: !Int
   } deriving (Generic)
 makeLenses ''Game
 
-instance ToJSON (Game Text)
-instance FromJSON (Game Text)
+instance ToJSON (Game (Int, Text))
+instance FromJSON (Game (Int, Text))
 
 instance ToJSON (Game (Vector Hand))
 instance FromJSON (Game (Vector Hand))
