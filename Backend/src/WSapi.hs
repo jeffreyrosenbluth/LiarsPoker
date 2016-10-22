@@ -37,7 +37,7 @@ import qualified Network.WebSockets             as WS
 
 type ServerState = (GameState, Clients)
 type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text ClientMsg
+type Message     = Either Text (Game Identity)
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -55,12 +55,8 @@ clientMsgs g = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
       let Just h = (g ^. hands) V.!? p
-          g'     = (setButtonFlags g) & multiple .~ bonus g
-                                      & hands .~ Identity h
-      in  Right $ ClientMsg
-            { _cmGame = g'
-            , _cmPlyrId = p
-            }
+      in  Right $ (setButtonFlags g) & multiple .~ bonus g
+                                     & hands .~ Identity h
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to

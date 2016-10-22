@@ -123,13 +123,3 @@ data GameState = GameState
   }
 
 makeLenses ''GameState
-
-data ClientMsg = ClientMsg
-  { _cmGame     :: Game Identity
-  , _cmPlyrId   :: !Int
-  } deriving (Generic)
-
-instance ToJSON ClientMsg
-instance FromJSON ClientMsg
-
-makeLenses ''ClientMsg
