@@ -44,7 +44,10 @@ type alias Model =
     , signIn : SignIn.Model
     }
 
-type alias Message = Result String Game
+
+type alias Message =
+    Result String Game
+
 
 {-| Messages from the game server can be raw strings, json, or errors.
 -}
@@ -64,8 +67,11 @@ showServerMsg sm =
 
         JsonMsg cm ->
             case cm of
-                Err s -> s
-                Ok _ -> "Ok"
+                Err s ->
+                    s
+
+                Ok _ ->
+                    ""
 
         ErrorMsg e ->
             e
@@ -143,6 +149,8 @@ higher m g =
 
 
 resultGameDecoder : Decoder (Result String Game)
-resultGameDecoder  =
-    oneOf [ succeed Err <*> ("Left" := string)
-          , succeed Ok <*> ("Right" := gameDecoder)]
+resultGameDecoder =
+    oneOf
+        [ succeed Err <*> ("Left" := string)
+        , succeed Ok <*> ("Right" := gameDecoder)
+        ]

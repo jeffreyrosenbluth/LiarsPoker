@@ -37,7 +37,7 @@ import qualified Network.WebSockets             as WS
 
 type ServerState = (GameState, Clients)
 type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text (Game (Identity Text))
+type Message     = Either Text (Game Text)
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -56,7 +56,7 @@ clientMsgs g = map cm [0..(numOfPlayers g - 1)]
     cm p =
       let h = T.pack . displayHand $ fromMaybe mempty ((g ^. hands) V.!? p)
       in  Right $ (setButtonFlags g) & multiple .~ bonus g
-                                     & hands .~ Identity h
+                                     & hands .~ h
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to

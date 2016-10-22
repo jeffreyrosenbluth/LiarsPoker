@@ -90,8 +90,8 @@ data Game a = Game
   } deriving (Generic)
 makeLenses ''Game
 
-instance ToJSON (Game (Identity Text))
-instance FromJSON (Game (Identity Text))
+instance ToJSON (Game Text)
+instance FromJSON (Game Text)
 
 instance ToJSON (Game (Vector Hand))
 instance FromJSON (Game (Vector Hand))
