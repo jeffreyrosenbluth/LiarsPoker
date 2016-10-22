@@ -154,7 +154,6 @@ new gmRef conn nm nPlyrs = do
       gmState = GameState g r
   gs <- newMVar (gmState, [conn])
   putMVar gmRef (insert key gs gm)
-  print (encodeCMs $ clientMsgs g)
   broadcast [conn] (encodeCMs $ clientMsgs g)
   handle conn gs 0
 
@@ -209,7 +208,7 @@ deal (GameState g r) = GameState (g' & hands .~ hs) r''
       hs          = V.fromList $ toHand <$> chunksOf cardsPerHand cards
 
 count :: GameState -> GameState
-count gs@(GameState g _) = gs & stGame .~ g'
+count gs@(GameState g _) = deal $ gs & stGame .~ g'
   where
     cnt    = countRank (g ^. hands) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
