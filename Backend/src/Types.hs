@@ -23,7 +23,6 @@ import           Data.Text               (Text)
 import           Data.Vector             (Vector)
 import           GHC.Generics
 import qualified Network.WebSockets      as WS
-import           System.Random           (StdGen)
 
 --------------------------------------------------------------------------------
 -- For game logic.
@@ -111,16 +110,3 @@ makePrisms ''Action
 
 instance ToJSON Action
 instance FromJSON Action
-
---------------------------------------------------------------------------------
--- For web api.
---------------------------------------------------------------------------------
-
-type Clients     = [WS.Connection]
-
-data GameState = GameState
-  { _stGame   :: Game (Vector Hand)
-  , _stStdGen :: StdGen
-  }
-
-makeLenses ''GameState
