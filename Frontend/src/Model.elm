@@ -45,11 +45,15 @@ type alias Model =
     }
 
 
+type alias Message =
+    Result String Game
+
+
 {-| Messages from the game server can be raw strings, json, or errors.
 -}
 type ServerMsg
     = RawMsg String
-    | JsonMsg ClientMsg
+    | JsonMsg Message
     | ErrorMsg String
 
 
@@ -62,7 +66,12 @@ showServerMsg sm =
             s
 
         JsonMsg cm ->
-            cm.cmError
+            case cm of
+                Err s ->
+                    s
+
+                Ok _ ->
+                    ""
 
         ErrorMsg e ->
             e
@@ -94,6 +103,8 @@ type alias Game =
     , baseStake : Int
     , gameId : Int
     , numPlyrs : Int
+    , special : (Int, String)
+    , multiple : Int
     }
 
 
@@ -110,58 +121,14 @@ gameDecoder =
         <*> ("_baseStake" := int)
         <*> ("_gameId" := int)
         <*> ("_numPlyrs" := int)
-
-
-{-| Matches the PrevGame data type from the server to show results after a count.
--}
-type alias PrevGame =
-    { pgBidder : String
-    , pgBid : Bid
-    , pgCount : Int
-    , pgMe : Array Int
-    }
-
-
-prevGameDecoder : Decoder PrevGame
-prevGameDecoder =
-    succeed PrevGame
-        <*> ("_pgBidder" := string)
-        <*> ("_pgBid" := bidDecoder)
-        <*> ("_pgCount" := int)
-        <*> ("_pgMe" := array int)
-
-
-{-| We parse a serialized JSON string from the server into a ClientMsg.
--}
-type alias ClientMsg =
-    { cmGame : Game
-    , cmHand : String
-    , cmError : String
-    , cmMultiple : Int
-    , cmButtons : BtnFlags
-    , cmName : String
-    , cmPrevGame : PrevGame
-    , cmPlyrId : Int
-    }
-
-
-clientMsgDecoder : Decoder ClientMsg
-clientMsgDecoder =
-    succeed ClientMsg
-        <*> ("_cmGame" := gameDecoder)
-        <*> ("_cmHand" := string)
-        <*> ("_cmError" := string)
-        <*> ("_cmMultiple" := int)
-        <*> ("_cmButtons" := btnFlagsDecoder)
-        <*> ("_cmName" := string)
-        <*> ("_cmPrevGame" := prevGameDecoder)
-        <*> ("_cmPlyrId" := int)
+        <*> ("_special" := tuple2 (,) int string)
+        <*> ("_multiple" := int)
 
 
 {-| Since 0s are interpreted as 10s we need a function to compare ranks.
 -}
-higher : Model -> ClientMsg -> Bool
-higher m c =
+higher : Model -> Game -> Bool
+higher m g =
     let
         mRank =
             if m.gamePlay.rank == 0 then
@@ -169,13 +136,21 @@ higher m c =
             else
                 m.gamePlay.rank
 
-        cRank =
-            if c.cmGame.bid.bidRank == 0 then
+        gRank =
+            if g.bid.bidRank == 0 then
                 10
             else
-                c.cmGame.bid.bidRank
+                g.bid.bidRank
 
-        cQuant =
-            c.cmGame.bid.bidQuant
+        gQuant =
+            g.bid.bidQuant
     in
-        m.gamePlay.quant > cQuant || (m.gamePlay.quant == cQuant && mRank > cRank)
+        m.gamePlay.quant > gQuant || (m.gamePlay.quant == gQuant && mRank > gRank)
+
+
+resultGameDecoder : Decoder (Result String Game)
+resultGameDecoder =
+    oneOf
+        [ succeed Err <*> ("Left" := string)
+        , succeed Ok <*> ("Right" := gameDecoder)
+        ]

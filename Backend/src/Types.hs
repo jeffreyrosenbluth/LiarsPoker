@@ -43,6 +43,7 @@ data Bid = Bid
   { _bidRank  :: !Rank
   , _bidQuant :: !Int
   } deriving (Eq, Generic, Show)
+makeLenses ''Bid
 
 instance ToJSON Bid
 instance FromJSON Bid
@@ -52,19 +53,29 @@ instance Ord Bid where
     where
       f j = if j == 0 then 10 else j
 
-makeLenses ''Bid
+data Flags = Flags
+  { _raiseFlag :: !Bool
+  , _chalFlag  :: !Bool
+  , _countFlag :: !Bool
+  , _dealFlag  :: !Bool
+  } deriving (Show, Generic, Eq)
+makeLenses ''Flags
+
+instance ToJSON Flags
+instance FromJSON Flags
 
 data Player = Player
   { _playerId :: !Int
   , _name     :: !Text
   , _score    :: !Int
+  , _flags    :: !Flags
   } deriving (Show, Eq, Generic)
 makeLenses ''Player
 
 instance ToJSON Player
 instance FromJSON Player
 
-data Game = Game
+data Game a = Game
   { _players    :: !(Vector Player)
   , _bidder     :: !(Maybe Int) -- ^ playerId
   , _bid        :: !Bid
@@ -75,11 +86,16 @@ data Game = Game
   , _baseStake  :: !Int
   , _gameId     :: !Int
   , _numPlyrs   :: !Int
-  } deriving (Show, Generic)
+  , _special    :: a
+  , _multiple   :: !Int
+  } deriving (Generic)
 makeLenses ''Game
 
-instance ToJSON Game
-instance FromJSON Game
+instance ToJSON (Game (Int, Text))
+instance FromJSON (Game (Int, Text))
+
+instance ToJSON (Game (Vector Hand))
+instance FromJSON (Game (Vector Hand))
 
 data Action
   = Join !Text !Int
@@ -103,48 +119,8 @@ instance FromJSON Action
 type Clients     = [WS.Connection]
 
 data GameState = GameState
-  { _stGame   :: !Game
-  , _stHands  :: !Hands
+  { _stGame   :: Game (Vector Hand)
   , _stStdGen :: StdGen
   }
 
 makeLenses ''GameState
-
-data BtnFlags = BtnFlags
-  { _bfRaise     :: !Bool
-  , _bfChallenge :: !Bool
-  , _bfCount     :: !Bool
-  } deriving (Show, Generic)
-
-instance ToJSON BtnFlags
-instance FromJSON BtnFlags
-
-makeLenses ''BtnFlags
-
-data PrevGame = PrevGame
-  { _pgBidder :: !Text
-  , _pgBid    :: !Bid
-  , _pgCount  :: !Int
-  , _pgMe     :: !(Vector Int)
-  } deriving (Show, Generic)
-
-instance ToJSON PrevGame
-instance FromJSON PrevGame
-
-makeLenses ''PrevGame
-
-data ClientMsg = ClientMsg
-  { _cmGame     :: !Game
-  , _cmHand     :: !Text
-  , _cmError    :: !Text
-  , _cmMultiple :: !Int
-  , _cmButtons  :: !BtnFlags
-  , _cmName     :: !Text
-  , _cmPrevGame :: !PrevGame
-  , _cmPlyrId   :: !Int
-  } deriving (Show, Generic)
-
-instance ToJSON ClientMsg
-instance FromJSON ClientMsg
-
-makeLenses ''ClientMsg

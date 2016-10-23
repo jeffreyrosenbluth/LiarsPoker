@@ -36,10 +36,6 @@ view model =
             , handView model
             ]
         , div [ class "flex bg-white" ]
-            [ div [ style [ ( "width", "50%" ) ] ] [ bidderView model ]
-            , div [ style [ ( "width", "50%" ) ] ] [ playerView model ]
-            ]
-        , div [ class "flex bg-white" ]
             [ div [ style [ ( "width", "50%" ) ] ] [ stakesView model ]
             , div [ style [ ( "width", "50%" ) ] ] [ multipleView model ]
             ]
@@ -90,13 +86,17 @@ bidView : Model -> Html msg
 bidView model =
     div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
         [ div [ class "flex-auto" ] []
-        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ] [ text "Bid" ]
+        , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
+            [ text model.bidder ]
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
             [ text
-                <| toString model.bid.bidQuant
-                ++ " "
-                ++ toString model.bid.bidRank
-                ++ "s"
+                <| if model.bidder == "" then
+                    "- -"
+                   else
+                    toString model.bid.bidQuant
+                        ++ " "
+                        ++ toString model.bid.bidRank
+                        ++ "s"
             ]
         , div [ class "flex-auto" ] []
         ]

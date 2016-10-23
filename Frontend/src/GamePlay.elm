@@ -11,9 +11,8 @@ import WebSocket
 type alias Model =
     { quant : Int
     , rank : Int
-    , buttons : BtnFlags
     , bid : Bid
-    , preResult : Bool
+    , buttons : Flags
     }
 
 
@@ -21,20 +20,14 @@ type Msg
     = RaiseQuant Int
     | RaiseRank Int
     | Outgoing String
-    | PreResult Bool
 
 
 init : Model
 init =
     { quant = 0
     , rank = 0
-    , buttons =
-        { bfRaise = False
-        , bfChallenge = False
-        , bfCount = False
-        }
     , bid = Bid 0 0
-    , preResult = False
+    , buttons = Flags False False False False
     }
 
 
@@ -48,10 +41,7 @@ update msg model =
             ( { model | rank = r }, Cmd.none )
 
         Outgoing s ->
-            ( { model | preResult = s == "count" }, WebSocket.send wsURL s )
-
-        PreResult b ->
-            ( { model | preResult = b }, Cmd.none )
+            ( model, WebSocket.send wsURL s )
 
 
 view : Model -> Html Msg
@@ -60,6 +50,9 @@ view model =
         [ quantEntryView model
         , rankEntryView model
         , playView model
+        , if model.buttons.dealFlag then
+            dealView model
+          else div [] []
         ]
 
 
@@ -152,7 +145,7 @@ playView model =
                 ++ toString model.quant
                 ++ " "
                 ++ toString model.rank
-            , disabled <| not model.buttons.bfRaise || not (higher model)
+            , disabled <| not model.buttons.raiseFlag || not (higher model)
             ]
             [ text "Raise" ]
         , div [ class "flex-auto" ] []
@@ -160,7 +153,7 @@ playView model =
             [ class "btn btn-primary m2"
             , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| Outgoing "challenge"
-            , disabled <| not model.buttons.bfChallenge
+            , disabled <| not model.buttons.chalFlag
             ]
             [ text "Challenge" ]
         , div [ class "flex-auto" ] []
@@ -168,12 +161,28 @@ playView model =
             [ class "btn btn-primary m2"
             , style [ ( "background-color", "darkgreen" ) ]
             , onClick <| Outgoing "count"
-            , disabled <| not model.buttons.bfCount
+            , disabled <| not model.buttons.countFlag
             ]
             [ text "Count" ]
         , div [ class "flex-auto" ] []
         ]
 
+
+dealView : Model -> Html Msg
+dealView model =
+    div [ class "flex bg-white" ]
+        [ div [ class "flex-auto" ] []
+        , button
+            [ class "btn btn-primary m2"
+            , style [ ( "background-color", "red" ) ]
+            , onClick
+                <| Outgoing
+                <| "deal"
+            , disabled <| False
+            ]
+            [ text "Deal" ]
+        , div [ class "flex-auto" ] []
+        ]
 
 higher : Model -> Bool
 higher model =
