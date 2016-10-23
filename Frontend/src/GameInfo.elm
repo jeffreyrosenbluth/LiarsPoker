@@ -87,14 +87,16 @@ bidView model =
     div [ class "flex bold", style [ ( "background-color", "#D0C6AD" ) ] ]
         [ div [ class "flex-auto" ] []
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
-              [ text model.bidder ]
+            [ text model.bidder ]
         , div [ class "p1 h2", style [ ( "color", "navy" ) ] ]
-            [ text <|
-                if   model.bidder == "" then ""
-                else toString model.bid.bidQuant
-                     ++ " "
-                     ++ toString model.bid.bidRank
-                     ++ "s"
+            [ text
+                <| if model.bidder == "" then
+                    "- -"
+                   else
+                    toString model.bid.bidQuant
+                        ++ " "
+                        ++ toString model.bid.bidRank
+                        ++ "s"
             ]
         , div [ class "flex-auto" ] []
         ]

@@ -67,6 +67,7 @@ update msg model =
                                 ( updateCM p model
                                 , Cmd.none
                                 )
+
                             Err e ->
                                 ( { model | wsIncoming = ErrorMsg e }, Cmd.none )
 
@@ -108,11 +109,13 @@ updateCM g model =
                 { quant = q
                 , rank = r
                 , bid = g.bid
-                , buttons = withDefault { raiseFlag = False
-                                        , chalFlag = False
-                                        , countFlag = False
-                                        , dealFlag = False
-                                        }
-                  <| M.map .flags (get (fst g.special) g.players)
+                , buttons =
+                    withDefault
+                        { raiseFlag = False
+                        , chalFlag = False
+                        , countFlag = False
+                        , dealFlag = False
+                        }
+                        <| M.map .flags (get (fst g.special) g.players)
                 }
         }
