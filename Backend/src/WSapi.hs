@@ -67,19 +67,16 @@ clientMsgs g = map cm [0..(numOfPlayers g - 1)]
 setButtonFlags :: Game a -> Game a
 setButtonFlags g  = g & players .~ p
   where
-    p = (g ^. players)
-      & singular (ix (g ^. turn))
-      . flags
-      . raiseFlag .~ not ((Just $ g ^. turn) == g ^. bidder && g ^. rebid)
-      & singular (ix (g ^. turn))
-      . flags
-      . chalFlag .~ ((Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder))
-      & singular (ix (g ^. turn))
-      . flags
-      . countFlag .~ ((Just $ g ^. turn) == g ^. bidder)
-      & singular (ix 0)
-      . flags
-      . dealFlag .~ not (g ^. inProgress)
+    rf = not $ (Just $ g ^. turn) == g ^. bidder && g ^. rebid
+    cf = (Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder)
+    nf = (Just $ g ^. turn) == g ^. bidder
+    df =  not (g ^. inProgress)
+    i  = singular (ix (g ^. turn)) . flags
+    p  = (g ^. players)
+       & i . raiseFlag .~ rf
+       & i . chalFlag .~ cf
+       & i . countFlag .~ nf
+       & singular (ix 0) . flags . dealFlag .~df
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
