@@ -36,11 +36,10 @@ import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
 
-type Clients     = [WS.Connection]
-type GameState   = Game (Vector Hand)
-type ServerState = (GameState, Clients)
-type GameMap     = IntMap (MVar ServerState)
-type Message     = Either Text (Game (Int, Text))
+type Clients   = [WS.Connection]
+type GameState = Game (Vector Hand)
+type Games     = MVar (IntMap (MVar (GameState, Clients)))
+type Message   = Either Text (Game (Int, Text))
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
@@ -74,7 +73,7 @@ setButtonFlags g  = g & players .~ p
     i  = singular (ix (g ^. turn)) . flags
     p  = (g ^. players)
        & i . raiseFlag .~ rf
-       & i . chalFlag .~ cf
+       & i . chalFlag  .~ cf
        & i . countFlag .~ nf
        & singular (ix 0) . flags . dealFlag .~df
 
@@ -131,13 +130,13 @@ staticApp :: Network.Wai.Application
 staticApp = Static.staticApp
           $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
-application :: MVar GameMap -> WS.ServerApp
+application :: Games -> WS.ServerApp
 application gm pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
   singIn gm conn
 
-singIn :: MVar GameMap -> WS.Connection -> IO ()
+singIn :: Games -> WS.Connection -> IO ()
 singIn gmRef conn = do
   sendText conn ":signin"
   msg <- WS.receiveData conn
@@ -148,7 +147,7 @@ singIn gmRef conn = do
       sendText conn ":signin"
       singIn gmRef conn
 
-new :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
+new :: Games -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
   let key     = if null gm then 0 else 1 + (maximum . keys $ gm)
@@ -159,10 +158,10 @@ new gmRef conn nm nPlyrs = do
   broadcast [conn] (encodeCMs $ clientMsgs g)
   handle conn gs 0
 
-joinGame :: MVar GameMap -> WS.Connection -> Text -> Int -> IO ()
+joinGame :: Games -> WS.Connection -> Text -> Int -> IO ()
 joinGame gmRef conn nm gId = do
   gm <- readMVar gmRef
-  -- Only try to joinGame if the 'gameId' is in the 'GameMap'
+  -- Only try to joinGame if the 'gameId' is in the 'Games'
   when (member gId gm) $ do
     let gmState = gm ! gId
     (g, cs) <- takeMVar gmState
@@ -180,7 +179,7 @@ joinGame gmRef conn nm gId = do
            handle conn gmState pId
        | otherwise -> putMVar gmState (g, cs)
 
-handle :: WS.Connection -> MVar ServerState -> Int -> IO ()
+handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg      <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
