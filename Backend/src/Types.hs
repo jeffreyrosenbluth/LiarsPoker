@@ -22,7 +22,6 @@ import qualified Data.Map                as M
 import           Data.Text               (Text)
 import           Data.Vector             (Vector)
 import           GHC.Generics
-import qualified Network.WebSockets      as WS
 
 --------------------------------------------------------------------------------
 -- For game logic.
@@ -85,7 +84,7 @@ data Game a = Game
   , _baseStake  :: !Int
   , _gameId     :: !Int
   , _numPlyrs   :: !Int
-  , _special    :: a
+  , _variant    :: a
   , _multiple   :: !Int
   } deriving (Generic)
 makeLenses ''Game

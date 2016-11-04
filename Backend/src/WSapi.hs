@@ -56,9 +56,9 @@ clientMsgs :: GameState -> [Message]
 clientMsgs g = map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
-      let h = T.pack . displayHand $ fromMaybe mempty ((g ^. special) V.!? p)
+      let h = T.pack . displayHand $ fromMaybe mempty ((g ^. variant) V.!? p)
       in  Right $ (setButtonFlags g) & multiple .~ bonus g
-                                     & special .~ (p, h)
+                                     & variant .~ (p, h)
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to
@@ -114,7 +114,7 @@ parseMessage t
   | "say " `T.isPrefixOf` t = Say $ T.drop 4 t
   | otherwise = Invalid "Invalid message."
 
--- | Version of sendTextData specialize to Text input.
+-- | Version of sendTextData variantize to Text input.
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
@@ -150,8 +150,8 @@ singIn gmRef conn = do
 new :: Games -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
-  let key     = if null gm then 0 else 1 + (maximum . keys $ gm)
-      g       = addPlayer (newGame key nPlyrs) nm
+  let key = if null gm then 0 else 1 + (maximum . keys $ gm)
+      g = addPlayer (newGame key nPlyrs) nm
       gmState = g
   gs <- newMVar (gmState, [conn])
   putMVar gmRef (insert key gs gm)
@@ -181,38 +181,37 @@ joinGame gmRef conn nm gId = do
 
 handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
-  msg      <- WS.receiveData conn
+  msg <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
-  r        <- newStdGen
-  let action      = parseMessage msg
-      (newGS, cm) =
-        if legal gs action pId then
-          case action of
-            Join n _  -> errorMsgs gs $ "Cannot reset player name to: " <> n
-            New _ _   -> errorMsgs gs "Cannot start a new game"
-            Deal      -> actionMsgs $ evalRand (deal gs) r
-            Raise b   -> actionMsgs $ mkBid gs b
-            Challenge -> actionMsgs $ nextPlayer gs
-            Count     -> actionMsgs $ count gs
-            Say _     -> errorMsgs gs "Not implemented yet"
-            Invalid m -> errorMsgs gs $ "Invalid command " <> m
-        else errorMsgs gs $ "Illegal action: " <> T.pack (show action)
+  r <- newStdGen
+  let action = parseMessage msg
+      (newGS, cm)
+        | legal gs action pId =
+            case action of
+              Join n _  -> errorMsgs gs $ "Cannot reset player name to: " <> n
+              New _ _   -> errorMsgs gs "Cannot start a new game"
+              Deal      -> actionMsgs $ evalRand (deal gs) r
+              Raise b   -> actionMsgs $ mkBid gs b
+              Challenge -> actionMsgs $ nextPlayer gs
+              Count     -> actionMsgs $ count gs
+              Say _     -> errorMsgs gs "Not implemented yet"
+              Invalid m -> errorMsgs gs $ "Impossible: Invalid " <> m
+        | otherwise = errorMsgs gs $ "Illegal action: " <> T.pack (show action)
   swapMVar gmState (newGS, cs)
   broadcast cs (encodeCMs cm)
 
 deal :: (RandomGen g) => GameState -> Rand g GameState
-deal g= do
-  cards <- replicateM (numOfPlayers g * cardsPerHand)
-         $ getRandomR (0, 9)
-  f     <- getRandomR (0, numOfPlayers g - 1)
+deal g = do
+  cards <- replicateM (numOfPlayers g * cardsPerHand) $ getRandomR (0, 9)
+  f <- getRandomR (0, numOfPlayers g - 1)
   let g' = resetGame f g
       hs = V.fromList $ toHand <$> chunksOf cardsPerHand cards
-  return $ g' & special .~ hs
+  return $ g' & variant .~ hs
 
 count :: GameState -> GameState
 count g = g'
   where
-    cnt    = countRank (g ^. special) card
+    cnt    = countRank (g ^. variant) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
     g'     = scoreGame (g & won .~ Just result & inProgress .~ False)
     b      = g ^. bid

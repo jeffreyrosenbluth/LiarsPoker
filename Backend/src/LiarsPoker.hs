@@ -19,11 +19,6 @@ import           Data.Text    (Text)
 import           Data.Vector  (Vector, (!?), snoc, imap, length)
 import           Prelude      hiding (length, lookup)
 
--- | if-then-else sugar.
-iF :: Bool -> a -> a -> a
-iF True t _  = t
-iF False _ f = f
-
 cardsPerHand :: Int
 cardsPerHand = 8
 
@@ -63,18 +58,20 @@ getBidderName g =
 
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game (Vector Hand)
-newGame i n = Game mempty
-                   Nothing
-                   (Bid 0 0)
-                   0
-                   Nothing
-                   False
-                   False
-                   1
-                   i
-                   n
-                   mempty
-                   1
+newGame i n = Game
+  { _players    = mempty
+  , _bidder     = Nothing
+  , _bid        = (Bid 0 0)
+  , _turn       = 0
+  , _won        = Nothing
+  , _rebid      = False
+  , _inProgress = False
+  , _baseStake  = 1
+  , _gameId     = i
+  , _numPlyrs   = n
+  , _variant    = mempty
+  , _multiple   = 1
+  }
 
 resetGame :: Int -> Game a -> Game a
 resetGame n g = g & bidder .~ Nothing
@@ -133,17 +130,23 @@ legal game action pId = case action of
 bonus :: Game a -> Int
 bonus game = sixes * mult
   where
-    Bid r q    = game ^. bid
-    mult       = iF (q < numPlayers + 3) 1 (2 + (q - numPlayers - 3) `div` 2)
-    sixes      = iF (r == 6) 2 1
+    Bid r q = game ^. bid
+    mult
+      | q < numPlayers + 3 = 1
+      | otherwise = (2 + (q - numPlayers - 3) `div` 2)
+    sixes
+      | (r == 6) = 2
+      | otherwise = 1
     numPlayers = numOfPlayers game
 
 -- | The hero bump is 1 if the bidder wins with none.
 hero :: Game (Vector Hand) -> Int
-hero game = iF (q == 0 && countRank (game ^. special) bc > 0) 1 0
+hero game
+  | (q == 0 && countRank (game ^. variant) bc > 0) = 1
+  | otherwise = 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ lookup bc =<< (game ^. special) !? bdr
+    q = fromMaybe 0 $ lookup bc =<< (game ^. variant) !? bdr
     bc = game ^. bid ^. bidRank
 
 
@@ -151,23 +154,23 @@ hero game = iF (q == 0 && countRank (game ^. special) bc > 0) 1 0
 --   Stakes.
 scoreGame :: Game (Vector Hand) -> Game (Vector Hand)
 scoreGame game =
-  game & players   %~ imap (\i p -> over score (+ (iF (bdr == Just i) b a)) p)
-       & baseStake .~ iF (h == 1) 2 bns
+  game & players %~ imap (\i p -> over score (+ (if (bdr == Just i) then b else a)) p)
+       & baseStake .~ if h == 1 then 2 else bns
   where
     bdr    = game ^. bidder
     (a, b) =
       maybe (0, 0)
-            (\w -> iF w (-winStake, winB) (lossStake, -lossB))
+            (\w -> if w then (-winStake, winB) else (lossStake, -lossB))
             (game ^. won)
 
     -- The n+3 and sixes rules
     bns = bonus game
 
     -- The skunk rule
-    mult =
-      iF (countRank (game ^. special) (game ^. bid . bidRank) == 0)
-         (max 1 (2 * numOfPlayers game - 6))
-         bns
+    mult
+      | countRank (game ^. variant) (game ^. bid . bidRank) == 0 =
+          max 1 (2 * numOfPlayers game - 6)
+      | otherwise = bns
 
     -- The hero bump
     h = hero game
