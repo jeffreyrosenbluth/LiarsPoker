@@ -3,8 +3,16 @@ module View exposing (..)
 {-| The top level view
 -}
 
-import Model exposing ( Model, Msg(..), ServerMsg(..), showServerMsg, Message
-                      , Game, higher)
+import Model
+    exposing
+        ( Model
+        , Msg(..)
+        , ServerMsg(..)
+        , showServerMsg
+        , Message
+        , Game
+        , higher
+        )
 import PlayerList as PlayerList
 import GameInfo as GameInfo
 import GamePlay as GamePlay
@@ -28,7 +36,9 @@ view model =
 
         JsonMsg cm ->
             case cm of
-                Ok g -> mainView model g
+                Ok g ->
+                    mainView model g
+
                 Err s ->
                     div [ class "h2 p2 m2 red" ] [ text s ]
 
@@ -46,7 +56,7 @@ mainView m g =
         , PlayerList.view m.players
         , App.map GamePlay (GamePlay.view m.gamePlay)
         , div [ class "p1 center red" ] [ text <| showServerMsg m.wsIncoming ]
-        , if snd g.special == "" then
+        , if snd g.variant == "" then
             waitingView g
           else
             div [] []

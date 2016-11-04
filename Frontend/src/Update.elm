@@ -92,13 +92,13 @@ updateCM g model =
         { model
             | wsIncoming = JsonMsg (Ok g)
             , gameInfo =
-                { name = withDefault "" <| M.map .name (get (fst g.special) g.players)
+                { name = withDefault "" <| M.map .name (get (fst g.variant) g.players)
                 , turn = turn g
                 , bidder = bidder g
                 , baseStake = g.baseStake
                 , multiple = g.multiple
                 , bid = g.bid
-                , hand = snd g.special
+                , hand = snd g.variant
                 }
             , players =
                 { players = g.players
@@ -116,6 +116,6 @@ updateCM g model =
                         , countFlag = False
                         , dealFlag = False
                         }
-                        <| M.map .flags (get (fst g.special) g.players)
+                        <| M.map .flags (get (fst g.variant) g.players)
                 }
         }
