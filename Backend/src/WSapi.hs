@@ -77,7 +77,7 @@ setButtonFlags g  = g & players .~ p
   where
     rf = not $ (Just $ g ^. turn) == g ^. bidder && g ^. rebid
     cf = (Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder)
-    nf = (Just $ g ^. turn) == g ^. bidder
+    nf = (Just $ g ^. turn) == g ^. bidder && g ^. won == Nothing
     df =  not (g ^. inProgress)
     i  = singular (ix (g ^. turn)) . flags
     p  = (g ^. players)
@@ -213,7 +213,7 @@ handle conn gmState pId = forever $ do
         Challenge | yes -> actionMsgs $ nextPlayer gs
         Count | yes     -> actionMsgs $ count gs
         Say _           -> errorMsgs gs "Not implemented yet"
-        Invalid m       -> errorMsgs gs $ "Impossible: Invalid " <> m
+        Invalid m       -> errorMsgs gs $ "Cannot parse message: " <> m
         _               -> errorMsgs gs $ "Illegal action: " <> T.pack (show action)
 
       {- If the player with the turn is a bot, then let the bot make a move.
@@ -222,7 +222,8 @@ handle conn gmState pId = forever $ do
          loop forever. -}
       (gs'', cm') = go (gs', cm)
       go (g, c) = maybe (g,c)
-                        (\move -> go (let g' = move g in (g', clientMsgs g')))
+                        (\move -> go (let g' = setButtonFlags . move $ g
+                                      in (g', clientMsgs g')))
                         (g ^. players . singular (ix (g ^. turn)) . bot)
   swapMVar gmState (gs'', cs)
   broadcast cs (encodeCMs cm')

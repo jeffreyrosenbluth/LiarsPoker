@@ -118,7 +118,7 @@ legal game action pId = case action of
                 && b > game ^. bid
                 && pId ==  game ^. turn
   Challenge -> maybe False (/= t) bd && pId == game ^. turn
-  Count     -> maybe False (== t) bd && pId == game ^. turn
+  Count     -> maybe False (== t) bd && pId == game ^. turn && game ^. won == Nothing
   Say _     -> True
   Invalid _ -> False
   where
