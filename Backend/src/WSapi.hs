@@ -163,7 +163,10 @@ disconnect gsRef gId pId conn = do
   (g, cs) <- takeMVar (gs ! gId)
   let cs' = filter (/= conn) cs
       p  = g ^. players & singular (ix pId) . bot .~ Just dumbBot
-  putMVar (gs ! gId) (g & players .~ p, cs')
+      g' | g ^. turn == pId = dumbBot $ g & players .~ p
+         | otherwise = g & players .~ p
+  putMVar (gs ! gId) (g', cs')
+  broadcast cs' (encodeCMs $ clientMsgs g')
 
 
 new :: Games -> Connection Integer -> Text -> Int -> IO ()
@@ -198,31 +201,34 @@ joinGame gmRef conn nm gId = do
            finally (handle conn gmState pId) (disconnect gmRef gId pId conn)
        | otherwise -> putMVar gmState (g, cs)
 
-handle :: Connection Integer -> MVar (GameState, Clients) -> Int -> IO ()
+handle :: Connection a -> MVar (GameState, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg <- WS.receiveData (conn ^. wsConn)
   (gs, cs) <- readMVar gmState
   r <- newStdGen
   let action    = parseMessage msg
       yes       = legal gs action pId
-      (gs', cm) = case action of
-        Join n _        -> errorMsgs gs $ "Cannot reset player name to: " <> n
-        New _ _         -> errorMsgs gs "Cannot start a new game"
-        Deal | yes      -> actionMsgs $ evalRand (deal gs) r
-        Raise b | yes   -> actionMsgs $ mkBid gs b
-        Challenge | yes -> actionMsgs $ nextPlayer gs
-        Count | yes     -> actionMsgs $ count gs
-        Say _           -> errorMsgs gs "Not implemented yet"
-        Invalid m       -> errorMsgs gs $ "Cannot parse message: " <> m
-        _               -> errorMsgs gs $ "Illegal action: " <> T.pack (show action)
+      exec = case action of
+        Join n _        -> Left $ "Cannot reset player name to: " <> n
+        New _ _         -> Left "Cannot start a new game"
+        Deal | yes      -> Right $ evalRand (deal gs) r
+        Raise b | yes   -> Right $ mkBid gs b
+        Challenge | yes -> Right $ nextPlayer gs
+        Count | yes     -> Right $ count gs
+        Say _           -> Left "Not implemented yet"
+        Invalid m       -> Left $ "Cannot parse message: " <> m
+        _               -> Left $ "Illegal action: " <> T.pack (show action)
 
       {- If the player with the turn is a bot, then let the bot make a move.
          We assume that the bot can only make legal moves.
          There must be at least one human player, otherwise the server will
          loop forever. -}
+      (gs', cm) = case exec of
+        Left t  -> errorMsgs gs t
+        Right s -> actionMsgs s
       (gs'', cm') = go (gs', cm)
       go (g, c) = maybe (g,c)
-                        (\move -> go (let g' = setButtonFlags . move $ g
+                        (\move -> go (let g' = move g
                                       in (g', clientMsgs g')))
                         (g ^. players . singular (ix (g ^. turn)) . bot)
   swapMVar gmState (gs'', cs)
@@ -245,7 +251,7 @@ count g = g'
     b      = g ^. bid
     card   = b ^. bidRank
 
-dumbBot :: Game (Vector Hand) -> Game (Vector Hand)
+dumbBot :: GameState -> GameState
 dumbBot g
   | (Just $ g ^. turn) == g ^. bidder = count g
   | otherwise = nextPlayer g
