@@ -34,17 +34,12 @@ type Hands = Vector Hand
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
 
-instance FromJSON Hand where
-  parseJSON = fmap M.fromList . parseJSON
-
 data Bid = Bid
   { _bidRank  :: !Rank
   , _bidQuant :: !Int
   } deriving (Eq, Generic, Show)
-makeLenses ''Bid
 
 instance ToJSON Bid
-instance FromJSON Bid
 
 instance Ord Bid where
   Bid c1 q1 <= Bid c2 q2 = (q1, f c1) <= (q2, f c2)
@@ -57,21 +52,24 @@ data Flags = Flags
   , _countFlag :: !Bool
   , _dealFlag  :: !Bool
   } deriving (Show, Generic, Eq)
-makeLenses ''Flags
 
 instance ToJSON Flags
-instance FromJSON Flags
 
 data Player = Player
   { _playerId :: !Int
   , _name     :: !Text
   , _score    :: !Int
   , _flags    :: !Flags
-  } deriving (Show, Eq, Generic)
-makeLenses ''Player
+  , _bot      :: Maybe (Game (Vector Hand) -> Game (Vector Hand))
+  } deriving (Generic)
 
-instance ToJSON Player
-instance FromJSON Player
+instance ToJSON Player where
+  toJSON p = object
+    [ "_playerId" .= _playerId p
+    , "_name"     .= _name p
+    , "_score"    .= _score p
+    , "_flags"    .= _flags p
+    ]
 
 data Game a = Game
   { _players    :: !(Vector Player)
@@ -87,13 +85,9 @@ data Game a = Game
   , _variant    :: a
   , _multiple   :: !Int
   } deriving (Generic)
-makeLenses ''Game
 
 instance ToJSON (Game (Int, Text))
-instance FromJSON (Game (Int, Text))
-
 instance ToJSON (Game (Vector Hand))
-instance FromJSON (Game (Vector Hand))
 
 data Action
   = Join !Text !Int
@@ -105,7 +99,11 @@ data Action
   | Say !Text
   | Invalid !Text
   deriving (Show, Generic)
-makePrisms ''Action
 
 instance ToJSON Action
-instance FromJSON Action
+
+makeLenses ''Bid
+makeLenses ''Flags
+makeLenses ''Player
+makeLenses ''Game
+makePrisms ''Action

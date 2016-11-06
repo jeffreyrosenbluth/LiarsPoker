@@ -15,8 +15,9 @@ main = do
   env <- getEnvironment
   let port = maybe 9160 read $ lookup "PORT" env
   gmRef <- newMVar empty
+  i     <- newMVar 0
   runSettings ( setPort port defaultSettings )
               ( websocketsOr  defaultConnectionOptions
-                            ( application gmRef )
+                            ( application gmRef i )
                               staticApp
               )

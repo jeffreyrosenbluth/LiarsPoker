@@ -16,6 +16,7 @@ import           LiarsPoker
 import           Types
 
 import           Control.Concurrent.MVar
+import           Control.Exception              (finally)
 import           Control.Lens
 import           Control.Monad
 import           Control.Monad.Random
@@ -35,8 +36,16 @@ import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
+data Connection a = Connection
+  { _wsConn :: WS.Connection
+  , _ident :: a
+  }
+makeLenses ''Connection
 
-type Clients   = [WS.Connection]
+instance Eq a => Eq (Connection a) where
+  a == b = a ^. ident == b ^. ident
+
+type Clients   = [Connection Integer]
 type GameState = Game (Vector Hand)
 type Games     = MVar (IntMap (MVar (GameState, Clients)))
 type Message   = Either Text (Game (Int, Text))
@@ -115,12 +124,12 @@ parseMessage t
   | otherwise = Invalid "Invalid message."
 
 -- | Version of sendTextData variantize to Text input.
-sendText :: WS.Connection -> Text -> IO ()
-sendText = WS.sendTextData
+sendText :: Connection Integer -> Text -> IO ()
+sendText c = WS.sendTextData (c ^. wsConn)
 
 -- | Send a list a messages to a list of clients.
 broadcast :: Clients -> [Text] -> IO ()
-broadcast = zipWithM_ WS.sendTextData
+broadcast cs ts = zipWithM_ WS.sendTextData (_wsConn <$> cs) ts
 
 -- | Serialize a list of client messages to a list of JSON text.
 encodeCMs :: [Message] -> [Text]
@@ -130,16 +139,17 @@ staticApp :: Network.Wai.Application
 staticApp = Static.staticApp
           $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
-application :: Games -> WS.ServerApp
-application gm pending = do
+application :: Games -> MVar Integer -> WS.ServerApp
+application gm n pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
-  singIn gm conn
+  i <- modifyMVar n (\m -> return $ (m+1, m))
+  singIn gm (Connection conn i)
 
-singIn :: Games -> WS.Connection -> IO ()
+singIn :: Games -> Connection Integer -> IO ()
 singIn gmRef conn = do
   sendText conn ":signin"
-  msg <- WS.receiveData conn
+  msg <- WS.receiveData (conn ^. wsConn)
   case parseMessage msg of
     New nm nPlyrs -> new gmRef conn nm nPlyrs
     Join nm gId   -> joinGame gmRef conn nm gId
@@ -147,7 +157,16 @@ singIn gmRef conn = do
       sendText conn ":signin"
       singIn gmRef conn
 
-new :: Games -> WS.Connection -> Text -> Int -> IO ()
+disconnect :: Games -> Int -> Int -> Connection Integer -> IO ()
+disconnect gsRef gId pId conn = do
+  gs <- readMVar gsRef
+  (g, cs) <- takeMVar (gs ! gId)
+  let cs' = filter (/= conn) cs
+      p  = g ^. players & singular (ix pId) . bot .~ Just dumbBot
+  putMVar (gs ! gId) (g & players .~ p, cs')
+
+
+new :: Games -> Connection Integer -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
   let key = if null gm then 0 else 1 + (maximum . keys $ gm)
@@ -156,9 +175,9 @@ new gmRef conn nm nPlyrs = do
   gs <- newMVar (gmState, [conn])
   putMVar gmRef (insert key gs gm)
   broadcast [conn] (encodeCMs $ clientMsgs g)
-  handle conn gs 0
+  finally (handle conn gs 0) (disconnect gmRef key 0 conn)
 
-joinGame :: Games -> WS.Connection -> Text -> Int -> IO ()
+joinGame :: Games -> Connection Integer -> Text -> Int -> IO ()
 joinGame gmRef conn nm gId = do
   gm <- readMVar gmRef
   -- Only try to joinGame if the 'gameId' is in the 'Games'
@@ -172,33 +191,41 @@ joinGame gmRef conn nm gId = do
            (gs, cm) <- actionMsgs <$> evalRandIO (deal g')
            putMVar gmState (gs, cs')
            broadcast cs' (encodeCMs cm)
-           handle conn gmState pId
+           finally (handle conn gmState pId) (disconnect gmRef gId pId conn)
        | V.length (g ^. players) < g ^. numPlyrs -> do
            putMVar gmState (g', cs')
            broadcast cs' (encodeCMs $ clientMsgs g')
-           handle conn gmState pId
+           finally (handle conn gmState pId) (disconnect gmRef gId pId conn)
        | otherwise -> putMVar gmState (g, cs)
 
-handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
+handle :: Connection Integer -> MVar (GameState, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
-  msg <- WS.receiveData conn
+  msg <- WS.receiveData (conn ^. wsConn)
   (gs, cs) <- readMVar gmState
   r <- newStdGen
-  let action = parseMessage msg
-      (newGS, cm)
-        | legal gs action pId =
-            case action of
-              Join n _  -> errorMsgs gs $ "Cannot reset player name to: " <> n
-              New _ _   -> errorMsgs gs "Cannot start a new game"
-              Deal      -> actionMsgs $ evalRand (deal gs) r
-              Raise b   -> actionMsgs $ mkBid gs b
-              Challenge -> actionMsgs $ nextPlayer gs
-              Count     -> actionMsgs $ count gs
-              Say _     -> errorMsgs gs "Not implemented yet"
-              Invalid m -> errorMsgs gs $ "Impossible: Invalid " <> m
-        | otherwise = errorMsgs gs $ "Illegal action: " <> T.pack (show action)
-  swapMVar gmState (newGS, cs)
-  broadcast cs (encodeCMs cm)
+  let action    = parseMessage msg
+      yes       = legal gs action pId
+      (gs', cm) = case action of
+        Join n _        -> errorMsgs gs $ "Cannot reset player name to: " <> n
+        New _ _         -> errorMsgs gs "Cannot start a new game"
+        Deal | yes      -> actionMsgs $ evalRand (deal gs) r
+        Raise b | yes   -> actionMsgs $ mkBid gs b
+        Challenge | yes -> actionMsgs $ nextPlayer gs
+        Count | yes     -> actionMsgs $ count gs
+        Say _           -> errorMsgs gs "Not implemented yet"
+        Invalid m       -> errorMsgs gs $ "Impossible: Invalid " <> m
+        _               -> errorMsgs gs $ "Illegal action: " <> T.pack (show action)
+
+      {- If the player with the turn is a bot, then let the bot make a move.
+         We assume that the bot can only make legal moves.
+         There must be at least one human player, otherwise the server will
+         loop forever. -}
+      (gs'', cm') = go (gs', cm)
+      go (g, c) = maybe (g,c)
+                        (\move -> go (let g' = move g in (g', clientMsgs g')))
+                        (g ^. players . singular (ix (g ^. turn)) . bot)
+  swapMVar gmState (gs'', cs)
+  broadcast cs (encodeCMs cm')
 
 deal :: (RandomGen g) => GameState -> Rand g GameState
 deal g = do
@@ -216,3 +243,8 @@ count g = g'
     g'     = scoreGame (g & won .~ Just result & inProgress .~ False)
     b      = g ^. bid
     card   = b ^. bidRank
+
+dumbBot :: Game (Vector Hand) -> Game (Vector Hand)
+dumbBot g
+  | (Just $ g ^. turn) == g ^. bidder = count g
+  | otherwise = nextPlayer g
