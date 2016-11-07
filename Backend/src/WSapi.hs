@@ -123,7 +123,7 @@ parseMessage t
   | "say " `T.isPrefixOf` t = Say $ T.drop 4 t
   | otherwise = Invalid "Invalid message."
 
--- | Version of sendTextData variantize to Text input.
+-- | Version of sendTextData specialized to Text input.
 sendText :: Connection Integer -> Text -> IO ()
 sendText c = WS.sendTextData (c ^. wsConn)
 
