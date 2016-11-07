@@ -8673,9 +8673,26 @@
 			_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$Bid),
 			A2(_elm_lang$core$Json_Decode_ops[':='], '_bidRank', _elm_lang$core$Json_Decode$int)),
 		A2(_elm_lang$core$Json_Decode_ops[':='], '_bidQuant', _elm_lang$core$Json_Decode$int));
-	var _jeffreyrosenbluth$liarspoker$Types$Player = F3(
-		function (a, b, c) {
-			return {playerId: a, name: b, score: c};
+	var _jeffreyrosenbluth$liarspoker$Types$Flags = F4(
+		function (a, b, c, d) {
+			return {raiseFlag: a, chalFlag: b, countFlag: c, dealFlag: d};
+		});
+	var _jeffreyrosenbluth$liarspoker$Types$flagsDecoder = A2(
+		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+		A2(
+			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+			A2(
+				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+				A2(
+					_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+					_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$Flags),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_raiseFlag', _elm_lang$core$Json_Decode$bool)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_chalFlag', _elm_lang$core$Json_Decode$bool)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_countFlag', _elm_lang$core$Json_Decode$bool)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_dealFlag', _elm_lang$core$Json_Decode$bool));
+	var _jeffreyrosenbluth$liarspoker$Types$Player = F4(
+		function (a, b, c, d) {
+			return {playerId: a, name: b, score: c, flags: d};
 		});
 	var _jeffreyrosenbluth$liarspoker$Types$playerDecoder = A2(
 		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
@@ -8683,24 +8700,13 @@
 			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 			A2(
 				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-				_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$Player),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_playerId', _elm_lang$core$Json_Decode$int)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_name', _elm_lang$core$Json_Decode$string)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_score', _elm_lang$core$Json_Decode$int));
-	var _jeffreyrosenbluth$liarspoker$Types$BtnFlags = F3(
-		function (a, b, c) {
-			return {bfRaise: a, bfChallenge: b, bfCount: c};
-		});
-	var _jeffreyrosenbluth$liarspoker$Types$btnFlagsDecoder = A2(
-		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-		A2(
-			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-			A2(
-				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-				_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$BtnFlags),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_bfRaise', _elm_lang$core$Json_Decode$bool)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_bfChallenge', _elm_lang$core$Json_Decode$bool)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_bfCount', _elm_lang$core$Json_Decode$bool));
+				A2(
+					_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+					_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Types$Player),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_playerId', _elm_lang$core$Json_Decode$int)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_name', _elm_lang$core$Json_Decode$string)),
+			A2(_elm_lang$core$Json_Decode_ops[':='], '_score', _elm_lang$core$Json_Decode$int)),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_flags', _jeffreyrosenbluth$liarspoker$Types$flagsDecoder));
 
 	var _jeffreyrosenbluth$liarspoker$GameInfo$playerView = function (model) {
 		return A2(
@@ -8832,7 +8838,7 @@
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html$text('Bid')
+							_elm_lang$html$Html$text(model.bidder)
 						])),
 					A2(
 					_elm_lang$html$Html$div,
@@ -8848,7 +8854,7 @@
 					_elm_lang$core$Native_List.fromArray(
 						[
 							_elm_lang$html$Html$text(
-							A2(
+							_elm_lang$core$Native_Utils.eq(model.bidder, '') ? '- -' : A2(
 								_elm_lang$core$Basics_ops['++'],
 								_elm_lang$core$Basics$toString(model.bid.bidQuant),
 								A2(
@@ -9003,43 +9009,6 @@
 								]),
 							_elm_lang$core$Native_List.fromArray(
 								[
-									_jeffreyrosenbluth$liarspoker$GameInfo$bidderView(model)
-								])),
-							A2(
-							_elm_lang$html$Html$div,
-							_elm_lang$core$Native_List.fromArray(
-								[
-									_elm_lang$html$Html_Attributes$style(
-									_elm_lang$core$Native_List.fromArray(
-										[
-											{ctor: '_Tuple2', _0: 'width', _1: '50%'}
-										]))
-								]),
-							_elm_lang$core$Native_List.fromArray(
-								[
-									_jeffreyrosenbluth$liarspoker$GameInfo$playerView(model)
-								]))
-						])),
-					A2(
-					_elm_lang$html$Html$div,
-					_elm_lang$core$Native_List.fromArray(
-						[
-							_elm_lang$html$Html_Attributes$class('flex bg-white')
-						]),
-					_elm_lang$core$Native_List.fromArray(
-						[
-							A2(
-							_elm_lang$html$Html$div,
-							_elm_lang$core$Native_List.fromArray(
-								[
-									_elm_lang$html$Html_Attributes$style(
-									_elm_lang$core$Native_List.fromArray(
-										[
-											{ctor: '_Tuple2', _0: 'width', _1: '50%'}
-										]))
-								]),
-							_elm_lang$core$Native_List.fromArray(
-								[
 									_jeffreyrosenbluth$liarspoker$GameInfo$stakesView(model)
 								])),
 							A2(
@@ -9112,41 +9081,24 @@
 							{rank: _p0._0}),
 						_1: _elm_lang$core$Platform_Cmd$none
 					};
-				case 'Outgoing':
-					var _p1 = _p0._0;
-					return {
-						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{
-								preResult: _elm_lang$core$Native_Utils.eq(_p1, 'count')
-							}),
-						_1: A2(_elm_lang$websocket$WebSocket$send, _jeffreyrosenbluth$liarspoker$Types$wsURL, _p1)
-					};
 				default:
 					return {
 						ctor: '_Tuple2',
-						_0: _elm_lang$core$Native_Utils.update(
-							model,
-							{preResult: _p0._0}),
-						_1: _elm_lang$core$Platform_Cmd$none
+						_0: model,
+						_1: A2(_elm_lang$websocket$WebSocket$send, _jeffreyrosenbluth$liarspoker$Types$wsURL, _p0._0)
 					};
 			}
 		});
 	var _jeffreyrosenbluth$liarspoker$GamePlay$init = {
 		quant: 0,
 		rank: 0,
-		buttons: {bfRaise: false, bfChallenge: false, bfCount: false},
 		bid: A2(_jeffreyrosenbluth$liarspoker$Types$Bid, 0, 0),
-		preResult: false
+		buttons: A4(_jeffreyrosenbluth$liarspoker$Types$Flags, false, false, false, false)
 	};
-	var _jeffreyrosenbluth$liarspoker$GamePlay$Model = F5(
-		function (a, b, c, d, e) {
-			return {quant: a, rank: b, buttons: c, bid: d, preResult: e};
+	var _jeffreyrosenbluth$liarspoker$GamePlay$Model = F4(
+		function (a, b, c, d) {
+			return {quant: a, rank: b, bid: c, buttons: d};
 		});
-	var _jeffreyrosenbluth$liarspoker$GamePlay$PreResult = function (a) {
-		return {ctor: 'PreResult', _0: a};
-	};
 	var _jeffreyrosenbluth$liarspoker$GamePlay$Outgoing = function (a) {
 		return {ctor: 'Outgoing', _0: a};
 	};
@@ -9190,7 +9142,7 @@
 											' ',
 											_elm_lang$core$Basics$toString(model.rank)))))),
 							_elm_lang$html$Html_Attributes$disabled(
-							_elm_lang$core$Basics$not(model.buttons.bfRaise) || _elm_lang$core$Basics$not(
+							_elm_lang$core$Basics$not(model.buttons.raiseFlag) || _elm_lang$core$Basics$not(
 								_jeffreyrosenbluth$liarspoker$GamePlay$higher(model)))
 						]),
 					_elm_lang$core$Native_List.fromArray(
@@ -9218,7 +9170,7 @@
 							_elm_lang$html$Html_Events$onClick(
 							_jeffreyrosenbluth$liarspoker$GamePlay$Outgoing('challenge')),
 							_elm_lang$html$Html_Attributes$disabled(
-							_elm_lang$core$Basics$not(model.buttons.bfChallenge))
+							_elm_lang$core$Basics$not(model.buttons.chalFlag))
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
@@ -9245,11 +9197,56 @@
 							_elm_lang$html$Html_Events$onClick(
 							_jeffreyrosenbluth$liarspoker$GamePlay$Outgoing('count')),
 							_elm_lang$html$Html_Attributes$disabled(
-							_elm_lang$core$Basics$not(model.buttons.bfCount))
+							_elm_lang$core$Basics$not(model.buttons.countFlag))
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
 							_elm_lang$html$Html$text('Count')
+						])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('flex-auto')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[]))
+				]));
+	};
+	var _jeffreyrosenbluth$liarspoker$GamePlay$dealView = function (model) {
+		return A2(
+			_elm_lang$html$Html$div,
+			_elm_lang$core$Native_List.fromArray(
+				[
+					_elm_lang$html$Html_Attributes$class('flex bg-white')
+				]),
+			_elm_lang$core$Native_List.fromArray(
+				[
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('flex-auto')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[])),
+					A2(
+					_elm_lang$html$Html$button,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('btn btn-primary m2'),
+							_elm_lang$html$Html_Attributes$style(
+							_elm_lang$core$Native_List.fromArray(
+								[
+									{ctor: '_Tuple2', _0: 'background-color', _1: 'red'}
+								])),
+							_elm_lang$html$Html_Events$onClick(
+							_jeffreyrosenbluth$liarspoker$GamePlay$Outgoing('deal')),
+							_elm_lang$html$Html_Attributes$disabled(false)
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html$text('Deal')
 						])),
 					A2(
 					_elm_lang$html$Html$div,
@@ -9277,12 +9274,15 @@
 					_elm_lang$html$Html$div,
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html_Attributes$class('h2 flex-auto p1 gray'),
-							_elm_lang$html$Html_Attributes$style(
-							_elm_lang$core$Native_List.fromArray(
-								[
-									{ctor: '_Tuple2', _0: 'width', _1: '5rem'}
-								]))
+							_elm_lang$html$Html_Attributes$class('flex-auto')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('h2 flex-auto p1 gray')
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
@@ -9303,21 +9303,22 @@
 							_elm_lang$html$Html_Attributes$value(
 							_elm_lang$core$Basics$toString(model.rank)),
 							_elm_lang$html$Html_Events$onInput(
-							function (_p2) {
+							function (_p1) {
 								return _jeffreyrosenbluth$liarspoker$GamePlay$RaiseRank(
 									_jeffreyrosenbluth$liarspoker$GamePlay$constrainRank(
 										A2(
 											_elm_lang$core$Maybe$withDefault,
 											0,
 											_elm_lang$core$Result$toMaybe(
-												_elm_lang$core$String$toInt(_p2)))));
+												_elm_lang$core$String$toInt(_p1)))));
 							}),
-							_elm_lang$html$Html_Attributes$class('h2 m1 center field'),
+							_elm_lang$html$Html_Attributes$class('m1 center field'),
 							_elm_lang$html$Html_Attributes$type$('number'),
 							_elm_lang$html$Html_Attributes$style(
 							_elm_lang$core$Native_List.fromArray(
 								[
-									{ctor: '_Tuple2', _0: 'font-size', _1: '120%'}
+									{ctor: '_Tuple2', _0: 'font-size', _1: '120%'},
+									{ctor: '_Tuple2', _0: 'width', _1: '4rem'}
 								]))
 						]),
 					_elm_lang$core$Native_List.fromArray(
@@ -9329,7 +9330,47 @@
 							_elm_lang$html$Html_Attributes$class('flex-auto')
 						]),
 					_elm_lang$core$Native_List.fromArray(
-						[]))
+						[])),
+					A2(
+					_elm_lang$html$Html$button,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('btn btn-outline m1 h6'),
+							_elm_lang$html$Html_Events$onClick(
+							_jeffreyrosenbluth$liarspoker$GamePlay$RaiseRank(
+								_jeffreyrosenbluth$liarspoker$GamePlay$constrainRank(model.rank - 1)))
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-minus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
+						])),
+					A2(
+					_elm_lang$html$Html$button,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('btn btn-outline mt1 mb1 mr4 h6'),
+							_elm_lang$html$Html_Events$onClick(
+							_jeffreyrosenbluth$liarspoker$GamePlay$RaiseRank(
+								_jeffreyrosenbluth$liarspoker$GamePlay$constrainRank(model.rank + 1)))
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-plus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
+						]))
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$GamePlay$RaiseQuant = function (a) {
@@ -9348,12 +9389,15 @@
 					_elm_lang$html$Html$div,
 					_elm_lang$core$Native_List.fromArray(
 						[
-							_elm_lang$html$Html_Attributes$class('h2 flex-auto p1 gray'),
-							_elm_lang$html$Html_Attributes$style(
-							_elm_lang$core$Native_List.fromArray(
-								[
-									{ctor: '_Tuple2', _0: 'width', _1: '5rem'}
-								]))
+							_elm_lang$html$Html_Attributes$class('flex-auto')
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[])),
+					A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('h2 flex-auto p1 gray')
 						]),
 					_elm_lang$core$Native_List.fromArray(
 						[
@@ -9374,7 +9418,7 @@
 							_elm_lang$html$Html_Attributes$value(
 							_elm_lang$core$Basics$toString(model.quant)),
 							_elm_lang$html$Html_Events$onInput(
-							function (_p3) {
+							function (_p2) {
 								return _jeffreyrosenbluth$liarspoker$GamePlay$RaiseQuant(
 									A2(
 										_elm_lang$core$Basics$max,
@@ -9383,14 +9427,15 @@
 											_elm_lang$core$Maybe$withDefault,
 											0,
 											_elm_lang$core$Result$toMaybe(
-												_elm_lang$core$String$toInt(_p3)))));
+												_elm_lang$core$String$toInt(_p2)))));
 							}),
 							_elm_lang$html$Html_Attributes$class('m1 center field'),
 							_elm_lang$html$Html_Attributes$type$('number'),
 							_elm_lang$html$Html_Attributes$style(
 							_elm_lang$core$Native_List.fromArray(
 								[
-									{ctor: '_Tuple2', _0: 'font-size', _1: '120%'}
+									{ctor: '_Tuple2', _0: 'font-size', _1: '120%'},
+									{ctor: '_Tuple2', _0: 'width', _1: '4rem'}
 								]))
 						]),
 					_elm_lang$core$Native_List.fromArray(
@@ -9402,7 +9447,46 @@
 							_elm_lang$html$Html_Attributes$class('flex-auto')
 						]),
 					_elm_lang$core$Native_List.fromArray(
-						[]))
+						[])),
+					A2(
+					_elm_lang$html$Html$button,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('btn btn-outline m1 h6'),
+							_elm_lang$html$Html_Events$onClick(
+							_jeffreyrosenbluth$liarspoker$GamePlay$RaiseQuant(
+								A2(_elm_lang$core$Basics$max, 0, model.quant - 1)))
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-minus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
+						])),
+					A2(
+					_elm_lang$html$Html$button,
+					_elm_lang$core$Native_List.fromArray(
+						[
+							_elm_lang$html$Html_Attributes$class('btn btn-outline mt1 mb1 mr4 h6'),
+							_elm_lang$html$Html_Events$onClick(
+							_jeffreyrosenbluth$liarspoker$GamePlay$RaiseQuant(model.quant + 1))
+						]),
+					_elm_lang$core$Native_List.fromArray(
+						[
+							A2(
+							_elm_lang$html$Html$i,
+							_elm_lang$core$Native_List.fromArray(
+								[
+									_elm_lang$html$Html_Attributes$class('fa fa-plus')
+								]),
+							_elm_lang$core$Native_List.fromArray(
+								[]))
+						]))
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$GamePlay$view = function (model) {
@@ -9414,7 +9498,13 @@
 				[
 					_jeffreyrosenbluth$liarspoker$GamePlay$quantEntryView(model),
 					_jeffreyrosenbluth$liarspoker$GamePlay$rankEntryView(model),
-					_jeffreyrosenbluth$liarspoker$GamePlay$playView(model)
+					_jeffreyrosenbluth$liarspoker$GamePlay$playView(model),
+					model.buttons.dealFlag ? _jeffreyrosenbluth$liarspoker$GamePlay$dealView(model) : A2(
+					_elm_lang$html$Html$div,
+					_elm_lang$core$Native_List.fromArray(
+						[]),
+					_elm_lang$core$Native_List.fromArray(
+						[]))
 				]));
 	};
 
@@ -9977,11 +10067,11 @@
 	};
 
 	var _jeffreyrosenbluth$liarspoker$Model$higher = F2(
-		function (m, c) {
-			var cQuant = c.cmGame.bid.bidQuant;
-			var cRank = _elm_lang$core$Native_Utils.eq(c.cmGame.bid.bidRank, 0) ? 10 : c.cmGame.bid.bidRank;
+		function (m, g) {
+			var gQuant = g.bid.bidQuant;
+			var gRank = _elm_lang$core$Native_Utils.eq(g.bid.bidRank, 0) ? 10 : g.bid.bidRank;
 			var mRank = _elm_lang$core$Native_Utils.eq(m.gamePlay.rank, 0) ? 10 : m.gamePlay.rank;
-			return (_elm_lang$core$Native_Utils.cmp(m.gamePlay.quant, cQuant) > 0) || (_elm_lang$core$Native_Utils.eq(m.gamePlay.quant, cQuant) && (_elm_lang$core$Native_Utils.cmp(mRank, cRank) > 0));
+			return (_elm_lang$core$Native_Utils.cmp(m.gamePlay.quant, gQuant) > 0) || (_elm_lang$core$Native_Utils.eq(m.gamePlay.quant, gQuant) && (_elm_lang$core$Native_Utils.cmp(mRank, gRank) > 0));
 		});
 	var _jeffreyrosenbluth$liarspoker$Model$showServerMsg = function (sm) {
 		var _p0 = sm;
@@ -9989,7 +10079,12 @@
 			case 'RawMsg':
 				return _p0._0;
 			case 'JsonMsg':
-				return _p0._0.cmError;
+				var _p1 = _p0._0;
+				if (_p1.ctor === 'Err') {
+					return _p1._0;
+				} else {
+					return '';
+				}
 			default:
 				return _p0._0;
 		}
@@ -10008,7 +10103,11 @@
 								return function (h) {
 									return function (i) {
 										return function (j) {
-											return {players: a, bidder: b, bid: c, turn: d, won: e, rebid: f, inProgress: g, baseStake: h, gameId: i, numPlyrs: j};
+											return function (k) {
+												return function (l) {
+													return {players: a, bidder: b, bid: c, turn: d, won: e, rebid: f, inProgress: g, baseStake: h, gameId: i, numPlyrs: j, variant: k, multiple: l};
+												};
+											};
 										};
 									};
 								};
@@ -10039,71 +10138,50 @@
 										_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
 										A2(
 											_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-											_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$Game),
 											A2(
-												_elm_lang$core$Json_Decode_ops[':='],
-												'_players',
-												_elm_lang$core$Json_Decode$array(_jeffreyrosenbluth$liarspoker$Types$playerDecoder))),
-										_elm_lang$core$Json_Decode$maybe(
-											A2(_elm_lang$core$Json_Decode_ops[':='], '_bidder', _elm_lang$core$Json_Decode$int))),
-									A2(_elm_lang$core$Json_Decode_ops[':='], '_bid', _jeffreyrosenbluth$liarspoker$Types$bidDecoder)),
-								A2(_elm_lang$core$Json_Decode_ops[':='], '_turn', _elm_lang$core$Json_Decode$int)),
-							_elm_lang$core$Json_Decode$maybe(
-								A2(_elm_lang$core$Json_Decode_ops[':='], '_won', _elm_lang$core$Json_Decode$bool))),
-						A2(_elm_lang$core$Json_Decode_ops[':='], '_rebid', _elm_lang$core$Json_Decode$bool)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_inProgress', _elm_lang$core$Json_Decode$bool)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_baseStake', _elm_lang$core$Json_Decode$int)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_gameId', _elm_lang$core$Json_Decode$int)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_numPlyrs', _elm_lang$core$Json_Decode$int));
-	var _jeffreyrosenbluth$liarspoker$Model$PrevGame = F4(
-		function (a, b, c, d) {
-			return {pgBidder: a, pgBid: b, pgCount: c, pgMe: d};
-		});
-	var _jeffreyrosenbluth$liarspoker$Model$prevGameDecoder = A2(
-		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-		A2(
-			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+												_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+												A2(
+													_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+													_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$Game),
+													A2(
+														_elm_lang$core$Json_Decode_ops[':='],
+														'_players',
+														_elm_lang$core$Json_Decode$array(_jeffreyrosenbluth$liarspoker$Types$playerDecoder))),
+												_elm_lang$core$Json_Decode$maybe(
+													A2(_elm_lang$core$Json_Decode_ops[':='], '_bidder', _elm_lang$core$Json_Decode$int))),
+											A2(_elm_lang$core$Json_Decode_ops[':='], '_bid', _jeffreyrosenbluth$liarspoker$Types$bidDecoder)),
+										A2(_elm_lang$core$Json_Decode_ops[':='], '_turn', _elm_lang$core$Json_Decode$int)),
+									_elm_lang$core$Json_Decode$maybe(
+										A2(_elm_lang$core$Json_Decode_ops[':='], '_won', _elm_lang$core$Json_Decode$bool))),
+								A2(_elm_lang$core$Json_Decode_ops[':='], '_rebid', _elm_lang$core$Json_Decode$bool)),
+							A2(_elm_lang$core$Json_Decode_ops[':='], '_inProgress', _elm_lang$core$Json_Decode$bool)),
+						A2(_elm_lang$core$Json_Decode_ops[':='], '_baseStake', _elm_lang$core$Json_Decode$int)),
+					A2(_elm_lang$core$Json_Decode_ops[':='], '_gameId', _elm_lang$core$Json_Decode$int)),
+				A2(_elm_lang$core$Json_Decode_ops[':='], '_numPlyrs', _elm_lang$core$Json_Decode$int)),
 			A2(
-				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+				_elm_lang$core$Json_Decode_ops[':='],
+				'_variant',
+				A3(
+					_elm_lang$core$Json_Decode$tuple2,
+					F2(
+						function (v0, v1) {
+							return {ctor: '_Tuple2', _0: v0, _1: v1};
+						}),
+					_elm_lang$core$Json_Decode$int,
+					_elm_lang$core$Json_Decode$string))),
+		A2(_elm_lang$core$Json_Decode_ops[':='], '_multiple', _elm_lang$core$Json_Decode$int));
+	var _jeffreyrosenbluth$liarspoker$Model$resultGameDecoder = _elm_lang$core$Json_Decode$oneOf(
+		_elm_lang$core$Native_List.fromArray(
+			[
 				A2(
-					_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-					_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$PrevGame),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBidder', _elm_lang$core$Json_Decode$string)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_pgBid', _jeffreyrosenbluth$liarspoker$Types$bidDecoder)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_pgCount', _elm_lang$core$Json_Decode$int)),
-		A2(
-			_elm_lang$core$Json_Decode_ops[':='],
-			'_pgMe',
-			_elm_lang$core$Json_Decode$array(_elm_lang$core$Json_Decode$int)));
-	var _jeffreyrosenbluth$liarspoker$Model$ClientMsg = F8(
-		function (a, b, c, d, e, f, g, h) {
-			return {cmGame: a, cmHand: b, cmError: c, cmMultiple: d, cmButtons: e, cmName: f, cmPrevGame: g, cmPlyrId: h};
-		});
-	var _jeffreyrosenbluth$liarspoker$Model$clientMsgDecoder = A2(
-		_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-		A2(
-			_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-			A2(
 				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+				_elm_lang$core$Json_Decode$succeed(_elm_lang$core$Result$Err),
+				A2(_elm_lang$core$Json_Decode_ops[':='], 'Left', _elm_lang$core$Json_Decode$string)),
 				A2(
-					_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-					A2(
-						_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-						A2(
-							_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-							A2(
-								_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-								A2(
-									_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
-									_elm_lang$core$Json_Decode$succeed(_jeffreyrosenbluth$liarspoker$Model$ClientMsg),
-									A2(_elm_lang$core$Json_Decode_ops[':='], '_cmGame', _jeffreyrosenbluth$liarspoker$Model$gameDecoder)),
-								A2(_elm_lang$core$Json_Decode_ops[':='], '_cmHand', _elm_lang$core$Json_Decode$string)),
-							A2(_elm_lang$core$Json_Decode_ops[':='], '_cmError', _elm_lang$core$Json_Decode$string)),
-						A2(_elm_lang$core$Json_Decode_ops[':='], '_cmMultiple', _elm_lang$core$Json_Decode$int)),
-					A2(_elm_lang$core$Json_Decode_ops[':='], '_cmButtons', _jeffreyrosenbluth$liarspoker$Types$btnFlagsDecoder)),
-				A2(_elm_lang$core$Json_Decode_ops[':='], '_cmName', _elm_lang$core$Json_Decode$string)),
-			A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPrevGame', _jeffreyrosenbluth$liarspoker$Model$prevGameDecoder)),
-		A2(_elm_lang$core$Json_Decode_ops[':='], '_cmPlyrId', _elm_lang$core$Json_Decode$int));
+				_jeffreyrosenbluth$liarspoker$Types_ops['<*>'],
+				_elm_lang$core$Json_Decode$succeed(_elm_lang$core$Result$Ok),
+				A2(_elm_lang$core$Json_Decode_ops[':='], 'Right', _jeffreyrosenbluth$liarspoker$Model$gameDecoder))
+			]));
 	var _jeffreyrosenbluth$liarspoker$Model$None = {ctor: 'None'};
 	var _jeffreyrosenbluth$liarspoker$Model$SignIn = function (a) {
 		return {ctor: 'SignIn', _0: a};
@@ -10138,16 +10216,16 @@
 		_1: _elm_lang$core$Platform_Cmd$none
 	};
 
-	var _jeffreyrosenbluth$liarspoker$Update$bidder = function (c) {
+	var _jeffreyrosenbluth$liarspoker$Update$bidder = function (g) {
 		var b = A2(
 			_elm_lang$core$Maybe$andThen,
-			c.cmGame.bidder,
+			g.bidder,
 			function (n) {
-				return A2(_elm_lang$core$Array$get, n, c.cmGame.players);
+				return A2(_elm_lang$core$Array$get, n, g.players);
 			});
 		return A2(
 			_elm_lang$core$Maybe$withDefault,
-			'None',
+			'',
 			A2(
 				_elm_lang$core$Maybe$map,
 				function (_) {
@@ -10155,7 +10233,7 @@
 				},
 				b));
 	};
-	var _jeffreyrosenbluth$liarspoker$Update$turn = function (c) {
+	var _jeffreyrosenbluth$liarspoker$Update$turn = function (g) {
 		return A2(
 			_elm_lang$core$Maybe$withDefault,
 			'Error',
@@ -10164,27 +10242,55 @@
 				function (_) {
 					return _.name;
 				},
-				A2(_elm_lang$core$Array$get, c.cmGame.turn, c.cmGame.players)));
+				A2(_elm_lang$core$Array$get, g.turn, g.players)));
 	};
 	var _jeffreyrosenbluth$liarspoker$Update$updateCM = F2(
-		function (cMsg, model) {
+		function (g, model) {
 			var r = model.gamePlay.rank;
 			var q = model.gamePlay.quant;
 			return _elm_lang$core$Native_Utils.update(
 				model,
 				{
-					wsIncoming: _jeffreyrosenbluth$liarspoker$Model$JsonMsg(cMsg),
+					wsIncoming: _jeffreyrosenbluth$liarspoker$Model$JsonMsg(
+						_elm_lang$core$Result$Ok(g)),
 					gameInfo: {
-						name: cMsg.cmName,
-						turn: _jeffreyrosenbluth$liarspoker$Update$turn(cMsg),
-						bidder: _jeffreyrosenbluth$liarspoker$Update$bidder(cMsg),
-						baseStake: cMsg.cmGame.baseStake,
-						multiple: cMsg.cmMultiple,
-						bid: cMsg.cmGame.bid,
-						hand: cMsg.cmHand
+						name: A2(
+							_elm_lang$core$Maybe$withDefault,
+							'',
+							A2(
+								_elm_lang$core$Maybe$map,
+								function (_) {
+									return _.name;
+								},
+								A2(
+									_elm_lang$core$Array$get,
+									_elm_lang$core$Basics$fst(g.variant),
+									g.players))),
+						turn: _jeffreyrosenbluth$liarspoker$Update$turn(g),
+						bidder: _jeffreyrosenbluth$liarspoker$Update$bidder(g),
+						baseStake: g.baseStake,
+						multiple: g.multiple,
+						bid: g.bid,
+						hand: _elm_lang$core$Basics$snd(g.variant)
 					},
-					players: {players: cMsg.cmGame.players, bidder: cMsg.cmGame.bidder, turn: cMsg.cmGame.turn},
-					gamePlay: {quant: q, rank: r, buttons: cMsg.cmButtons, bid: cMsg.cmGame.bid, preResult: model.gamePlay.preResult}
+					players: {players: g.players, bidder: g.bidder, turn: g.turn},
+					gamePlay: {
+						quant: q,
+						rank: r,
+						bid: g.bid,
+						buttons: A2(
+							_elm_lang$core$Maybe$withDefault,
+							{raiseFlag: false, chalFlag: false, countFlag: false, dealFlag: false},
+							A2(
+								_elm_lang$core$Maybe$map,
+								function (_) {
+									return _.flags;
+								},
+								A2(
+									_elm_lang$core$Array$get,
+									_elm_lang$core$Basics$fst(g.variant),
+									g.players)))
+					}
 				});
 		});
 	var _jeffreyrosenbluth$liarspoker$Update$update = F2(
@@ -10210,8 +10316,8 @@
 						_1: A2(_elm_lang$core$Platform_Cmd$map, _jeffreyrosenbluth$liarspoker$Model$SignIn, cmd)
 					};
 				case 'WSincoming':
-					var _p4 = _p0._0;
-					if (_elm_lang$core$Native_Utils.eq(_p4, ':signin')) {
+					var _p5 = _p0._0;
+					if (_elm_lang$core$Native_Utils.eq(_p5, ':signin')) {
 						return {
 							ctor: '_Tuple2',
 							_0: _elm_lang$core$Native_Utils.update(
@@ -10222,13 +10328,26 @@
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
 					} else {
-						var _p3 = A2(_elm_lang$core$Json_Decode$decodeString, _jeffreyrosenbluth$liarspoker$Model$clientMsgDecoder, _p4);
+						var _p3 = A2(_elm_lang$core$Json_Decode$decodeString, _jeffreyrosenbluth$liarspoker$Model$resultGameDecoder, _p5);
 						if (_p3.ctor === 'Ok') {
-							return {
-								ctor: '_Tuple2',
-								_0: A2(_jeffreyrosenbluth$liarspoker$Update$updateCM, _p3._0, model),
-								_1: _elm_lang$core$Platform_Cmd$none
-							};
+							var _p4 = _p3._0;
+							if (_p4.ctor === 'Ok') {
+								return {
+									ctor: '_Tuple2',
+									_0: A2(_jeffreyrosenbluth$liarspoker$Update$updateCM, _p4._0, model),
+									_1: _elm_lang$core$Platform_Cmd$none
+								};
+							} else {
+								return {
+									ctor: '_Tuple2',
+									_0: _elm_lang$core$Native_Utils.update(
+										model,
+										{
+											wsIncoming: _jeffreyrosenbluth$liarspoker$Model$ErrorMsg(_p4._0)
+										}),
+									_1: _elm_lang$core$Platform_Cmd$none
+								};
+							}
 						} else {
 							return {
 								ctor: '_Tuple2',
@@ -10267,106 +10386,7 @@
 						_elm_lang$html$Html$text('Rules')
 					]))
 			]));
-	var _jeffreyrosenbluth$liarspoker$View$previousHandView = F2(
-		function (m, c) {
-			var visible = m.gamePlay.preResult ? 'inline-block' : 'none';
-			var result = (_elm_lang$core$Native_Utils.cmp(c.cmPrevGame.pgCount, c.cmPrevGame.pgBid.bidQuant) > -1) ? 'won' : 'lost';
-			var total = _elm_lang$core$Basics$toString(c.cmPrevGame.pgCount);
-			var you = _elm_lang$core$Basics$toString(
-				A2(
-					_elm_lang$core$Maybe$withDefault,
-					0,
-					A2(_elm_lang$core$Array$get, c.cmPlyrId, c.cmPrevGame.pgMe)));
-			var bd = A2(
-				_elm_lang$core$Basics_ops['++'],
-				_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidQuant),
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					' ',
-					A2(
-						_elm_lang$core$Basics_ops['++'],
-						_elm_lang$core$Basics$toString(c.cmPrevGame.pgBid.bidRank),
-						's')));
-			var nm = c.cmPrevGame.pgBidder;
-			return A2(
-				_elm_lang$html$Html$div,
-				_elm_lang$core$Native_List.fromArray(
-					[
-						_elm_lang$html$Html_Attributes$class('white bg-gray m2'),
-						_elm_lang$html$Html_Attributes$style(
-						_elm_lang$core$Native_List.fromArray(
-							[
-								{ctor: '_Tuple2', _0: 'z-index', _1: '1'},
-								{ctor: '_Tuple2', _0: 'position', _1: 'fixed'},
-								{ctor: '_Tuple2', _0: 'top', _1: '10rem'},
-								{ctor: '_Tuple2', _0: 'display', _1: visible},
-								{ctor: '_Tuple2', _0: 'height', _1: '20rem'},
-								{ctor: '_Tuple2', _0: 'max-width', _1: '38em'}
-							]))
-					]),
-				_elm_lang$core$Native_List.fromArray(
-					[
-						A2(
-						_elm_lang$html$Html$p,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$class('m2 h3')
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									nm,
-									A2(
-										_elm_lang$core$Basics_ops['++'],
-										' ',
-										A2(
-											_elm_lang$core$Basics_ops['++'],
-											result,
-											A2(_elm_lang$core$Basics_ops['++'], ' with a bid of ', bd)))))
-							])),
-						A2(
-						_elm_lang$html$Html$p,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$class('ml2 h3')
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(
-								A2(_elm_lang$core$Basics_ops['++'], 'You had ', you))
-							])),
-						A2(
-						_elm_lang$html$Html$p,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$class('ml2 h3')
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text(
-								A2(
-									_elm_lang$core$Basics_ops['++'],
-									'There were ',
-									A2(_elm_lang$core$Basics_ops['++'], total, ' total')))
-							])),
-						A2(
-						_elm_lang$html$Html$button,
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html_Attributes$class('btn btn-outline white h6 right m1 ml4 mr4'),
-								_elm_lang$html$Html_Events$onClick(
-								_jeffreyrosenbluth$liarspoker$Model$GamePlay(
-									_jeffreyrosenbluth$liarspoker$GamePlay$PreResult(false)))
-							]),
-						_elm_lang$core$Native_List.fromArray(
-							[
-								_elm_lang$html$Html$text('X')
-							]))
-					]));
-		});
-	var _jeffreyrosenbluth$liarspoker$View$waitingView = function (c) {
+	var _jeffreyrosenbluth$liarspoker$View$waitingView = function (g) {
 		return A2(
 			_elm_lang$html$Html$div,
 			_elm_lang$core$Native_List.fromArray(
@@ -10413,7 +10433,7 @@
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								'Game Id ',
-								_elm_lang$core$Basics$toString(c.cmGame.gameId)))
+								_elm_lang$core$Basics$toString(g.gameId)))
 						])),
 					A2(
 					_elm_lang$html$Html$div,
@@ -10436,7 +10456,7 @@
 				]));
 	};
 	var _jeffreyrosenbluth$liarspoker$View$mainView = F2(
-		function (m, c) {
+		function (m, g) {
 			return A2(
 				_elm_lang$html$Html$div,
 				_elm_lang$core$Native_List.fromArray(
@@ -10467,8 +10487,9 @@
 								_elm_lang$html$Html$text(
 								_jeffreyrosenbluth$liarspoker$Model$showServerMsg(m.wsIncoming))
 							])),
-						A2(_jeffreyrosenbluth$liarspoker$View$previousHandView, m, c),
-						_elm_lang$core$Native_Utils.eq(c.cmHand, '') ? _jeffreyrosenbluth$liarspoker$View$waitingView(c) : A2(
+						_elm_lang$core$Native_Utils.eq(
+						_elm_lang$core$Basics$snd(g.variant),
+						'') ? _jeffreyrosenbluth$liarspoker$View$waitingView(g) : A2(
 						_elm_lang$html$Html$div,
 						_elm_lang$core$Native_List.fromArray(
 							[]),
@@ -10500,7 +10521,21 @@
 							]));
 				}
 			case 'JsonMsg':
-				return A2(_jeffreyrosenbluth$liarspoker$View$mainView, model, _p0._0);
+				var _p1 = _p0._0;
+				if (_p1.ctor === 'Ok') {
+					return A2(_jeffreyrosenbluth$liarspoker$View$mainView, model, _p1._0);
+				} else {
+					return A2(
+						_elm_lang$html$Html$div,
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html_Attributes$class('h2 p2 m2 red')
+							]),
+						_elm_lang$core$Native_List.fromArray(
+							[
+								_elm_lang$html$Html$text(_p1._0)
+							]));
+				}
 			default:
 				return A2(
 					_elm_lang$html$Html$div,
