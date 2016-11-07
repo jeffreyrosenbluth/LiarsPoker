@@ -5,7 +5,7 @@
 -- Game logic for LiarsPoker multiplayer game.
 -- According to the rules: http://www.liars-poker.com
 -- (c) 2016 Jeffrey Rosenbluth
---------------------------------------------------------
+----------------------------------------------------------
 
 module LiarsPoker where
 
@@ -85,7 +85,7 @@ addPlayer :: Game a -> Text -> Game a
 addPlayer game nm = game & players %~ flip snoc player
   where
     pId    = numOfPlayers game
-    player = Player pId nm 0 (Flags False False False False)
+    player = Player pId nm 0 (Flags False False False False) Nothing
 
 -- | Change bid to (Bid Rank Int), update the turn to the next player, and
 --   set the rebid flag.
@@ -118,7 +118,7 @@ legal game action pId = case action of
                 && b > game ^. bid
                 && pId ==  game ^. turn
   Challenge -> maybe False (/= t) bd && pId == game ^. turn
-  Count     -> maybe False (== t) bd && pId == game ^. turn
+  Count     -> maybe False (== t) bd && pId == game ^. turn && game ^. won == Nothing
   Say _     -> True
   Invalid _ -> False
   where
