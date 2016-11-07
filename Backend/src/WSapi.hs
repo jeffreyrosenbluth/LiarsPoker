@@ -151,12 +151,18 @@ singIn gmRef conn = do
       sendText conn ":signin"
       singIn gmRef conn
 
+-- | Remove a players connection and set him to a bot.
+-- XXX Need to handl the case when the next player is also a bot.
+-- XXX And what to do if the player is the dealer.
 disconnect :: Games -> Int -> Int -> IO ()
 disconnect gsRef gId pId = do
   gs <- readMVar gsRef
   (g, cs) <- takeMVar (gs ! gId)
+      -- Remove the websocket connection
   let cs' = IM.delete pId cs
+      -- Set player to a bot.
       p  = g ^. players & singular (ix pId) . bot .~ Just dumbBot
+      -- If it's the player who is disconnecting had the turn, make a move.
       g' | g ^. turn == pId = dumbBot $ g & players .~ p
          | otherwise = g & players .~ p
   putMVar (gs ! gId) (g', cs')
