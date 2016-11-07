@@ -26,6 +26,7 @@ import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
 import           Data.IntMap                    (IntMap, (!))
 import qualified Data.IntMap                    as IM
+import           Data.List                      (find)
 import           Data.List.Split                (chunksOf)
 import           Data.Maybe
 import           Data.Text                      (Text)
@@ -151,22 +152,36 @@ singIn gmRef conn = do
       sendText conn ":signin"
       singIn gmRef conn
 
+--  If the player is a bot, let the bot play until we reach a human player.
+advance :: (GameState, IntMap Message) -> (GameState, IntMap Message)
+advance (g, m) =
+  maybe (g, m)
+        (\move -> advance (let g' = move g in (g', clientMsgs g')))
+        (g ^. players . singular (ix (g ^. turn)) . bot)
+
 -- | Remove a players connection and set him to a bot.
--- XXX Need to handl the case when the next player is also a bot.
--- XXX And what to do if the player is the dealer.
+-- XXX What to do if the player is the dealer? Not going to worry about this
+--     now since we will probably elimante the dealer and have the game auto
+--     deal after animating the resluts.
 disconnect :: Games -> Int -> Int -> IO ()
 disconnect gsRef gId pId = do
   gs <- readMVar gsRef
   (g, cs) <- takeMVar (gs ! gId)
       -- Remove the websocket connection
   let cs' = IM.delete pId cs
-      -- Set player to a bot.
-      p  = g ^. players & singular (ix pId) . bot .~ Just dumbBot
-      -- If it's the player who is disconnecting had the turn, make a move.
-      g' | g ^. turn == pId = dumbBot $ g & players .~ p
-         | otherwise = g & players .~ p
-  putMVar (gs ! gId) (g', cs')
-  broadcast cs' (encodeCMs $ clientMsgs g')
+  -- if there are no players left then remove the game.
+  if IM.null cs' then do
+    s <- takeMVar gsRef
+    putMVar gsRef (IM.delete gId s)
+  -- Set player to a bot.
+  else do
+    let p = g ^. players & singular (ix pId) . bot .~ Just robot
+        -- If it's the player who is disconnecting had the turn, keep making
+        -- robot moves until we get to a human player.
+        g' = g & players .~ p
+        (g'', m) = advance (g', clientMsgs g')
+    putMVar (gs ! gId) (g'', cs')
+    broadcast cs' (encodeCMs $ m)
 
 new :: Games -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
@@ -190,6 +205,7 @@ joinGame gmRef conn nm gId = do
     let pId = numOfPlayers g
         g'  = addPlayer g nm
         cs' = IM.insert pId conn cs
+        p   = find (\x -> x ^. name == nm) (g ^. players)
     if | V.length (g' ^. players) == g' ^. numPlyrs -> do
            (gs, cm) <- actionMsgs <$> evalRandIO (deal g')
            putMVar gmState (gs, cs')
@@ -199,6 +215,15 @@ joinGame gmRef conn nm gId = do
            putMVar gmState (g', cs')
            broadcast cs' (encodeCMs $ clientMsgs g')
            finally (handle conn gmState pId) (disconnect gmRef gId pId)
+       | isJust p && isJust (_bot $ fromJust p) -> do
+            let (Just p') = p
+                pId' = p' ^. playerId
+                ps = g ^. players & singular (ix pId') . bot .~ Nothing
+                g'' = g & players .~ ps
+                cs'' = IM.insert pId' conn cs
+            putMVar gmState (g'', cs'')
+            broadcast cs'' (encodeCMs $ clientMsgs g'')
+            finally (handle conn gmState pId') (disconnect gmRef gId pId')
        | otherwise -> putMVar gmState (g, cs)
 
 handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
@@ -226,11 +251,7 @@ handle conn gmState pId = forever $ do
       (gs', cm) = case exec of
         Left t  -> errorMsgs gs t
         Right s -> actionMsgs s
-      (gs'', cm') = go (gs', cm)
-      go (g, c) = maybe (g,c)
-                        (\move -> go (let g' = move g
-                                      in (g', clientMsgs g')))
-                        (g ^. players . singular (ix (g ^. turn)) . bot)
+      (gs'', cm') = advance (gs', cm)
   swapMVar gmState (gs'', cs)
   broadcast cs (encodeCMs cm')
 
@@ -251,7 +272,7 @@ count g = g'
     b      = g ^. bid
     card   = b ^. bidRank
 
-dumbBot :: GameState -> GameState
-dumbBot g
+robot :: GameState -> GameState
+robot g
   | (Just $ g ^. turn) == g ^. bidder = nextPlayer . count $ g
   | otherwise = nextPlayer g
