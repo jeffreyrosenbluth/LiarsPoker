@@ -24,7 +24,8 @@ import           Data.Monoid                    ((<>))
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8     as LB
 import           Data.FileEmbed                 (embedDir)
-import           Data.IntMap                    (IntMap, insert, keys, member, (!))
+import           Data.IntMap                    (IntMap, (!))
+import qualified Data.IntMap                    as IM
 import           Data.List.Split                (chunksOf)
 import           Data.Maybe
 import           Data.Text                      (Text)
@@ -36,38 +37,30 @@ import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
-data Connection a = Connection
-  { _wsConn :: WS.Connection
-  , _ident :: a
-  }
-makeLenses ''Connection
-
-instance Eq a => Eq (Connection a) where
-  a == b = a ^. ident == b ^. ident
-
-type Clients   = [Connection Integer]
+type Clients   = IntMap WS.Connection
 type GameState = Game (Vector Hand)
 type Games     = MVar (IntMap (MVar (GameState, Clients)))
 type Message   = Either Text (Game (Int, Text))
 
 -- | Set the messages after a legal action and return it along with the
 --   GameState.
-actionMsgs :: GameState -> (GameState, [Message])
+actionMsgs :: GameState -> (GameState, IntMap Message)
 actionMsgs gs = (gs, clientMsgs gs)
 
 -- | Set the messages after an illegal action and return it along with the
 --   GameState and an error message.
-errorMsgs :: GameState -> Text -> (GameState, [Message])
-errorMsgs gs t = (gs, replicate (gs ^. numPlyrs) (Left t))
+errorMsgs :: GameState -> Text -> (GameState, IntMap Message)
+errorMsgs gs t = (gs, IM.fromList
+               $ zip [0..] (replicate (gs ^. numPlyrs) (Left t)))
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
-clientMsgs :: GameState -> [Message]
-clientMsgs g = map cm [0..(numOfPlayers g - 1)]
+clientMsgs :: GameState -> IntMap Message
+clientMsgs g = IM.fromList $ map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
       let h = T.pack . displayHand $ fromMaybe mempty ((g ^. variant) V.!? p)
-      in  Right $ (setButtonFlags g) & multiple .~ bonus g
-                                     & variant .~ (p, h)
+      in  (p, Right $ (setButtonFlags g) & multiple .~ bonus g
+                                         & variant .~ (p, h))
 
 -- | The flags of the player whose turn it is are set. All of the other player's
 --   flags are unchanged. These flags can be used by the front end to
@@ -84,7 +77,7 @@ setButtonFlags g  = g & players .~ p
        & i . raiseFlag .~ rf
        & i . chalFlag  .~ cf
        & i . countFlag .~ nf
-       & singular (ix 0) . flags . dealFlag .~df
+       & singular (ix 0) . flags . dealFlag .~ df
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
@@ -124,32 +117,33 @@ parseMessage t
   | otherwise = Invalid "Invalid message."
 
 -- | Version of sendTextData specialized to Text input.
-sendText :: Connection Integer -> Text -> IO ()
-sendText c = WS.sendTextData (c ^. wsConn)
+sendText :: WS.Connection -> Text -> IO ()
+sendText = WS.sendTextData
 
 -- | Send a list a messages to a list of clients.
-broadcast :: Clients -> [Text] -> IO ()
-broadcast cs ts = zipWithM_ WS.sendTextData (_wsConn <$> cs) ts
+broadcast :: Clients -> IntMap Text -> IO ()
+broadcast cs ts = sequence_ $ fmap (uncurry sendText) ps
+  where
+    ps = IM.intersectionWith (,) cs ts
 
--- | Serialize a list of client messages to a list of JSON text.
-encodeCMs :: [Message] -> [Text]
-encodeCMs = map (T.pack . LB.unpack . encode)
+-- | Serialize a map of client messages to a map of JSON text.
+encodeCMs :: IntMap Message -> IntMap Text
+encodeCMs = fmap (T.pack . LB.unpack . encode)
 
 staticApp :: Network.Wai.Application
 staticApp = Static.staticApp
           $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
-application :: Games -> MVar Integer -> WS.ServerApp
-application gm n pending = do
+application :: Games -> WS.ServerApp
+application gm pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
-  i <- modifyMVar n (\m -> return $ (m+1, m))
-  singIn gm (Connection conn i)
+  singIn gm conn
 
-singIn :: Games -> Connection Integer -> IO ()
+singIn :: Games -> WS.Connection -> IO ()
 singIn gmRef conn = do
   sendText conn ":signin"
-  msg <- WS.receiveData (conn ^. wsConn)
+  msg <- WS.receiveData conn
   case parseMessage msg of
     New nm nPlyrs -> new gmRef conn nm nPlyrs
     Join nm gId   -> joinGame gmRef conn nm gId
@@ -157,53 +151,53 @@ singIn gmRef conn = do
       sendText conn ":signin"
       singIn gmRef conn
 
-disconnect :: Games -> Int -> Int -> Connection Integer -> IO ()
-disconnect gsRef gId pId conn = do
+disconnect :: Games -> Int -> Int -> IO ()
+disconnect gsRef gId pId = do
   gs <- readMVar gsRef
   (g, cs) <- takeMVar (gs ! gId)
-  let cs' = filter (/= conn) cs
+  let cs' = IM.delete pId cs
       p  = g ^. players & singular (ix pId) . bot .~ Just dumbBot
       g' | g ^. turn == pId = dumbBot $ g & players .~ p
          | otherwise = g & players .~ p
   putMVar (gs ! gId) (g', cs')
   broadcast cs' (encodeCMs $ clientMsgs g')
 
-
-new :: Games -> Connection Integer -> Text -> Int -> IO ()
+new :: Games -> WS.Connection -> Text -> Int -> IO ()
 new gmRef conn nm nPlyrs = do
   gm <- takeMVar gmRef
-  let key = if null gm then 0 else 1 + (maximum . keys $ gm)
+  let key = if null gm then 0 else 1 + (maximum . IM.keys $ gm)
       g = addPlayer (newGame key nPlyrs) nm
       gmState = g
-  gs <- newMVar (gmState, [conn])
-  putMVar gmRef (insert key gs gm)
-  broadcast [conn] (encodeCMs $ clientMsgs g)
-  finally (handle conn gs 0) (disconnect gmRef key 0 conn)
+      im = IM.singleton 0 conn
+  gs <- newMVar (gmState, im)
+  putMVar gmRef (IM.insert key gs gm)
+  broadcast im (encodeCMs $ clientMsgs g)
+  finally (handle conn gs 0) (disconnect gmRef key 0)
 
-joinGame :: Games -> Connection Integer -> Text -> Int -> IO ()
+joinGame :: Games -> WS.Connection -> Text -> Int -> IO ()
 joinGame gmRef conn nm gId = do
   gm <- readMVar gmRef
   -- Only try to joinGame if the 'gameId' is in the 'Games'
-  when (member gId gm) $ do
+  when (IM.member gId gm) $ do
     let gmState = gm ! gId
     (g, cs) <- takeMVar gmState
     let pId = numOfPlayers g
         g'  = addPlayer g nm
-        cs' = cs ++ [conn]
-    if | V.length (g ^. players) == g ^. numPlyrs - 1 -> do
+        cs' = IM.insert pId conn cs
+    if | V.length (g' ^. players) == g' ^. numPlyrs -> do
            (gs, cm) <- actionMsgs <$> evalRandIO (deal g')
            putMVar gmState (gs, cs')
            broadcast cs' (encodeCMs cm)
-           finally (handle conn gmState pId) (disconnect gmRef gId pId conn)
-       | V.length (g ^. players) < g ^. numPlyrs -> do
+           finally (handle conn gmState pId) (disconnect gmRef gId pId)
+       | V.length (g' ^. players) < g' ^. numPlyrs -> do
            putMVar gmState (g', cs')
            broadcast cs' (encodeCMs $ clientMsgs g')
-           finally (handle conn gmState pId) (disconnect gmRef gId pId conn)
+           finally (handle conn gmState pId) (disconnect gmRef gId pId)
        | otherwise -> putMVar gmState (g, cs)
 
-handle :: Connection a -> MVar (GameState, Clients) -> Int -> IO ()
+handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
-  msg <- WS.receiveData (conn ^. wsConn)
+  msg <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
   r <- newStdGen
   let action    = parseMessage msg
@@ -253,5 +247,5 @@ count g = g'
 
 dumbBot :: GameState -> GameState
 dumbBot g
-  | (Just $ g ^. turn) == g ^. bidder = count g
+  | (Just $ g ^. turn) == g ^. bidder = nextPlayer . count $ g
   | otherwise = nextPlayer g
