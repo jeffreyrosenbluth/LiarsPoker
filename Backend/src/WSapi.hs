@@ -38,24 +38,24 @@ import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
 
-type Clients   = IntMap WS.Connection
-type GameState = Game (Vector Hand)
-type Games     = MVar (IntMap (MVar (GameState, Clients)))
-type Message   = Either Text (Game (Int, Text))
+type Clients = IntMap WS.Connection
+type GameH   = Game (Vector Hand)
+type State   = MVar (IntMap (MVar (GameH, Clients)))
+type Message = Either Text (Game (Int, Text))
 
 -- | Set the messages after a legal action and return it along with the
---   GameState.
-actionMsgs :: GameState -> (GameState, IntMap Message)
-actionMsgs gs = (gs, clientMsgs gs)
+--   GameH.
+actionMsgs :: GameH -> (GameH, IntMap Message)
+actionMsgs g = (g, clientMsgs g)
 
 -- | Set the messages after an illegal action and return it along with the
---   GameState and an error message.
-errorMsgs :: GameState -> Text -> (GameState, IntMap Message)
-errorMsgs gs t = (gs, IM.fromList
-               $ zip [0..] (replicate (gs ^. numPlyrs) (Left t)))
+--   GameH and an error message.
+errorMsgs :: GameH -> Text -> (GameH, IntMap Message)
+errorMsgs g t = (g, IM.fromList
+               $ zip [0..] (replicate (g ^. numPlyrs) (Left t)))
 
 -- | A utility function to set the clienMgss to for broadcasting to each client.
-clientMsgs :: GameState -> IntMap Message
+clientMsgs :: GameH -> IntMap Message
 clientMsgs g = IM.fromList $ map cm [0..(numOfPlayers g - 1)]
   where
     cm p =
@@ -135,27 +135,27 @@ staticApp :: Network.Wai.Application
 staticApp = Static.staticApp
           $ Static.embeddedSettings $(embedDir "../Frontend/dist")
 
-application :: Games -> WS.ServerApp
+application :: State -> WS.ServerApp
 application gm pending = do
   conn <- WS.acceptRequest pending
   WS.forkPingThread conn 30
   singIn gm conn
 
-singIn :: Games -> WS.Connection -> IO ()
-singIn gmRef conn = do
+singIn :: State -> WS.Connection -> IO ()
+singIn st conn = do
   sendText conn ":signin"
   msg <- WS.receiveData conn
   case parseMessage msg of
-    New nm nPlyrs -> new gmRef conn nm nPlyrs
-    Join nm gId   -> joinGame gmRef conn nm gId
+    New nm nPlyrs -> new st conn nm nPlyrs
+    Join nm gId   -> joinGame st conn nm gId
     _ -> do
       sendText conn ":signin"
-      singIn gmRef conn
+      singIn st conn
 
 --  If the player is a bot, let the bot play until we reach a human player.
-advance :: (GameState, IntMap Message) -> (GameState, IntMap Message)
-advance (g, m) =
-  maybe (g, m)
+advance :: (GameH, IntMap Message) -> (GameH, IntMap Message)
+advance (g, ms) =
+  maybe (g, ms)
         (\move -> advance (let g' = move g in (g', clientMsgs g')))
         (g ^. players . singular (ix (g ^. turn)) . bot)
 
@@ -163,16 +163,16 @@ advance (g, m) =
 -- XXX What to do if the player is the dealer? Not going to worry about this
 --     now since we will probably elimante the dealer and have the game auto
 --     deal after animating the resluts.
-disconnect :: Games -> Int -> Int -> IO ()
-disconnect gsRef gId pId = do
-  gs <- readMVar gsRef
+disconnect :: State -> Int -> Int -> IO ()
+disconnect st gId pId = do
+  gs <- readMVar st
   (g, cs) <- takeMVar (gs ! gId)
       -- Remove the websocket connection
   let cs' = IM.delete pId cs
   -- if there are no players left then remove the game.
   if IM.null cs' then do
-    s <- takeMVar gsRef
-    putMVar gsRef (IM.delete gId s)
+    s <- takeMVar st
+    putMVar st (IM.delete gId s)
   -- Set player to a bot.
   else do
     let p = g ^. players & singular (ix pId) . bot .~ Just robot
@@ -183,22 +183,23 @@ disconnect gsRef gId pId = do
     putMVar (gs ! gId) (g'', cs')
     broadcast cs' (encodeCMs $ m)
 
-new :: Games -> WS.Connection -> Text -> Int -> IO ()
-new gmRef conn nm nPlyrs = do
-  gm <- takeMVar gmRef
+new :: State -> WS.Connection -> Text -> Int -> IO ()
+new st conn nm nPlyrs = do
+  gm <- takeMVar st
   let key = if null gm then 0 else 1 + (maximum . IM.keys $ gm)
       g = addPlayer (newGame key nPlyrs) nm
       gmState = g
       im = IM.singleton 0 conn
   gs <- newMVar (gmState, im)
-  putMVar gmRef (IM.insert key gs gm)
+  putMVar st (IM.insert key gs gm)
   broadcast im (encodeCMs $ clientMsgs g)
-  finally (handle conn gs 0) (disconnect gmRef key 0)
+  finally (handle conn gs 0) (disconnect st key 0)
 
-joinGame :: Games -> WS.Connection -> Text -> Int -> IO ()
-joinGame gmRef conn nm gId = do
-  gm <- readMVar gmRef
-  -- Only try to joinGame if the 'gameId' is in the 'Games'
+joinGame :: State -> WS.Connection -> Text -> Int -> IO ()
+joinGame st conn nm gId = do
+  gm <- readMVar st
+
+  -- Only try to join the game if the 'gameId' is valid.
   when (IM.member gId gm) $ do
     let gmState = gm ! gId
     (g, cs) <- takeMVar gmState
@@ -206,15 +207,21 @@ joinGame gmRef conn nm gId = do
         g'  = addPlayer g nm
         cs' = IM.insert pId conn cs
         p   = find (\x -> x ^. name == nm) (g ^. players)
+
+       -- Add the final player to the game, deal and start the game.
     if | V.length (g' ^. players) == g' ^. numPlyrs -> do
            (gs, cm) <- actionMsgs <$> evalRandIO (deal g')
            putMVar gmState (gs, cs')
            broadcast cs' (encodeCMs cm)
-           finally (handle conn gmState pId) (disconnect gmRef gId pId)
+           finally (handle conn gmState pId) (disconnect st gId pId)
+
+       -- Add a player to the game.
        | V.length (g' ^. players) < g' ^. numPlyrs -> do
            putMVar gmState (g', cs')
            broadcast cs' (encodeCMs $ clientMsgs g')
-           finally (handle conn gmState pId) (disconnect gmRef gId pId)
+           finally (handle conn gmState pId) (disconnect st gId pId)
+
+       -- Put a player who was disconneted back in the game.
        | isJust p && isJust (_bot $ fromJust p) -> do
             let (Just p') = p
                 pId' = p' ^. playerId
@@ -223,10 +230,10 @@ joinGame gmRef conn nm gId = do
                 cs'' = IM.insert pId' conn cs
             putMVar gmState (g'', cs'')
             broadcast cs'' (encodeCMs $ clientMsgs g'')
-            finally (handle conn gmState pId') (disconnect gmRef gId pId')
+            finally (handle conn gmState pId') (disconnect st gId pId')
        | otherwise -> putMVar gmState (g, cs)
 
-handle :: WS.Connection -> MVar (GameState, Clients) -> Int -> IO ()
+handle :: WS.Connection -> MVar (GameH, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
@@ -255,7 +262,7 @@ handle conn gmState pId = forever $ do
   swapMVar gmState (gs'', cs)
   broadcast cs (encodeCMs cm')
 
-deal :: (RandomGen g) => GameState -> Rand g GameState
+deal :: (RandomGen g) => GameH -> Rand g GameH
 deal g = do
   cards <- replicateM (numOfPlayers g * cardsPerHand) $ getRandomR (0, 9)
   f <- getRandomR (0, numOfPlayers g - 1)
@@ -263,7 +270,7 @@ deal g = do
       hs = V.fromList $ toHand <$> chunksOf cardsPerHand cards
   return $ g' & variant .~ hs
 
-count :: GameState -> GameState
+count :: GameH -> GameH
 count g = g'
   where
     cnt    = countRank (g ^. variant) card
@@ -272,7 +279,7 @@ count g = g'
     b      = g ^. bid
     card   = b ^. bidRank
 
-robot :: GameState -> GameState
+robot :: GameH -> GameH
 robot g
   | (Just $ g ^. turn) == g ^. bidder = nextPlayer . count $ g
   | otherwise = nextPlayer g
