@@ -10,7 +10,10 @@
 -- Websockets API for LiarsPoker multiplayer game
 -- (c) 2016 Jeffrey Rosenbluth
 --------------------------------------------------------
-module WSapi where
+module WSapi
+  ( application
+  , staticApp
+  ) where
 
 import           LiarsPoker
 import           Types

@@ -7,11 +7,24 @@
 -- (c) 2016 Jeffrey Rosenbluth
 ----------------------------------------------------------
 
-module LiarsPoker where
+module LiarsPoker
+  ( cardsPerHand
+  , numOfPlayers
+  , displayHand
+  , newGame
+  , addPlayer
+  , bonus
+  , legal
+  , mkBid
+  , nextPlayer
+  , resetGame
+  , countRank
+  , scoreGame
+  ) where
 
 import           Types
 
-import           Control.Lens ((^?), (^.), (&), (%~), (.~), ix, over)
+import           Control.Lens ((^.), (&), (%~), (.~), over)
 import           Data.List    (intersperse)
 import           Data.Maybe
 import           Data.Text    (Text)
@@ -32,20 +45,10 @@ countRank hs rank = sum $ getCount rank <$> hs
 getCount :: Rank -> Hand -> Int
 getCount rank hand = length $ filter (== rank) hand
 
--- | Given a game and a playerId, return the players name if the playerId exists.
-getPlayerName :: Game a -> Int -> Maybe Text
-getPlayerName game pId = game ^? players . ix pId . name
-
 -- | The order of the cards does not really have to be random, just look random.
 --   So we use a trick of setting the seed of the generator to the hand itself.
 displayHand :: Hand -> String
 displayHand = intersperse ' ' . concatMap show
-
-getBidderName :: Game a -> Text
-getBidderName g =
-  maybe "Nobody"
-        (\i -> g ^. players . ix i . name)
-        (g ^. bidder)
 
 -- | Create a new game from a gameId and a number of invited players.
 newGame :: Int -> Int -> Game (Vector Hand)

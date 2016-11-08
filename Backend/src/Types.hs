@@ -15,10 +15,10 @@
 
 module Types where
 
-import           Control.Lens            hiding ((.=))
+import           Control.Lens (makeLenses, makePrisms)
 import           Data.Aeson
-import           Data.Text               (Text)
-import           Data.Vector             (Vector)
+import           Data.Text    (Text)
+import           Data.Vector  (Vector)
 import           GHC.Generics
 
 type Rank  = Int
