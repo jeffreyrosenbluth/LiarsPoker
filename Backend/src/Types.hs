@@ -17,15 +17,11 @@ module Types where
 
 import           Control.Lens            hiding ((.=))
 import           Data.Aeson
-import           Data.Map                (Map)
+import           Data.Map                (Map, insertWith, foldrWithKey)
 import qualified Data.Map                as M
 import           Data.Text               (Text)
 import           Data.Vector             (Vector)
 import           GHC.Generics
-
---------------------------------------------------------------------------------
--- For game logic.
---------------------------------------------------------------------------------
 
 type Rank  = Int
 type Hand  = Map Rank Int
@@ -33,6 +29,12 @@ type Hands = Vector Hand
 
 instance ToJSON Hand where
   toJSON = toJSON . M.toList
+
+hand :: Iso' Hand [Int]
+hand = iso fromHand toHand
+  where
+    toHand = foldr (\n -> insertWith (+) n 1) mempty
+    fromHand = foldrWithKey (\k a b -> replicate a k ++ b) []
 
 data Bid = Bid
   { _bidRank  :: !Rank

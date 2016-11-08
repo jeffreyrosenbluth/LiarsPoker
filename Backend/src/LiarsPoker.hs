@@ -12,12 +12,13 @@ module LiarsPoker where
 import           Types
 
 import           Control.Lens ((^?), (^.), (&), (%~), (.~), ix, over)
-import           Data.List    (intersperse)
-import           Data.Map     (insertWith, foldrWithKey, lookup)
+import           Data.List    (intersperse, sort, foldl')
+import           Data.Map     (lookup)
 import           Data.Maybe
 import           Data.Text    (Text)
 import           Data.Vector  (Vector, (!?), snoc, imap, length)
 import           Prelude      hiding (length, lookup)
+import           System.Random
 
 cardsPerHand :: Int
 cardsPerHand = 8
@@ -36,19 +37,16 @@ getCount rank h = fromMaybe 0 (lookup rank h)
 getPlayerName :: Game a -> Int -> Maybe Text
 getPlayerName game pId = game ^? players . ix pId . name
 
-toHand :: [Int] -> Hand
-toHand = foldr (\n -> insertWith (+) n 1) mempty
-
-firstDigit :: Int -> Char
-firstDigit n =
-  case show n of
-    (x:_) -> x
-    ""    -> error "The impossible happend, show int == []"
-
+-- | The order of the cards does not really have to be random, just look random.
+--   So we use a trick of setting the seed of the generator to the hand itself.
 displayHand :: Hand -> String
-displayHand h = intersperse ' ' $ foldrWithKey f "" h
+displayHand h = intersperse ' ' $ concatMap show ps
   where
-    f k a b = replicate a (firstDigit k) ++ b
+    cs = h ^. hand
+    seed = foldl' (\n d -> 10 * n + d) 0 cs
+    rs :: [Double]
+    rs = take cardsPerHand $ randomRs (0, 1) (mkStdGen seed)
+    ps = map snd (sort $ zip rs cs)
 
 getBidderName :: Game a -> Text
 getBidderName g =

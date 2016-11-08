@@ -49,7 +49,7 @@ actionMsgs :: GameH -> (GameH, IntMap Message)
 actionMsgs g = (g, clientMsgs g)
 
 -- | Set the messages after an illegal action and return it along with the
---   GameH and an error message.
+--   GameH and an error message for each client.
 errorMsgs :: GameH -> Text -> (GameH, IntMap Message)
 errorMsgs g t = (g, IM.fromList
                $ zip [0..] (replicate (g ^. numPlyrs) (Left t)))
@@ -73,12 +73,12 @@ setButtonFlags g  = g & players .~ p
     cf = (Just $ g ^. turn) /= g ^. bidder && isJust (g ^. bidder)
     nf = (Just $ g ^. turn) == g ^. bidder && g ^. won == Nothing
     df =  not (g ^. inProgress)
-    i  = singular (ix (g ^. turn)) . flags
+    i  =  ix (g ^. turn) . flags
     p  = (g ^. players)
        & i . raiseFlag .~ rf
        & i . chalFlag  .~ cf
        & i . countFlag .~ nf
-       & singular (ix 0) . flags . dealFlag .~ df
+       & ix 0 . flags . dealFlag .~ df
 
 -- | Parse a cleint message of the form "cmd name:-:n", e.g. "join Jeff:-:3".
 parseTextInt :: Text -> Maybe (Text, Int)
@@ -121,7 +121,7 @@ parseMessage t
 sendText :: WS.Connection -> Text -> IO ()
 sendText = WS.sendTextData
 
--- | Send a list a messages to a list of clients.
+-- | Send a list a messages to a list of clients. Don't send messages to bots.
 broadcast :: Clients -> IntMap Text -> IO ()
 broadcast cs ts = sequence_ $ fmap (uncurry sendText) ps
   where
@@ -141,6 +141,7 @@ application gm pending = do
   WS.forkPingThread conn 30
   singIn gm conn
 
+-- | Start by responding to a new game or join game message.
 singIn :: State -> WS.Connection -> IO ()
 singIn st conn = do
   sendText conn ":signin"
@@ -167,7 +168,7 @@ disconnect :: State -> Int -> Int -> IO ()
 disconnect st gId pId = do
   gs <- readMVar st
   (g, cs) <- takeMVar (gs ! gId)
-      -- Remove the websocket connection
+  -- Remove the websocket connection
   let cs' = IM.delete pId cs
   -- if there are no players left then remove the game.
   if IM.null cs' then do
@@ -175,7 +176,7 @@ disconnect st gId pId = do
     putMVar st (IM.delete gId s)
   -- Set player to a bot.
   else do
-    let p = g ^. players & singular (ix pId) . bot .~ Just robot
+    let p = g ^. players & ix pId . bot .~ Just robot
         -- If it's the player who is disconnecting had the turn, keep making
         -- robot moves until we get to a human player.
         g' = g & players .~ p
@@ -225,7 +226,7 @@ joinGame st conn nm gId = do
        | isJust p && isJust (_bot $ fromJust p) -> do
             let (Just p') = p
                 pId' = p' ^. playerId
-                ps = g ^. players & singular (ix pId') . bot .~ Nothing
+                ps = g ^. players & ix pId' . bot .~ Nothing
                 g'' = g & players .~ ps
                 cs'' = IM.insert pId' conn cs
             putMVar gmState (g'', cs'')
@@ -267,7 +268,7 @@ deal g = do
   cards <- replicateM (numOfPlayers g * cardsPerHand) $ getRandomR (0, 9)
   f <- getRandomR (0, numOfPlayers g - 1)
   let g' = resetGame f g
-      hs = V.fromList $ toHand <$> chunksOf cardsPerHand cards
+      hs = V.fromList $ (view (from hand)) <$> chunksOf cardsPerHand cards
   return $ g' & variant .~ hs
 
 count :: GameH -> GameH
