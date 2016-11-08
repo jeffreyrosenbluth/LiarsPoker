@@ -268,7 +268,7 @@ deal g = do
   cards <- replicateM (numOfPlayers g * cardsPerHand) $ getRandomR (0, 9)
   f <- getRandomR (0, numOfPlayers g - 1)
   let g' = resetGame f g
-      hs = V.fromList $ (view (from hand)) <$> chunksOf cardsPerHand cards
+      hs = V.fromList $ chunksOf cardsPerHand cards
   return $ g' & variant .~ hs
 
 count :: GameH -> GameH

@@ -12,26 +12,25 @@ module LiarsPoker where
 import           Types
 
 import           Control.Lens ((^?), (^.), (&), (%~), (.~), ix, over)
-import           Data.List    (intersperse, sort, foldl')
-import           Data.Map     (lookup)
+import           Data.List    (intersperse)
 import           Data.Maybe
 import           Data.Text    (Text)
-import           Data.Vector  (Vector, (!?), snoc, imap, length)
-import           Prelude      hiding (length, lookup)
-import           System.Random
+import qualified Data.Vector  as V
+import           Data.Vector  (Vector, (!?), snoc, imap)
+import           Prelude      hiding (lookup)
 
 cardsPerHand :: Int
 cardsPerHand = 8
 
 numOfPlayers :: Game a -> Int
-numOfPlayers g = length $ g ^. players
+numOfPlayers g = V.length $ g ^. players
 
 -- | Total number of Rank in the game.
 countRank :: Hands -> Rank -> Int
 countRank hs rank = sum $ getCount rank <$> hs
 
 getCount :: Rank -> Hand -> Int
-getCount rank h = fromMaybe 0 (lookup rank h)
+getCount rank hand = length $ filter (== rank) hand
 
 -- | Given a game and a playerId, return the players name if the playerId exists.
 getPlayerName :: Game a -> Int -> Maybe Text
@@ -40,13 +39,7 @@ getPlayerName game pId = game ^? players . ix pId . name
 -- | The order of the cards does not really have to be random, just look random.
 --   So we use a trick of setting the seed of the generator to the hand itself.
 displayHand :: Hand -> String
-displayHand h = intersperse ' ' $ concatMap show ps
-  where
-    cs = h ^. hand
-    seed = foldl' (\n d -> 10 * n + d) 0 cs
-    rs :: [Double]
-    rs = take cardsPerHand $ randomRs (0, 1) (mkStdGen seed)
-    ps = map snd (sort $ zip rs cs)
+displayHand = intersperse ' ' . concatMap show
 
 getBidderName :: Game a -> Text
 getBidderName g =
@@ -144,7 +137,7 @@ hero game
   | otherwise = 0
   where
     Just bdr = game ^. bidder
-    q = fromMaybe 0 $ lookup bc =<< (game ^. variant) !? bdr
+    q = fromMaybe 0 $ length . (filter (== bc)) <$> (game ^. variant) !? bdr
     bc = game ^. bid ^. bidRank
 
 
