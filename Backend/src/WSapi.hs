@@ -279,7 +279,7 @@ count g = g'
   where
     cnt    = countRank (g ^. variant) card
     result = g ^. bid . bidQuant <= cnt || cnt == 0
-    g'     = scoreGame (g & won .~ Just result & inProgress .~ False)
+    g'     = scoreGame (g & won .~ Just result)
     b      = g ^. bid
     card   = b ^. bidRank
 

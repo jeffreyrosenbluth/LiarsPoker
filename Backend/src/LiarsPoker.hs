@@ -149,7 +149,8 @@ hero game
 scoreGame :: Game (Vector Hand) -> Game (Vector Hand)
 scoreGame game =
   game & players %~ imap (\i p -> over score (+ (if (bdr == Just i) then b else a)) p)
-       & baseStake .~ if h == 1 then 2 else bns
+       & baseStake .~ (if h == 1 then 2 else bns)
+       & inProgress .~ False
   where
     bdr    = game ^. bidder
     (a, b) =

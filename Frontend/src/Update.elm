@@ -84,10 +84,10 @@ updateCM : Game -> Model -> Model
 updateCM g model =
     let
         q =
-            model.gamePlay.quant
+            if g.inProgress then model.gamePlay.quant else 0
 
         r =
-            model.gamePlay.rank
+            if g.inProgress then model.gamePlay.rank else 0
     in
         { model
             | wsIncoming = JsonMsg (Ok g)
