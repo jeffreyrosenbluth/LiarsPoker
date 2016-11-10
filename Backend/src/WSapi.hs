@@ -40,6 +40,8 @@ import qualified Data.Vector                    as V
 import qualified Network.Wai
 import qualified Network.Wai.Application.Static as Static
 import qualified Network.WebSockets             as WS
+import           System.Random.TF
+
 
 type Clients = IntMap WS.Connection
 type GameH   = Game (Vector Hand)
@@ -214,7 +216,8 @@ joinGame st conn nm gId = do
 
        -- Add the final player to the game, deal and start the game.
     if | V.length (g' ^. players) == g' ^. numPlyrs -> do
-           (gs, cm) <- actionMsgs <$> evalRandIO (deal g')
+           r <- newTFGen
+           let (gs, cm) = actionMsgs $ evalRand (deal g') r
            putMVar gmState (gs, cs')
            broadcast cs' (encodeCMs cm)
            finally (handle conn gmState pId) (disconnect st gId pId)
@@ -241,7 +244,7 @@ handle :: WS.Connection -> MVar (GameH, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
-  r <- newStdGen
+  r <- newTFGen
   let action    = parseMessage msg
       yes       = legal gs action pId
       exec = case action of
