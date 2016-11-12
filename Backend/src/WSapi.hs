@@ -244,30 +244,33 @@ handle :: WS.Connection -> MVar (GameH, Clients) -> Int -> IO ()
 handle conn gmState pId = forever $ do
   msg <- WS.receiveData conn
   (gs, cs) <- readMVar gmState
-  r <- newTFGen
   let action    = parseMessage msg
       yes       = legal gs action pId
-      exec = case action of
-        Join n _        -> Left $ "Cannot reset player name to: " <> n
-        New _ _         -> Left "Cannot start a new game"
-        Deal | yes      -> Right $ evalRand (deal gs) r
-        Raise b | yes   -> Right $ mkBid gs b
-        Challenge | yes -> Right $ nextPlayer gs
-        Count | yes     -> Right $ count gs
-        Say _           -> Left "Not implemented yet"
-        Invalid m       -> Left $ "Cannot parse message: " <> m
-        _               -> Left $ "Illegal action: " <> T.pack (show action)
+  case action of
+    Join n _        -> handleError cs gs ("Cannot reset player name to: " <> n)
+    New _ _         -> handleError cs gs "Cannot start a new game"
+    Deal | yes      -> do
+                         r <- newTFGen
+                         update cs (evalRand (deal gs) r) gmState
+    Raise b | yes   -> update cs (mkBid gs b) gmState
+    Challenge | yes -> update cs (nextPlayer gs) gmState
+    Count | yes     -> update cs (count gs) gmState
+    Say _           -> handleError cs gs "Not implemented yet"
+    Invalid m       -> handleError cs gs ("Cannot parse message: " <> m)
+    _               -> handleError cs gs ("Illegal action: " <> T.pack (show action))
 
-      {- If the player with the turn is a bot, then let the bot make a move.
-         We assume that the bot can only make legal moves.
-         There must be at least one human player, otherwise the server will
-         loop forever. -}
-      (gs', cm) = case exec of
-        Left t  -> errorMsgs gs t
-        Right s -> actionMsgs s
-      (gs'', cm') = advance (gs', cm)
-  swapMVar gmState (gs'', cs)
-  broadcast cs (encodeCMs cm')
+handleError :: Clients -> GameH -> Text -> IO ()
+handleError cs g err = broadcast cs (encodeCMs . snd $ (errorMsgs g err))
+
+update :: Clients -> GameH -> MVar (GameH, Clients) -> IO ()
+update cs g gState = do
+{- If the player with the turn is a bot, then let the bot make a move.
+   We assume that the bot can only make legal moves.
+   There must be at least one human player, otherwise the server will
+   loop forever. -}
+  let (g', cm) = advance (actionMsgs g)
+  swapMVar gState (g', cs)
+  broadcast cs $ encodeCMs cm
 
 deal :: (RandomGen g) => GameH -> Rand g GameH
 deal g = do
